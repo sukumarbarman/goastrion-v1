@@ -14,7 +14,7 @@ def geocode_place(place: str) -> Tuple[Optional[str], Optional[float], Optional[
         return cached
 
     try:
-        geolocator = Nominatim(user_agent="GoAstrion/1.0 (contact@goastrion.com)")
+        geolocator = Nominatim(user_agent="GoAstrion/1.0 (contact@goastrion_backend.com)")
         loc = geolocator.geocode(place, addressdetails=False, timeout=10)
         if not loc:
             return None, None, None
@@ -51,7 +51,7 @@ def geocode_place(place: str) -> Tuple[Optional[str], Optional[float], Optional[
     if not _HAS_GEOPY:
         return None, None, None
     try:
-        geolocator = Nominatim(user_agent="GoAstrion/1.0 (contact@goastrion.com)")
+        geolocator = Nominatim(user_agent="GoAstrion/1.0 (contact@goastrion_backend.com)")
         loc = geolocator.geocode(place)
         if not loc: return None, None, None
         return loc.address, loc.latitude, loc.longitude
