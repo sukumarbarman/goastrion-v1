@@ -1,0 +1,75 @@
+# ====================
+# Global
+# ====================
+.DS_Store
+Thumbs.db
+*.log
+*.pot
+*.pyc
+*.pyo
+__pycache__/
+*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.iml
+
+# Environment
+.env
+*.venv
+.venv/
+env/
+ENV/
+venv/
+venv.bak/
+
+# ====================
+# Django backend
+# ====================
+/staticfiles/
+/media/
+/local_settings.py
+db.sqlite3
+
+# Migrations (keep if you want schema in repo)
+*/migrations/*.pyc
+*/migrations/__pycache__/
+*/migrations/*~
+# Uncomment below if you don’t want migration history in repo
+# */migrations/*.py
+
+# ====================
+# Next.js frontend
+# ====================
+# dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# build outputs
+.next/
+out/
+dist/
+
+# production
+*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# lockfiles (optional — keep if you want reproducible builds)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# ====================
+# OS / Temp
+# ====================
+*.swp
+*.swo
+*.tmp
+*.temp
+*.bak
