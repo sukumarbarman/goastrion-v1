@@ -25,7 +25,14 @@ SECRET_KEY = 'django-insecure-j!&^2nau!-&j3s#x2stdj9o-gdblgl$r&_8gs_qmmd=qb$9%ay
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+
+ALLOWED_HOSTS = [
+    "goastrion.com",
+    "api.goastrion.com",
+    "localhost",
+    "127.0.0.1",
+]
+
 
 
 # Application definition
