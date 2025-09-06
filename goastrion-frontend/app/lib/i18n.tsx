@@ -1,44 +1,65 @@
 "use client";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+
+import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { dictionaries } from "./dictionaries";
 
 type Locale = keyof typeof dictionaries;
 
-type Ctx = {
+type I18nContextValue = {
   locale: Locale;
   setLocale: (l: Locale) => void;
   t: (key: string) => string;
 };
 
-const I18nCtx = createContext<Ctx>({
+const noopSetLocale = (_l: Locale) => {};
+
+const I18nCtx = createContext<I18nContextValue>({
   locale: "en",
-  setLocale: () => {},
+  setLocale: noopSetLocale,
   t: (k) => k,
 });
 
-function get(obj: any, path: string) {
-  return path.split(".").reduce((acc, part) => (acc ? acc[part] : undefined), obj);
+/** Safe getter for dot-separated keys, without using `any`. */
+function getPath(obj: unknown, path: string): unknown {
+  let cur: unknown = obj;
+  for (const part of path.split(".")) {
+    if (cur && typeof cur === "object" && part in (cur as Record<string, unknown>)) {
+      cur = (cur as Record<string, unknown>)[part];
+    } else {
+      return undefined;
+    }
+  }
+  return cur;
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // IMPORTANT: start with 'en' (same as SSR) — do NOT read localStorage here
+  // Start with 'en' (same as SSR) — do NOT read localStorage here synchronously
   const [locale, setLocale] = useState<Locale>("en");
 
-  // After mount, read saved locale and apply
+  // After mount, read saved locale and apply (no dependency on `locale`, so no lint warning)
   useEffect(() => {
     try {
       const saved = localStorage.getItem("ga_locale") as Locale | null;
-      if (saved && saved !== locale) setLocale(saved);
-    } catch {/* ignore */}
+      if (saved) setLocale(saved);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   // Anytime locale changes, persist it
   useEffect(() => {
-    try { localStorage.setItem("ga_locale", locale); } catch {/* ignore */}
+    try {
+      localStorage.setItem("ga_locale", locale);
+    } catch {
+      /* ignore */
+    }
   }, [locale]);
 
   const t = useMemo(() => {
-    return (key: string) => get(dictionaries[locale], key) ?? key;
+    return (key: string) => {
+      const val = getPath(dictionaries[locale], key);
+      return typeof val === "string" ? val : key;
+    };
   }, [locale]);
 
   return (

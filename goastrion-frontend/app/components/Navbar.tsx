@@ -6,7 +6,14 @@ import Container from "./Container";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useI18n } from "../lib/i18n";
 
-export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: any) {
+// Define props interface
+interface NavbarProps {
+  onOpenLogin: () => void;
+  onOpenSignup: () => void;
+  onOpenAppt: () => void;
+}
+
+export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: NavbarProps) {
   const { t } = useI18n();
 
   return (

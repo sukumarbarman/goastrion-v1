@@ -1,22 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import Container from "./Container";
 import { useI18n } from "../lib/i18n";
-
-
 
 type ApiResp = {
   svg: string;
   summary: Record<string, string>;
-  meta: any;
+  meta: Record<string, unknown>;
   error?: string;
 };
 
-
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
-
 
 function tzOffsetHoursFor(date: Date) {
   return -date.getTimezoneOffset() / 60;
@@ -25,12 +20,14 @@ function tzOffsetHoursFor(date: Date) {
 export default function CreateChartClient() {
   const { t } = useI18n();
 
-  // --- existing state ---
+  // --- form state ---
   const [dob, setDob] = useState("");
   const [tob, setTob] = useState("");
   const [place, setPlace] = useState("");
   const [lat, setLat] = useState("22.5726");
   const [lon, setLon] = useState("88.3639");
+
+  // --- ui state ---
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -38,41 +35,45 @@ export default function CreateChartClient() {
   const [svg, setSvg] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, string> | null>(null);
 
-  // --- NEW: debounce helpers (MUST be inside the component) ---
-  const [placeTyping, setPlaceTyping] = useState("");    // mirror of `place` for debounce
-  const [lastQuery, setLastQuery] = useState<string | null>(null);
+  // --- debounce helper state ---
+  const [placeTyping, setPlaceTyping] = useState(""); // mirror of `place`
+  const lastQueryRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    const q = placeTyping.trim();
-    if (q.length < 3) return;
-    const handle = setTimeout(() => {
-      lookupPlace(q);
-    }, 500);
-    return () => clearTimeout(handle);
-  }, [placeTyping]);
+  const lookupPlace = useCallback(async (raw: string) => {
+    const query = raw.trim();
+    if (!query) return;
 
-  async function lookupPlace(q: string) {
-    const query = q.trim();
-    if (!query || query === lastQuery) return; // avoid duplicate fetches
-    setLastQuery(query);
+    // avoid duplicate fetches
+    if (lastQueryRef.current === query) return;
+    lastQueryRef.current = query;
+
     setGeoMsg(null);
     setGeoLoading(true);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000"}/api/geocode?place=` +
-          encodeURIComponent(query)
-      );
-      const data = await res.json();
+      const res = await fetch(`${API_BASE}/api/geocode?place=${encodeURIComponent(query)}`);
+      const data = (await res.json()) as { address?: string; lat?: number; lon?: number; error?: string };
       if (!res.ok) throw new Error(data?.error || `Geocode failed (${res.status})`);
-      setLat(String(data.lat));
-      setLon(String(data.lon));
-      setGeoMsg(data.address || "Location found.");
-    } catch (e: any) {
-      setGeoMsg(e.message || "Could not find that place.");
+
+      if (typeof data.lat === "number" && typeof data.lon === "number") {
+        setLat(String(data.lat));
+        setLon(String(data.lon));
+      }
+      setGeoMsg(data.address || t("create.locationFound"));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t("errors.genericGeocode");
+      setGeoMsg(msg);
     } finally {
       setGeoLoading(false);
     }
-  }
+  }, []);
+
+  // Debounce typing → geocode
+  useEffect(() => {
+    const q = placeTyping.trim();
+    if (q.length < 3) return;
+    const handle = setTimeout(() => lookupPlace(q), 500);
+    return () => clearTimeout(handle);
+  }, [placeTyping, lookupPlace]);
 
   async function onGenerate() {
     setError(null);
@@ -80,11 +81,11 @@ export default function CreateChartClient() {
     setSummary(null);
 
     if (!dob || !tob || !lat || !lon) {
-      setError("Please enter date, time, latitude and longitude.");
+      setError(t("create.validation.missingFields"));
       return;
     }
 
-    // Build local date + time → ISO UTC string
+    // Local date+time → ISO UTC
     const [hh, mm] = tob.split(":").map(Number);
     const d = new Date(dob);
     d.setHours(hh ?? 0, mm ?? 0, 0, 0);
@@ -108,8 +109,9 @@ export default function CreateChartClient() {
 
       setSvg(data.svg);
       setSummary(data.summary);
-    } catch (e: any) {
-      setError(e.message || "Failed to generate chart.");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t("errors.genericGenerate");
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -125,6 +127,8 @@ export default function CreateChartClient() {
     setSummary(null);
     setError(null);
     setGeoMsg(null);
+    lastQueryRef.current = null;
+    setPlaceTyping("");
   }
 
   return (
@@ -165,21 +169,21 @@ export default function CreateChartClient() {
 
           {/* Place (auto-fill lat/lon) */}
           <div className="md:col-span-2">
-            <label className="block text-sm text-slate-300 mb-1">{t("create.place") || "Place"}</label>
+            <label className="block text-sm text-slate-300 mb-1">{t("create.place")}</label>
             <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="flex-1 rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
-                  placeholder="City, Country (e.g., Kolkata, India)"
-                  value={place}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    setPlace(v);
-                    setPlaceTyping(v);           // triggers the debounced effect
-                    setGeoMsg(null);             // clear status while typing
-                  }}
-                  onBlur={(e) => lookupPlace(e.target.value)}  // keep on-blur as a fallback
-                />
+              <input
+                type="text"
+                className="flex-1 rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
+                placeholder={t("create.placePlaceholder")}
+                value={place}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPlace(v);
+                  setPlaceTyping(v);
+                  setGeoMsg(null);
+                }}
+                onBlur={(e) => lookupPlace(e.target.value)}
+              />
 
               <button
                 type="button"
@@ -187,17 +191,15 @@ export default function CreateChartClient() {
                 className="rounded-lg border border-white/10 px-3 py-2 text-sm text-slate-200 hover:border-white/20"
                 disabled={geoLoading}
               >
-                {geoLoading ? "Finding..." : "Find"}
+                {geoLoading ? t("create.finding") : t("create.find")}
               </button>
             </div>
-            {geoMsg && (
-              <div className="mt-1 text-xs text-slate-400">{geoMsg}</div>
-            )}
+            {geoMsg && <div className="mt-1 text-xs text-slate-400">{geoMsg}</div>}
           </div>
 
           {/* Latitude */}
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Latitude</label>
+            <label className="block text-sm text-slate-300 mb-1">{t("create.lat")}</label>
             <input
               type="text"
               className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
@@ -209,7 +211,7 @@ export default function CreateChartClient() {
 
           {/* Longitude */}
           <div>
-            <label className="block text-sm text-slate-300 mb-1">Longitude</label>
+            <label className="block text-sm text-slate-300 mb-1">{t("create.lon")}</label>
             <input
               type="text"
               className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
@@ -227,7 +229,7 @@ export default function CreateChartClient() {
             disabled={loading}
             className="rounded-full bg-cyan-500 px-5 py-2.5 text-slate-950 font-semibold hover:bg-cyan-400 disabled:opacity-60"
           >
-            {loading ? "Generating..." : t("create.generate")}
+            {loading ? t("create.generating") : t("create.generate")}
           </button>
           <button
             onClick={onReset}
