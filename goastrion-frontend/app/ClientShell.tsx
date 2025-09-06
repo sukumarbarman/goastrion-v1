@@ -1,28 +1,30 @@
+// app/ClientShell.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect } from "react";
 import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
-import AuthModals from "./components/AuthModals";
-import AppointmentModal from "./components/AppointmentModal";
-import { I18nProvider } from "./lib/i18n";
+// import Footer from "./components/Footer"; // uncomment if you have one
+import { useI18n } from "./lib/i18n";
 
 export default function ClientShell({ children }: { children: React.ReactNode }) {
-  const [authOpen, setAuthOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<"login" | "signup">("login");
-  const [apptOpen, setApptOpen] = useState(false);
+  const { locale } = useI18n();
+
+  // Keep <html lang="..."> in sync with the active locale
+  useEffect(() => {
+    try {
+      document.documentElement.lang = locale; // "en" | "hi" | "bn"
+    } catch {}
+  }, [locale]);
 
   return (
-    <I18nProvider>
+    <>
       <Navbar
-        onOpenLogin={() => { setAuthMode("login"); setAuthOpen(true); }}
-        onOpenSignup={() => { setAuthMode("signup"); setAuthOpen(true); }}
-        onOpenAppt={() => setApptOpen(true)}
+        onOpenLogin={() => {}}
+        onOpenSignup={() => {}}
+        onOpenAppt={() => {}}
       />
-      <main className="space-y-16 py-8">{children}</main>
-      <Footer />
-      <AuthModals open={authOpen} mode={authMode} onClose={() => setAuthOpen(false)} />
-      <AppointmentModal open={apptOpen} onClose={() => setApptOpen(false)} />
-    </I18nProvider>
+      <main className="min-h-[calc(100vh-160px)]">{children}</main>
+      {/* <Footer /> */}
+    </>
   );
 }
