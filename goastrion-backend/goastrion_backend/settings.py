@@ -6,31 +6,27 @@ from pathlib import Path
 import os
 from urllib.parse import urlparse
 import dj_database_url  # make sure `pip install dj-database-url` is in requirements
+from dotenv import load_dotenv
+from pathlib import Path
+from decouple import config, Csv
+
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ------------------------------------------------------------------------------
-# Load environment variables
-# ------------------------------------------------------------------------------
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-default")
-
-DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
+load_dotenv(BASE_DIR / ".env.backend", override=True)
 
 
-ALLOWED_HOSTS = [
-    h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-    if h.strip()
-]
 
-CSRF_TRUSTED_ORIGINS = [
-    o.strip() for o in os.getenv("DJANGO_CSRF_TRUSTED", "").split(",")
-    if o.strip()
-]
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-CORS_ALLOWED_ORIGINS = [
-    o.strip() for o in os.getenv("DJANGO_CORS_ORIGINS", "").split(",")
-    if o.strip()
-]
+# Security
+SECRET_KEY = config("DJANGO_SECRET_KEY", default="unsafe-dev-key")
+DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
+
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "False").lower() in ("1","true","yes")
+CORS_ALLOWED_ORIGINS = os.getenv("DJANGO_CORS_ORIGINS", "").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED", "").split(",")
 
 
 
@@ -134,3 +130,5 @@ CACHES = {
         "LOCATION": "unique-goastrion_backend-cache",
     }
 }
+
+
