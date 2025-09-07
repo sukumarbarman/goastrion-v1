@@ -1,55 +1,28 @@
 """
 Django settings for goastrion_backend project.
-Environment-driven (12-factor) so the same repo works for local & prod.
 """
 
 from pathlib import Path
 import os
-from decouple import config, Csv
+from urllib.parse import urlparse
+import dj_database_url  # make sure `pip install dj-database-url` is in requirements
 
-# Optional: DATABASE_URL support (Postgres, etc.)
-try:
-    import dj_database_url
-except Exception:
-    dj_database_url = None
-
-# --------------------------------------------------------------------------------------
-# Base paths
-# --------------------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# --------------------------------------------------------------------------------------
-# Core settings (env-driven)
-# --------------------------------------------------------------------------------------
-SECRET_KEY = config("DJANGO_SECRET_KEY", default="dev-insecure-key")  # set in prod
-DEBUG = config("DJANGO_DEBUG", default=True, cast=bool)
+# ------------------------------------------------------------------------------
+# Load environment variables
+# ------------------------------------------------------------------------------
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-default")
 
-# Comma-separated list, e.g. "goastrion.com,api.goastrion.com,localhost,127.0.0.1"
-ALLOWED_HOSTS = list(
-    filter(None, [h.strip() for h in config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1").split(",")])
-)
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
 
-# Full-origin list, comma-separated (must include scheme), e.g.
-# "https://goastrion.com,https://api.goastrion.com,http://localhost:3000"
-CSRF_TRUSTED_ORIGINS = list(
-    filter(None, [o.strip() for o in config("DJANGO_CSRF_TRUSTED", default="").split(",")])
-)
+ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED", "").split(",")
+CORS_ALLOWED_ORIGINS = os.getenv("DJANGO_CORS_ORIGINS", "").split(",")
 
-# CORS (for browser calls from the frontend)
-CORS_ALLOWED_ORIGINS = list(
-    filter(
-        None,
-        [o.strip() for o in config("DJANGO_CORS_ORIGINS", default="http://localhost:3000,http://127.0.0.1:3000").split(",")],
-    )
-)
-CORS_ALLOW_CREDENTIALS = config("DJANGO_CORS_CREDENTIALS", default=False, cast=bool)
-
-# If running behind a reverse proxy (nginx), trust X-Forwarded-Proto for HTTPS
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-
-# --------------------------------------------------------------------------------------
-# Apps & middleware
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Applications
+# ------------------------------------------------------------------------------
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
@@ -92,18 +65,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "goastrion_backend.wsgi.application"
 
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Database
-# - Default: SQLite (local)
-# - If DATABASE_URL is set (e.g. postgres://...), use it.
-# --------------------------------------------------------------------------------------
-if dj_database_url and (db_url := os.getenv("DATABASE_URL")):
+# ------------------------------------------------------------------------------
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if DATABASE_URL:
     DATABASES = {
-        "default": dj_database_url.config(
-            default=db_url,
-            conn_max_age=600,
-            ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),
-        )
+        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
     }
 else:
     DATABASES = {
@@ -113,9 +82,9 @@ else:
         }
     }
 
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Password validation
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
@@ -123,46 +92,31 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-# --------------------------------------------------------------------------------------
-# I18N / TZ
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Internationalization
+# ------------------------------------------------------------------------------
 LANGUAGE_CODE = "en-us"
-TIME_ZONE = "Asia/Kolkata"
+TIME_ZONE = os.getenv("TZ", "UTC")
 USE_I18N = True
 USE_TZ = True
 
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Static files
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# ------------------------------------------------------------------------------
+# Default primary key field type
+# ------------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# --------------------------------------------------------------------------------------
-# Caching (simple in-memory default; swap via env if needed)
-# --------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Cache
+# ------------------------------------------------------------------------------
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
         "LOCATION": "unique-goastrion_backend-cache",
     }
 }
-
-# --------------------------------------------------------------------------------------
-# Extra security in production
-# --------------------------------------------------------------------------------------
-if not DEBUG:
-    # Clickjacking:
-    X_FRAME_OPTIONS = "DENY"
-    # HSTS (handled by nginx too; duplicating here is fine)
-    SECURE_HSTS_SECONDS = config("DJANGO_SECURE_HSTS_SECONDS", default=31536000, cast=int)
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = False  # flip to True when you’re confident
-    # Redirect HTTP→HTTPS if Django ever serves traffic directly
-    SECURE_SSL_REDIRECT = config("DJANGO_SSL_REDIRECT", default=False, cast=bool)
-    # Other hardening:
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
