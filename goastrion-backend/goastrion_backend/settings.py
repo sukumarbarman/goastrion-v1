@@ -16,9 +16,23 @@ SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-default")
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() in ("1", "true", "yes")
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED", "").split(",")
-CORS_ALLOWED_ORIGINS = os.getenv("DJANGO_CORS_ORIGINS", "").split(",")
+
+ALLOWED_HOSTS = [
+    h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+    if h.strip()
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    o.strip() for o in os.getenv("DJANGO_CSRF_TRUSTED", "").split(",")
+    if o.strip()
+]
+
+CORS_ALLOWED_ORIGINS = [
+    o.strip() for o in os.getenv("DJANGO_CORS_ORIGINS", "").split(",")
+    if o.strip()
+]
+
+
 
 # ------------------------------------------------------------------------------
 # Applications
