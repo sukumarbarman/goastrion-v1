@@ -1,32 +1,44 @@
 """
 Django settings for goastrion_backend project.
 """
+"""
+Django settings for goastrion_backend project.
+"""
 
-from pathlib import Path
 import os
-from urllib.parse import urlparse
-import dj_database_url  # make sure `pip install dj-database-url` is in requirements
-from dotenv import load_dotenv
 from pathlib import Path
+from dotenv import load_dotenv
 from decouple import config, Csv
+import dj_database_url
 
-
+# ----------------------------------------------------------------------
+# Paths
+# ----------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / ".env.backend", override=True)
+# Load environment file:
+#  1. Prefer repo-local .env.backend (for local dev)
+#  2. Otherwise fall back to /srv/goastrion/.env.backend (production)
+dotenv_path = BASE_DIR / ".env.backend"
+if not dotenv_path.exists():
+    dotenv_path = Path("/srv/goastrion/.env.backend")
 
+load_dotenv(dotenv_path, override=True)
 
-
-BASE_DIR = Path(__file__).resolve().parent.parent
-
+# ----------------------------------------------------------------------
 # Security
+# ----------------------------------------------------------------------
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="unsafe-dev-key")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
-CORS_ALLOW_ALL_ORIGINS = os.getenv("CORS_ALLOW_ALL_ORIGINS", "False").lower() in ("1","true","yes")
-CORS_ALLOWED_ORIGINS = os.getenv("DJANGO_CORS_ORIGINS", "").split(",")
-CSRF_TRUSTED_ORIGINS = os.getenv("DJANGO_CSRF_TRUSTED", "").split(",")
+ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
+
+# ----------------------------------------------------------------------
+# CORS / CSRF
+# ----------------------------------------------------------------------
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
+CORS_ALLOWED_ORIGINS = config("DJANGO_CORS_ORIGINS", default="", cast=Csv())
+CSRF_TRUSTED_ORIGINS = config("DJANGO_CSRF_TRUSTED", default="", cast=Csv())
 
 
 
