@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { dictionaries } from "./dictionaries";
+import { dictionaries } from "./locales/dictionaries";
+
 
 type Locale = keyof typeof dictionaries;
 

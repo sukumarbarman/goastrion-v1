@@ -1,3 +1,4 @@
+// app/components/Navbar.tsx
 "use client";
 
 import Link from "next/link";
@@ -43,6 +44,13 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             <Link href="/dashboard" className="hover:text-white">
               {t("navbar.dashboard")}
             </Link>
+
+            {/* NEW: direct link to the Generate Chart page */}
+            <Link href="/create" className="hover:text-white">
+              {t("create.title")}
+            </Link>
+
+            {/* Keep Results if you still use that route */}
             <Link href="/results" className="hover:text-white">
               {t("navbar.results")}
             </Link>
@@ -50,6 +58,14 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
 
           {/* Right: Language + Actions */}
           <div className="flex items-center gap-3">
+            {/* Mobile-only quick CTA to Generate Chart */}
+            <Link
+              href="/create"
+              className="md:hidden inline-flex rounded-full bg-cyan-500 px-3 py-1.5 text-sm text-slate-950 font-semibold hover:bg-cyan-400"
+            >
+              {t("create.title")}
+            </Link>
+
             <LanguageSwitcher />
             <button
               onClick={onOpenAppt}
