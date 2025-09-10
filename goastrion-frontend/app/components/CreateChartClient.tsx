@@ -5,6 +5,14 @@ import Container from "./Container";
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
 
+// ---- locale dictionary helper types (for strict typing, no `any`) ----
+type Dictionaries = typeof dictionaries;
+type LocaleKey = keyof Dictionaries; // "en" | "hi" | "bn" | ...
+type LocaleDict = Dictionaries[LocaleKey] & {
+  zodiac?: string[];
+  nakshatras?: string[];
+};
+
 type Period = { lord: string; start: string; end: string; years: number };
 type DashaTimeline = {
   mahadashas: Period[];
@@ -193,7 +201,6 @@ export default function CreateChartClient() {
     const payload: PersistedState = {
       dob, tob, tzId, place, lat, lon, svg, summary, vimshottari, savedAt: new Date().toISOString(),
     };
-    // clear previous timer
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       if (safeSave(payload)) setSavedAt(payload.savedAt!);
@@ -251,7 +258,6 @@ export default function CreateChartClient() {
   /* -------- Generate -------- */
   async function onGenerate() {
     setError(null);
-    // NOTE: we do NOT clear svg/summary immediately to avoid overwriting saved state
     setLoading(true);
 
     try {
@@ -284,9 +290,10 @@ export default function CreateChartClient() {
 
       // Localize summary labels & values
       const rawSummary = data.summary || null;
-      const dict = (dictionaries as any)[locale] || dictionaries.en;
-      const locZodiac: string[] | undefined = dict.zodiac;
-      const locNaks: string[] | undefined = dict.nakshatras;
+        const dict = dictionaries[locale] as LocaleDict;
+        const locZodiac = dict.zodiac;
+        const locNaks = dict.nakshatras;
+
 
       const labelMap: Record<string, string> = {
         lagna_sign: t("results.lagnaSign"),
@@ -374,7 +381,6 @@ export default function CreateChartClient() {
   }
 
   function clearSavedChartOnly() {
-    const saved = safeLoad();
     const trimmed: PersistedState = {
       dob, tob, tzId, place, lat, lon,
       svg: null, summary: null, vimshottari: null,
@@ -482,7 +488,7 @@ export default function CreateChartClient() {
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
           {t("create.title")}
         </h2>
-        <p className="mt-2 text-sm md:text-base text-slate-400 max-w-2xl">
+      <p className="mt-2 text-sm md:text-base text-slate-400 max-w-2xl">
           {t("create.note")}
         </p>
       </div>

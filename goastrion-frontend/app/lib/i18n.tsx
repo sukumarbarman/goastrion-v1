@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { dictionaries } from "./locales/dictionaries";
 
-
 type Locale = keyof typeof dictionaries;
 
 type I18nContextValue = {
@@ -12,7 +11,8 @@ type I18nContextValue = {
   t: (key: string) => string;
 };
 
-const noopSetLocale = (_l: Locale) => {};
+// remove unused param to satisfy eslint
+const noopSetLocale: I18nContextValue["setLocale"] = () => {};
 
 const I18nCtx = createContext<I18nContextValue>({
   locale: "en",
@@ -34,10 +34,8 @@ function getPath(obj: unknown, path: string): unknown {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  // Start with 'en' (same as SSR) — do NOT read localStorage here synchronously
   const [locale, setLocale] = useState<Locale>("en");
 
-  // After mount, read saved locale and apply (no dependency on `locale`, so no lint warning)
   useEffect(() => {
     try {
       const saved = localStorage.getItem("ga_locale") as Locale | null;
@@ -47,7 +45,6 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Anytime locale changes, persist it
   useEffect(() => {
     try {
       localStorage.setItem("ga_locale", locale);
