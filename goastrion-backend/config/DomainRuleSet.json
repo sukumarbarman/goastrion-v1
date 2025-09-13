@@ -1,0 +1,201 @@
+{
+  "version": "1.1",
+
+  "domains": {
+    "Career": {
+      "weights": { "natal": 0.55, "transit": 0.25, "dasha": 0.15, "progressed": 0.05 },
+      "thresholds": { "weak": 0.00, "moderate": 0.45, "strong": 0.70, "excellent": 0.85 },
+
+      "rules": [
+        {
+          "id": "natal_10th_lord_strong",
+          "sources": ["natal"],
+          "when": { "type": "lord_strength", "house": 10, "min": "good" },
+          "score": { "value": 0.20 },
+          "explainKey": "insights.career.10thLordStrong"
+        },
+        {
+          "id": "natal_mc_benefic_trine",
+          "sources": ["natal"],
+          "when": { "type": "aspect", "a": "MC", "bClass": "benefic", "aspect": "Trine", "minScore": 0.50 },
+          "score": { "scale": "aspectScore", "multiplier": 0.25 },
+          "explainKey": "insights.career.MCTrineBenefic"
+        },
+        {
+          "id": "transit_jupiter_mc_window",
+          "sources": ["transit"],
+          "when": { "type": "transitAspect", "a": "Jupiter", "b": "MC", "aspect": "Trine", "windowDays": 10, "recentExact": true },
+          "score": { "value": 0.15 },
+          "cooldownDays": 30,
+          "explainKey": "insights.career.TransitJupMCWindow"
+        },
+        {
+          "id": "dasha_current_md_career_lord",
+          "sources": ["dasha"],
+          "when": { "type": "currentMDLordClass", "class": "careerSignificator" },
+          "score": { "value": 0.10 },
+          "explainKey": "insights.career.DashaMDSupportsCareer"
+        },
+        {
+          "id": "progressed_mc_trine_sun",
+          "sources": ["progressed"],
+          "when": { "type": "progressedAspect", "a": "MC", "b": "Sun", "aspect": "Trine", "minScore": 0.40 },
+          "score": { "value": 0.08 },
+          "explainKey": "insights.career.ProgMCTrineSun"
+        }
+      ],
+
+      "strings": {
+        "titleKey": "insights.career.title",
+        "chips": ["insights.career.chip10th", "insights.career.chip6th", "insights.career.chip11th"]
+      }
+    },
+
+    "Finance": {
+      "weights": { "natal": 0.55, "transit": 0.25, "dasha": 0.15, "progressed": 0.05 },
+      "thresholds": { "weak": 0.00, "moderate": 0.45, "strong": 0.70, "excellent": 0.85 },
+
+      "rules": [
+        {
+          "id": "natal_2nd_11th_benefics",
+          "sources": ["natal"],
+          "when": { "type": "houseBenefic", "houses": [2, 11], "minCount": 1 },
+          "score": { "value": 0.18 },
+          "explainKey": "insights.finance.BeneficsIn2or11"
+        },
+        {
+          "id": "natal_2nd_lord_good",
+          "sources": ["natal"],
+          "when": { "type": "lord_strength", "house": 2, "min": "good" },
+          "score": { "value": 0.16 },
+          "explainKey": "insights.finance.SecondLordStrong"
+        },
+        {
+          "id": "transit_jupiter_11th",
+          "sources": ["transit"],
+          "when": { "type": "transitHouse", "planet": "Jupiter", "house": 11, "minStayDays": 7 },
+          "score": { "value": 0.12 },
+          "explainKey": "insights.finance.JupTransit11th"
+        },
+        {
+          "id": "dasha_md_venus_jupiter",
+          "sources": ["dasha"],
+          "when": { "type": "currentMDLordIsOneOf", "lords": ["Venus", "Jupiter"] },
+          "score": { "value": 0.10 },
+          "explainKey": "insights.finance.MDVenusJupiter"
+        }
+      ],
+
+      "strings": {
+        "titleKey": "insights.finance.title",
+        "chips": ["insights.finance.chip2nd", "insights.finance.chip11th"]
+      }
+    },
+
+    "Health": {
+      "weights": { "natal": 0.60, "transit": 0.20, "dasha": 0.15, "progressed": 0.05 },
+      "thresholds": { "weak": 0.00, "moderate": 0.40, "strong": 0.65, "excellent": 0.80 },
+
+      "rules": [
+        {
+          "id": "natal_6th_affliction",
+          "sources": ["natal"],
+          "when": { "type": "houseMalefic", "houses": [6], "minCount": 1 },
+          "score": { "value": -0.18 },
+          "explainKey": "insights.health.Malefic6th"
+        },
+        {
+          "id": "natal_asc_benefic_support",
+          "sources": ["natal"],
+          "when": { "type": "aspect", "a": "Asc", "bClass": "benefic", "aspect": "Trine", "minScore": 0.50 },
+          "score": { "scale": "aspectScore", "multiplier": 0.20 },
+          "explainKey": "insights.health.BeneficToAsc"
+        },
+        {
+          "id": "transit_saturn_on_6th",
+          "sources": ["transit"],
+          "when": { "type": "transitHouse", "planet": "Saturn", "house": 6, "minStayDays": 20 },
+          "score": { "value": -0.12 },
+          "explainKey": "insights.health.SaturnTransit6th"
+        }
+      ],
+
+      "strings": {
+        "titleKey": "insights.health.title",
+        "chips": ["insights.health.chipAsc", "insights.health.chip6th"]
+      }
+    },
+
+    "Marriage": {
+      "weights": { "natal": 0.55, "transit": 0.25, "dasha": 0.15, "progressed": 0.05 },
+      "thresholds": { "weak": 0.00, "moderate": 0.45, "strong": 0.70, "excellent": 0.85 },
+
+      "rules": [
+        {
+          "id": "natal_7th_benefics",
+          "sources": ["natal"],
+          "when": { "type": "houseBenefic", "houses": [7], "minCount": 1 },
+          "score": { "value": 0.18 },
+          "explainKey": "insights.marriage.Benefic7th"
+        },
+        {
+          "id": "natal_venus_strong",
+          "sources": ["natal"],
+          "when": { "type": "placementStrength", "planet": "Venus", "min": "good" },
+          "score": { "value": 0.16 },
+          "explainKey": "insights.marriage.VenusStrong"
+        },
+        {
+          "id": "transit_venus_7th",
+          "sources": ["transit"],
+          "when": { "type": "transitHouse", "planet": "Venus", "house": 7, "minStayDays": 5 },
+          "score": { "value": 0.10 },
+          "explainKey": "insights.marriage.VenusTransit7th"
+        }
+      ],
+
+      "strings": {
+        "titleKey": "insights.marriage.title",
+        "chips": ["insights.marriage.chip7th"]
+      }
+    },
+
+    "Education": {
+      "weights": { "natal": 0.60, "transit": 0.25, "dasha": 0.10, "progressed": 0.05 },
+      "thresholds": { "weak": 0.00, "moderate": 0.45, "strong": 0.70, "excellent": 0.85 },
+
+      "rules": [
+        {
+          "id": "natal_5th_benefics",
+          "sources": ["natal"],
+          "when": { "type": "houseBenefic", "houses": [5], "minCount": 1 },
+          "score": { "value": 0.18 },
+          "explainKey": "insights.education.Benefic5th"
+        },
+        {
+          "id": "natal_mercury_jupiter_help",
+          "sources": ["natal"],
+          "when": { "type": "aspect", "a": "Mercury", "b": "Jupiter", "aspect": "Trine", "minScore": 0.45 },
+          "score": { "scale": "aspectScore", "multiplier": 0.22 },
+          "explainKey": "insights.education.MercJupHarmonious"
+        },
+        {
+          "id": "dasha_md_mercury_jupiter",
+          "sources": ["dasha"],
+          "when": { "type": "currentMDLordIsOneOf", "lords": ["Mercury", "Jupiter"] },
+          "score": { "value": 0.08 },
+          "explainKey": "insights.education.MDEnable"
+        }
+      ],
+
+      "strings": {
+        "titleKey": "insights.education.title",
+        "chips": ["insights.education.chip5th"]
+      }
+    }
+  },
+
+  "classes": {
+    "careerSignificator": ["Saturn", "Sun", "Mercury"]
+  }
+}

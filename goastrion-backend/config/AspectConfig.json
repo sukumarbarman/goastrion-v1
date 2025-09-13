@@ -1,0 +1,109 @@
+{
+  "version": "1.1",
+  "zodiacType": "SIDEREAL",
+  "ayanamsa": "LAHIRI",
+  "houseSystem": "NORTH_INDIAN",
+
+  "bodies": [
+    { "id": "Asc", "type": "angle" },
+    { "id": "MC",  "type": "angle" },
+
+    { "id": "Sun",     "type": "planet" },
+    { "id": "Moon",    "type": "planet" },
+    { "id": "Mars",    "type": "planet" },
+    { "id": "Mercury", "type": "planet" },
+    { "id": "Jupiter", "type": "planet" },
+    { "id": "Venus",   "type": "planet" },
+    { "id": "Saturn",  "type": "planet" },
+
+    { "id": "Rahu", "type": "node" },
+    { "id": "Ketu", "type": "node" }
+  ],
+
+  "aspects": [
+    { "name": "Conjunction", "angle": 0,   "orb": 8, "baseWeight": 1.00, "allowSelf": false },
+    { "name": "Opposition",  "angle": 180, "orb": 8, "baseWeight": 0.95 },
+    { "name": "Trine",       "angle": 120, "orb": 7, "baseWeight": 0.85 },
+    { "name": "Square",      "angle": 90,  "orb": 6, "baseWeight": 0.80 },
+    { "name": "Sextile",     "angle": 60,  "orb": 5, "baseWeight": 0.65 }
+  ],
+
+  "orbPolicy": {
+    "model": "taper_linear",
+    "tightBonus": 1.10,
+    "widePenalty": 0.80
+  },
+
+  "scoring": {
+    "exactFalloff": "gaussian",
+    "sigmaDegrees": 2.5,
+    "cap": 1.25,
+    "sumModel": "clamped"
+  },
+
+  "benefics": ["Jupiter", "Venus", "Mercury", "WaxingMoon"],
+  "malefics": ["Saturn", "Mars", "Sun", "Rahu", "Ketu", "WaningMoon"],
+
+  "rulerships": {
+    "Aries": "Mars",
+    "Taurus": "Venus",
+    "Gemini": "Mercury",
+    "Cancer": "Moon",
+    "Leo": "Sun",
+    "Virgo": "Mercury",
+    "Libra": "Venus",
+    "Scorpio": "Mars",
+    "Sagittarius": "Jupiter",
+    "Capricorn": "Saturn",
+    "Aquarius": "Saturn",
+    "Pisces": "Jupiter"
+  },
+
+  "dignitySets": {
+    "exaltation": {
+      "Sun": "Aries",
+      "Moon": "Taurus",
+      "Mars": "Capricorn",
+      "Mercury": "Virgo",
+      "Jupiter": "Cancer",
+      "Venus": "Pisces",
+      "Saturn": "Libra"
+    },
+    "debilitation": {
+      "Sun": "Libra",
+      "Moon": "Scorpio",
+      "Mars": "Cancer",
+      "Mercury": "Pisces",
+      "Jupiter": "Capricorn",
+      "Venus": "Virgo",
+      "Saturn": "Aries"
+    },
+    "mooltrikona": {
+      "Sun": "Leo",
+      "Moon": "Taurus",
+      "Mars": "Aries",
+      "Mercury": "Virgo",
+      "Jupiter": "Sagittarius",
+      "Venus": "Libra",
+      "Saturn": "Aquarius"
+    },
+    "ownSigns": {
+      "Sun":     ["Leo"],
+      "Moon":    ["Cancer"],
+      "Mars":    ["Aries", "Scorpio"],
+      "Mercury": ["Gemini", "Virgo"],
+      "Jupiter": ["Sagittarius", "Pisces"],
+      "Venus":   ["Taurus", "Libra"],
+      "Saturn":  ["Capricorn", "Aquarius"]
+    },
+    "friendships": {
+      "Sun":     { "friends": ["Moon", "Mars", "Jupiter"], "enemies": ["Venus", "Saturn"], "neutral": ["Mercury"] },
+      "Moon":    { "friends": ["Sun", "Mercury"], "enemies": [], "neutral": ["Mars", "Jupiter", "Venus", "Saturn"] },
+      "Mars":    { "friends": ["Sun", "Moon", "Jupiter"], "enemies": ["Mercury"], "neutral": ["Venus", "Saturn"] },
+      "Mercury": { "friends": ["Sun", "Venus"], "enemies": ["Moon"], "neutral": ["Mars", "Jupiter", "Saturn"] },
+      "Jupiter": { "friends": ["Sun", "Moon", "Mars"], "enemies": ["Venus", "Mercury"], "neutral": ["Saturn"] },
+      "Venus":   { "friends": ["Mercury", "Saturn"], "enemies": ["Sun", "Moon"], "neutral": ["Mars", "Jupiter"] },
+      "Saturn":  { "friends": ["Mercury", "Venus"], "enemies": ["Sun", "Moon"], "neutral": ["Mars", "Jupiter"] }
+    }
+  }
+}

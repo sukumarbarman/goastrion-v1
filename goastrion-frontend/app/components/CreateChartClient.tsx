@@ -285,6 +285,8 @@ export default function CreateChartClient() {
       const data: ApiResp = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 
+
+
       // Localize SVG planet names
       const localizedSvg = data.svg ? localizeSvgPlanets(data.svg, t) : "";
 

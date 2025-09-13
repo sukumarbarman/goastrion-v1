@@ -4,6 +4,26 @@ from datetime import datetime
 from ..ephem.swiss import compute_all_planets, deg_to_sign_index, get_sign_name
 from django.core.cache import cache
 
+# Sign index 0..11: Aries..Pisces (sidereal)
+# Basic Vedic lords:
+_SIGN_LORDS = [
+    "Mars",     # Aries
+    "Venus",    # Taurus
+    "Mercury",  # Gemini
+    "Moon",     # Cancer
+    "Sun",      # Leo
+    "Mercury",  # Virgo
+    "Venus",    # Libra
+    "Mars",     # Scorpio
+    "Jupiter",  # Sagittarius
+    "Saturn",   # Capricorn
+    "Saturn",   # Aquarius
+    "Jupiter",  # Pisces
+]
+
+def sign_lord_for(sign_index: int) -> str:
+    return _SIGN_LORDS[sign_index % 12]
+
 def geocode_place(place: str) -> Tuple[Optional[str], Optional[float], Optional[float]]:
     if not _HAS_GEOPY:
         return None, None, None
