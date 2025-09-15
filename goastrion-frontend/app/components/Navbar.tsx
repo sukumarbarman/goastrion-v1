@@ -35,25 +35,38 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
 
           {/* Links */}
           <nav className="hidden md:flex gap-6 text-sm text-slate-300">
+            {/*
             <Link href="/pricing" className="hover:text-white">
               {t("navbar.pricing")}
             </Link>
+            */}
+
+            <Link href="/domains" className="hover:text-white">Domains</Link>
+            <Link href="/skills" className="hover:text-white">Skills</Link>
+
+
             <Link href="/about" className="hover:text-white">
               {t("navbar.about")}
             </Link>
+            {/*
             <Link href="/dashboard" className="hover:text-white">
               {t("navbar.dashboard")}
             </Link>
+              */}
 
             {/* NEW: direct link to the Generate Chart page */}
             <Link href="/create" className="hover:text-white">
               {t("create.title")}
             </Link>
 
+
+
             {/* Keep Results if you still use that route */}
+            {/*
             <Link href="/results" className="hover:text-white">
               {t("navbar.results")}
             </Link>
+            */}
           </nav>
 
           {/* Right: Language + Actions */}
@@ -67,6 +80,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             </Link>
 
             <LanguageSwitcher />
+
             <button
               onClick={onOpenAppt}
               className="hidden md:inline-flex rounded-full border border-cyan-400/40 bg-cyan-500/15 px-3 py-1.5 text-sm text-cyan-200 hover:bg-cyan-500/25"

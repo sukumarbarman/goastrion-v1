@@ -9,3 +9,31 @@ html, body {
   color: #e2e8f0;        /* slate-200 */
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
 }
+
+
+/* planet label highlight */
+.hi-planet {
+  paint-order: stroke;
+  stroke: rgba(6, 182, 212, 0.75); /* cyan-500-ish outline */
+  stroke-width: 1.5px;
+  font-weight: 700;
+}
+
+/* house group halo */
+g.hi-house > text:first-of-type { /* the roman house number */
+  fill: #22d3ee !important;       /* cyan-400 */
+  opacity: 1 !important;
+  font-weight: 700;
+}
+g.hi-house { filter: drop-shadow(0 0 6px rgba(34,211,238,.55)); }
+
+
+/* e.g., app/globals.css */
+svg [data-planet].highlighted {
+  font-weight: 700;
+  text-decoration: underline;
+}
+svg [data-planet].highlighted ~ rect,
+svg [data-planet].highlighted ~ circle {
+  filter: drop-shadow(0 0 4px rgba(0,0,0,.25));
+}
