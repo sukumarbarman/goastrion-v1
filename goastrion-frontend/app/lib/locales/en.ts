@@ -106,7 +106,14 @@ export default {
       noExactYet: "No exact date yet",
       highlightAspects: "Key Aspects",
     },
-
+      ui: {
+        clearHighlights: "Clear highlights",
+        highlightPlanetsBtn: "Highlight planets",
+        highlightHousesBtn: "Highlight houses’ planets",
+        highlightAspectsBtn: "Highlight aspects",
+        notableAspects: "Notable aspects",
+      },
+    aspect:      { Conjunction: "Conjunction", Opposition: "Opposition", Trine: "Trine", Square: "Square", Sextile: "Sextile" },
     tiers: {
       weak: "Weak",
       moderate: "Moderate",

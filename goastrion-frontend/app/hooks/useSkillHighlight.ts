@@ -1,7 +1,40 @@
-// app/hooks/useSkillHighlight.ts
+// app/hooks/useHighlight.ts
 "use client";
+import { useCallback, useMemo, useState } from "react";
 
-import { useCallback, useState } from "react";
+export function useHighlight() {
+  const [lockedPlanets, setLockedPlanets] = useState<string[]>([]);
+  const [previewPlanets, setPreviewPlanets] = useState<string[]>([]);
+
+  const canonical = (arr: string[]) =>
+    Array.from(new Set(arr)).sort((a, b) => a.localeCompare(b));
+
+  const highlightPlanets = useMemo(() => {
+    return lockedPlanets.length ? lockedPlanets : previewPlanets;
+  }, [lockedPlanets, previewPlanets]);
+
+  const clear = useCallback(() => {
+    setLockedPlanets([]);
+    setPreviewPlanets([]);
+  }, []);
+
+  // replace lock; if same selection is already locked, toggle off
+  const lock = useCallback((planets: string[]) => {
+    const next = canonical(planets);
+    const curr = canonical(lockedPlanets);
+    const isSame =
+      next.length === curr.length && next.every((p, i) => p === curr[i]);
+    setLockedPlanets(isSame ? [] : next);
+    setPreviewPlanets([]);
+  }, [lockedPlanets]);
+
+  return {
+    highlightPlanets,
+    lock,
+    clear,
+    setPreviewPlanets,
+  };
+}
 
 export function useSkillHighlight() {
   const [locked, setLocked] = useState<string[]>([]);
@@ -16,3 +49,4 @@ export function useSkillHighlight() {
 
   return { highlightPlanets, lock, clear, setPreviewPlanets };
 }
+
