@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple, Any
 from .types import AspectHit, PlanetName
 
 # ----------------------------
-# Domain scoring (unchanged)
+# Domain scoring
 # ----------------------------
 
 _DEFAULT_DOMAIN_HOUSES: Dict[str, List[int]] = {
@@ -59,11 +59,32 @@ def _benefic_aspect_hits(
     benefics: set[str],
     min_score: float = 0.25,
 ) -> List[Dict[str, Any]]:
+    """Return all chart-wide benefic aspects (with score, sorted desc)."""
     hits: List[Dict[str, Any]] = []
     for hit in aspects:
         if hit.name.lower() in ("trine", "sextile") and (hit.p1 in benefics or hit.p2 in benefics):
             if hit.score >= min_score:
-                hits.append({"p1": hit.p1, "p2": hit.p2, "name": hit.name})
+                hits.append({"p1": hit.p1, "p2": hit.p2, "name": hit.name, "score": float(hit.score)})
+    hits.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+    return hits
+
+def _domain_aspects(
+    aspects: List[AspectHit],
+    domain_planets: List[str],
+    benefics: set[str],
+    min_score: float = 0.25,
+) -> List[Dict[str, Any]]:
+    """Return benefic aspects relevant to a given domain (planets in its houses or lords)."""
+    hits: List[Dict[str, Any]] = []
+    for hit in aspects:
+        if hit.name.lower() not in ("trine", "sextile", "conjunction"):
+            continue
+        if hit.score < min_score:
+            continue
+        if hit.p1 in domain_planets or hit.p2 in domain_planets:
+            if hit.p1 in benefics or hit.p2 in benefics:
+                hits.append({"p1": hit.p1, "p2": hit.p2, "name": hit.name, "score": float(hit.score)})
+    hits.sort(key=lambda x: x.get("score", 0.0), reverse=True)
     return hits
 
 def evaluate_domains_v11(
@@ -73,18 +94,21 @@ def evaluate_domains_v11(
     planets_in_houses: Dict[int | str, List[str]],
     chart_lords: Dict[int, str],
     aspects: List[AspectHit],
-) -> List[Dict[str, Any]]:
+) -> Dict[str, Any]:
     out: List[Dict[str, Any]] = []
     benefics = _benefic_set(aspect_cfg)
 
     domains_cfg: Dict[str, Any] = domain_rules_json["domains"]
+
+    # ✅ Global benefic aspects (chart-wide)
+    global_aspects = _benefic_aspect_hits(aspects, benefics, min_score=0.25)
+
     for dkey, block in domains_cfg.items():
         weights   = block["weights"]
         thr       = block["thresholds"]
         strings   = block.get("strings", {})
         chips_cfg = strings.get("chips", [])
 
-        # Phase-1 partials
         houses = _DEFAULT_DOMAIN_HOUSES.get(dkey, [])
         planets_here_count = _count_planets_in_houses(planets_in_houses, houses)
 
@@ -103,28 +127,45 @@ def evaluate_domains_v11(
         total = max(0.0, min(1.0, total))
         tier = _tier(total, thr)
 
-        chips: List[str] = list(chips_cfg)
-        if planets_here_count > 0:
-            chips.append(f"chip.house_presence.{dkey.lower()}")
-        if _has_benefic_harmony(aspects, benefics):
-            chips.append("chip.benefic_harmony")
+
 
         hi_houses: List[int] = []
         for h in houses:
             arr = planets_in_houses.get(h) or planets_in_houses.get(str(h)) or []
             if arr:
                 hi_houses.append(h)
+
         occupants = _planets_in_house_list(planets_in_houses, houses)
         lords = [chart_lords.get(h) for h in houses if chart_lords.get(h)]
         hi_planets = sorted(list({*occupants, *lords}))
-        hi_aspects = _benefic_aspect_hits(aspects, benefics, min_score=0.25)
+        # Domain-specific aspects
+        hi_aspects = _domain_aspects(aspects, hi_planets, benefics, min_score=0.25)
+        # Build chips AFTER we know domain-specific aspects, so benefic_harmony is domain-scoped
+        chips: List[str] = list(chips_cfg)
+        if planets_here_count > 0:
+            chips.append(f"chip.house_presence.{dkey.lower()}")
+        if hi_aspects:
+            chips.append("chip.benefic_harmony")
+        # Build short reasons for the user
+        reasons: List[str] = []
+        if hi_houses:
+            reasons.append("Planets present in key houses: " + ", ".join(str(h) for h in hi_houses) + ".")
+        else:
+            reasons.append("No planets in key houses for this domain.")
+        if hi_aspects:
+            top = ", ".join(f"{a['p1']}–{a['p2']} {a['name']}" for a in hi_aspects[:2])
+            reasons.append("Supportive aspects: " + top + ".")
+        else:
+            reasons.append("Few or no supportive benefic aspects in this domain.")
+
+
 
         out.append({
             "key": dkey,
             "score": round(total * 100),
             "tier": tier,
             "chips": chips,
-            "reasons": [],
+            "reasons": reasons,
             "timeWindows": [],
             "highlights": {
                 "planets": hi_planets,
@@ -133,10 +174,13 @@ def evaluate_domains_v11(
             },
         })
 
-    return out
+    return {
+        "domains": out,
+        "globalAspects": global_aspects,
+    }
 
 # ----------------------------
-# Skill Spotlights (NEW)
+# Skills
 # ----------------------------
 
 def _p2h_map(planets_in_houses: Dict[int | str, List[str]]) -> Dict[str, List[int]]:
@@ -149,9 +193,6 @@ def _p2h_map(planets_in_houses: Dict[int | str, List[str]]) -> Dict[str, List[in
     return out
 
 def _has_house_support(p2h: Dict[str, List[int]], target_houses: List[int], key_planets: List[str] | None = None) -> int:
-    """
-    Count how many of target_houses have at least one planet (optionally among key_planets).
-    """
     occupied = set()
     for planet, houses in p2h.items():
         if key_planets and planet not in key_planets:
@@ -167,9 +208,6 @@ def _sum_aspect_pairs(
     allowed: set[str] = frozenset({"Trine","Sextile","Conjunction"}),
     min_delta_score: float = 0.0,
 ) -> float:
-    """
-    Sum normalized aspect scores for the given planet pairs (orderless).
-    """
     want = {tuple(sorted(p)) for p in pairs}
     total = 0.0
     for hit in aspects:
@@ -181,7 +219,6 @@ def _sum_aspect_pairs(
     return total
 
 def _kendra_boost(p2h: Dict[str, List[int]], planet: str) -> float:
-    """Small boost if planet sits in a kendra (1/4/7/10)."""
     kendra = {1,4,7,10}
     hs = p2h.get(planet, [])
     return 0.10 if any(h in kendra for h in hs) else 0.0
@@ -189,22 +226,35 @@ def _kendra_boost(p2h: Dict[str, List[int]], planet: str) -> float:
 def _cap01(x: float) -> float:
     return max(0.0, min(1.0, x))
 
+def _skill_aspects(
+    aspects: List[AspectHit],
+    pairs: List[Tuple[str, str]],
+    allowed: set[str] = frozenset({"Trine","Sextile","Conjunction"}),
+    min_score: float = 0.25,
+) -> List[Dict[str, Any]]:
+    hits: List[Dict[str, Any]] = []
+    want = {tuple(sorted(p)) for p in pairs}
+    for hit in aspects:
+        if hit.name not in allowed:
+            continue
+        if hit.score < min_score:
+            continue
+        pair = tuple(sorted((hit.p1, hit.p2)))
+        if pair in want:
+            hits.append({"p1": hit.p1, "p2": hit.p2, "name": hit.name, "score": float(hit.score)})
+    hits.sort(key=lambda x: x.get("score", 0.0), reverse=True)
+    return hits
+
 def evaluate_skills_v11(
     *,
     aspect_cfg: dict,
     planets_in_houses: Dict[int | str, List[str]],
     aspects: List[AspectHit],
 ) -> List[Dict[str, Any]]:
-    """
-    Returns list of skill cards:
-      [{ key, score (0-100), chips: [i18n keys], reasons: [] }]
-    """
     p2h = _p2h_map(planets_in_houses)
-
     skills: List[Dict[str, Any]] = []
 
     # ---------- Analytical ----------
-    # Anchors: Mercury; houses 3/6/10; aspects Mercury–Jupiter, Mercury–Saturn
     base = 0.20 if "Mercury" in p2h else 0.10
     house_hits = _has_house_support(p2h, [3,6,10], key_planets=None)
     base += 0.05 * house_hits
@@ -219,10 +269,14 @@ def evaluate_skills_v11(
             "chip.skill.mercurySaturnTrine",
         ],
         "reasons": [],
+        "highlights": {
+            "planets": ["Mercury"],
+            "houses": [3,6,10],
+            "aspects": _skill_aspects(aspects, [("Mercury","Jupiter"),("Mercury","Saturn")])
+        }
     })
 
     # ---------- Communication ----------
-    # Anchors: Mercury; houses 2/3; aspects Mercury–Venus, Mercury–Moon
     base = 0.20 if "Mercury" in p2h else 0.10
     house_hits = _has_house_support(p2h, [2,3], key_planets=None)
     base += 0.07 * house_hits
@@ -237,10 +291,14 @@ def evaluate_skills_v11(
             "chip.skill.mercuryMoonTrine",
         ],
         "reasons": [],
+        "highlights": {
+            "planets": ["Mercury"],
+            "houses": [2,3],
+            "aspects": _skill_aspects(aspects, [("Mercury","Venus"),("Mercury","Moon")])
+        }
     })
 
     # ---------- Leadership ----------
-    # Anchors: Sun; houses 1/10; aspects Sun–Mars, Sun–Jupiter; kendra boost
     base = 0.18 if "Sun" in p2h else 0.08
     base += _kendra_boost(p2h, "Sun")
     house_hits = _has_house_support(p2h, [1,10], key_planets=None)
@@ -256,10 +314,14 @@ def evaluate_skills_v11(
             "chip.skill.sunJupiterTrine",
         ],
         "reasons": [],
+        "highlights": {
+            "planets": ["Sun"],
+            "houses": [1,10],
+            "aspects": _skill_aspects(aspects, [("Sun","Mars"),("Sun","Jupiter")])
+        }
     })
 
     # ---------- Creativity ----------
-    # Anchors: Venus, Moon; house 5; aspects Venus–Moon, Venus–Jupiter
     base = 0.16 + (0.06 if "Venus" in p2h else 0.0) + (0.06 if "Moon" in p2h else 0.0)
     house_hits = _has_house_support(p2h, [5], key_planets=None)
     base += 0.08 * house_hits
@@ -274,10 +336,14 @@ def evaluate_skills_v11(
             "chip.skill.venusJupiterTrine",
         ],
         "reasons": [],
+        "highlights": {
+            "planets": ["Venus","Moon"],
+            "houses": [5],
+            "aspects": _skill_aspects(aspects, [("Venus","Moon"),("Venus","Jupiter")])
+        }
     })
 
     # ---------- Focus / Discipline ----------
-    # Anchors: Saturn; houses 6/10; aspect Saturn–Mercury trine/sextile
     base = 0.18 if "Saturn" in p2h else 0.10
     base += _kendra_boost(p2h, "Saturn")
     house_hits = _has_house_support(p2h, [6,10], key_planets=None)
@@ -292,18 +358,20 @@ def evaluate_skills_v11(
             "chip.skill.saturnMercuryTrine",
         ],
         "reasons": [],
+        "highlights": {
+            "planets": ["Saturn"],
+            "houses": [6,10],
+            "aspects": _skill_aspects(aspects, [("Saturn","Mercury")])
+        }
     })
 
     # ---------- Entrepreneurial Drive ----------
-    # Anchors: Mars + (Mercury/Jupiter); houses 3/5/10/11; Rahu in 10/11 support
     base = 0.14 + (0.06 if "Mars" in p2h else 0.0) + (0.05 if "Mercury" in p2h else 0.0) + (0.05 if "Jupiter" in p2h else 0.0)
     house_hits = _has_house_support(p2h, [3,5,10,11], key_planets=None)
     base += 0.05 * house_hits
-    # Aspects that indicate drive + business sense
     asp_sum = _sum_aspect_pairs(aspects, [
         ("Mars","Mercury"), ("Mars","Jupiter"), ("Mercury","Jupiter")
     ])
-    # Rahu boost if in 10th/11th
     rahu_boost = 0.08 if any(h in (10,11) for h in p2h.get("Rahu", [])) else 0.0
     score = _cap01(base + 0.35 * asp_sum + rahu_boost)
     skills.append({
@@ -316,6 +384,13 @@ def evaluate_skills_v11(
             "chip.skill.rahu10or11",
         ],
         "reasons": [],
+        "highlights": {
+            "planets": ["Mars","Mercury","Jupiter"],
+            "houses": [3,5,10,11],
+            "aspects": _skill_aspects(aspects, [
+                ("Mars","Mercury"), ("Mars","Jupiter"), ("Mercury","Jupiter")
+            ])
+        }
     })
 
     return skills

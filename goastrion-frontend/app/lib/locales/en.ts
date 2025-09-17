@@ -94,6 +94,103 @@ export default {
   common: { loading: "Loading..." },
 
   insights: {
+
+    copy: {
+      // Sentence 1
+      line1_template: "Right now, {domain} is in {phase} ({score}/100).",
+
+      // Phase by tier
+      phase_by_tier: {
+        weak: "a building phase",
+        moderate: "a shaping phase",
+        strong: "strong momentum",
+        excellent: "a peak phase",
+        unknown: "an evolving phase",
+      },
+
+      // Houses sentence
+      houses_intro: "The {houseList} spotlight {themes}.",
+      housesWord: "house",
+      housesWordPlural: "houses",
+      join: { and: "and", comma: ", " },
+
+      // Planets sentence
+      planets_intro: "With {planetList} leading, focus on {adviceList}.",
+      planet_advice: {
+        Sun: "responsible leadership",
+        Moon: "steady self-care",
+        Mars: "focused action",
+        Mercury: "clear communication",
+        Jupiter: "learning and mentorship",
+        Venus: "relationship-building",
+        Saturn: "disciplined habits",
+        Rahu: "ambitious targets",
+        Ketu: "quiet reflection",
+      },
+
+      // Aspects sentence
+      aspects_intro: "Notable aspects: {items}.",
+      aspect_pair: "{p1}–{p2} ({tone} {name})",
+      aspect_item: "{pair} — {hint}",
+      aspect_tone: {
+        Conjunction: "intense",
+        Opposition: "polarizing",
+        Trine: "harmonious",
+        Square: "challenging",
+        Sextile: "supportive",
+      },
+      aspect_hint_by_name: {
+        Conjunction: "brings intensity—pace yourself",
+        Opposition: "pulls in two directions—balance both sides",
+        Trine: "flows easily—lean into it",
+        Square: "adds friction—take it step by step",
+        Sextile: "offers support—activate it with small actions",
+      },
+    },
+
+     housesOrdinal: {
+          1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th",
+          7: "7th", 8: "8th", 9: "9th", 10: "10th", 11: "11th", 12: "12th",
+        },
+    // Tones for "harmonious/supportive/..." (used in text & chips)
+    aspectTone: {
+      Conjunction: "intense",
+      Opposition: "polarizing",
+      Trine: "harmonious",
+      Square: "challenging",
+      Sextile: "supportive",
+    },
+
+    // House gloss and short labels
+    housesGloss: {
+      1: "Self, vitality",
+      2: "Wealth, speech",
+      3: "Courage, skills",
+      4: "Home, foundations",
+      5: "Creativity, studies",
+      6: "Work, health",
+      7: "Partnerships",
+      8: "Depth, transformations",
+      9: "Dharma, higher learning",
+      10: "Career, status",
+      11: "Gains, networks",
+      12: "Retreat, expenses",
+    },
+
+    // Planet gloss (tooltip/inline)
+    planetsGloss: {
+      Sun: "authority, vitality",
+      Moon: "mind, flow",
+      Mars: "drive, initiative",
+      Mercury: "analysis, communication",
+      Jupiter: "growth, wisdom",
+      Venus: "art, harmony",
+      Saturn: "discipline, structure",
+      Rahu: "ambition, surge",
+      Ketu: "detachment, insight",
+    },
+
+
     pages: {
       domainsTitle: "Life Domains",
       domainsSubtitle: "Pick a domain to see your score, highlights, and time windows.",
@@ -105,14 +202,19 @@ export default {
       timeWindowsTitle: "Time Windows",
       noExactYet: "No exact date yet",
       highlightAspects: "Key Aspects",
+      chartTitle: "Chart",
     },
-      ui: {
+    ui: {
         clearHighlights: "Clear highlights",
         highlightPlanetsBtn: "Highlight planets",
         highlightHousesBtn: "Highlight houses’ planets",
         highlightAspectsBtn: "Highlight aspects",
         notableAspects: "Notable aspects",
-      },
+        keyHousesLabel: "Key houses",
+        keyPlanetsLabel: "Key planets",
+        highlightAll: "Highlight all",
+         house: "House",
+     },
     aspect:      { Conjunction: "Conjunction", Opposition: "Opposition", Trine: "Trine", Square: "Square", Sextile: "Sextile" },
     tiers: {
       weak: "Weak",

@@ -227,8 +227,7 @@ class InsightsView(APIView):
 
             dt_naive_utc: datetime = aware_utc_to_naive(dt_aw_utc)
 
-            # 4) Compute Ascendant & planetary longitudes (sidereal)
-            #    Use Lahiri for insights to be consistent with Vedic rules
+            # 4) Compute Ascendant & planetary longitudes (sidereal) - Lahiri
             tz_off = 0.0
             lagna_deg, positions = compute_all_planets(
                 dt_naive_utc, lat, lon, tz_offset_hours=tz_off, ayanamsa="lahiri"
@@ -249,24 +248,21 @@ class InsightsView(APIView):
             planets_deg: Dict[str, float] = {"Asc": float(lagna_deg)}
             planets_deg.update({k: float(v) for k, v in positions.items()})
 
-            # Optional: add MC to aspects if your environment supports it.
-            # We won't compute MC here to avoid coupling with Swiss internals.
-            # (If you later expose MC, just add: planets_deg["MC"] = <mc_longitude>)
-
             # 8) Aspects (natal-style, deterministic)
             aspects = compute_aspects(planets_deg, aspect_cfg)
 
-            # 9) Evaluate domains — returns already normalized {key, score 0..100, tier, chips...}
-            domains_list: List[dict] = evaluate_domains_v11(
+            # 9) Evaluate domains — now returns {"domains": [...], "globalAspects": [...]}
+            domain_result: Dict[str, Any] = evaluate_domains_v11(
                 domain_rules_json=domain_rules,
                 aspect_cfg=aspect_cfg,
                 planets_in_houses=bins,
                 chart_lords=chart_lords,
                 aspects=aspects,
             )
+            domains_list: List[dict] = domain_result.get("domains", [])
+            global_aspects: List[dict] = domain_result.get("globalAspects", [])
 
-            # 10) (Optional) Build a lightweight "skills" list placeholder
-            # Frontend can render empty [] gracefully until you wire a real engine
+            # 10) Evaluate skills (includes highlights in each skill)
             skills_list: List[dict] = evaluate_skills_v11(
                 aspect_cfg=aspect_cfg,
                 planets_in_houses={str(k): v for k, v in bins.items()},
@@ -274,7 +270,6 @@ class InsightsView(APIView):
             )
 
             # 11) Prepare context payload for FE debugging/visualization
-            # Convert aspects to plain dicts
             aspects_dict = [
                 {
                     "p1": hit.p1,
@@ -300,7 +295,7 @@ class InsightsView(APIView):
                 "aspects": aspects_dict,
             }
 
-            # 12) Final response
+            # 12) Final response (now includes globalAspects)
             return Response(
                 {
                     "input": {
@@ -316,6 +311,7 @@ class InsightsView(APIView):
                     "context": context,
                     "insights": {
                         "domains": domains_list,
+                        "globalAspects": global_aspects,
                         "skills": skills_list,
                     },
                 },
@@ -324,5 +320,6 @@ class InsightsView(APIView):
 
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
 
 
