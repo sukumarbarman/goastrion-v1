@@ -318,60 +318,138 @@ def build_skill_insights(
     aspects: List[AspectHit],
 ) -> List[SkillInsight]:
     """
-    Simple illustrative skills, based on Mercury/Jupiter, Sun/Saturn, etc.
-    You can expand this later or drive fully from config like domains.
+    Safer, aspect-driven skills:
+      - Aspect chips only appear if the aspect truly exists in `aspects`.
+      - Optional tiny house bonuses (no fake aspect chips from them).
+      - Clamped scoring in 0..1, mapped to 0..100.
     """
-    # Aggregate a couple of useful aspect flags
+    import sys;
+    print("[skills] guarded builder v2 active", file=sys.stderr)
+
+    # Build quick lookups
     by_name: Dict[str, List[AspectHit]] = {}
     for h in aspects:
         by_name.setdefault(h.name, []).append(h)
 
     def best_score_involving(p: str, q: str, aname: str) -> float:
+        """Return strongest score for aspect `aname` between p and q."""
         best = 0.0
         for h in by_name.get(aname, []):
             if (h.p1 == p and h.p2 == q) or (h.p1 == q and h.p2 == p):
                 best = max(best, h.score)
         return best
 
+    def has_aspect(p: str, q: str, aname: str, min_score: float = 0.0) -> bool:
+        return best_score_involving(p, q, aname) > min_score
+
+    def planet_in(planet: str, houses: Iterable[int]) -> bool:
+        return any(planet in planets_in_houses.get(int(h), []) for h in houses)
+
+    def clamp01(x: float) -> float:
+        return max(0.0, min(1.0, x))
+
     out: List[SkillInsight] = []
 
-    # Analytical (Mercury harmonics + 5th support)
-    s = 0.0
-    s += best_score_involving("Mercury", "Jupiter", "Trine") * 0.6
-    s += best_score_involving("Mercury", "Saturn", "Trine") * 0.4
-    s = max(0.0, min(1.0, s))
-    out.append(SkillInsight(key="Analytical", score=int(round(s*100)), chips=[
-        "chip.skill.mercury",
-        "chip.skill.mercuryJupiterTrine",
-        "chip.skill.mercurySaturnTrine",
-    ]))
+    # ----------------- Analytical -----------------
+    # Drivers: Mercury–Jupiter Trine (logic + abstraction),
+    #          Mercury–Saturn Trine (rigor + structure),
+    #          Tiny bonus if Mercury is in 5th (intellect, study/play).
+    # We only add the aspect chip if it truly exists.
+    analytical_score = 0.0
+    chips_analytical: List[str] = ["chip.skill.mercury"]  # base driver
 
-    # Communication (Mercury/Venus)
-    s = 0.0
-    s += best_score_involving("Mercury", "Venus", "Trine") * 0.7
-    s = max(0.0, min(1.0, s))
-    out.append(SkillInsight(key="Communication", score=int(round(s*100)), chips=[
-        "chip.skill.mercury",
-        "chip.skill.mercuryVenusTrine",
-    ]))
+    mj_trine = best_score_involving("Mercury", "Jupiter", "Trine")
+    ms_trine = best_score_involving("Mercury", "Saturn",  "Trine")
 
-    # Leadership (Sun + Jupiter support)
-    s = 0.0
-    s += best_score_involving("Sun", "Jupiter", "Trine") * 0.8
-    s = max(0.0, min(1.0, s))
-    out.append(SkillInsight(key="Leadership", score=int(round(s*100)), chips=[
-        "chip.skill.sun",
-        "chip.skill.sunJupiterTrine",
-    ]))
+    analytical_score += mj_trine * 0.6
+    analytical_score += ms_trine * 0.4
 
-    # Creativity (Venus + Mercury)
-    s = 0.0
-    s += best_score_involving("Venus", "Mercury", "Trine") * 0.7
-    s = max(0.0, min(1.0, s))
-    out.append(SkillInsight(key="Creativity", score=int(round(s*100)), chips=[
-        "chip.skill.venus",
-        "chip.skill.venusMercuryTrine",
-    ]))
+    # tiny positional support (no fake aspect chip)
+    if planet_in("Mercury", [5]):
+        analytical_score += 0.08  # small nudge, not decisive
 
+    analytical_score = clamp01(analytical_score)
+
+    if mj_trine > 0.0:
+        chips_analytical.append("chip.skill.mercuryJupiterTrine")
+    if ms_trine > 0.0:
+        chips_analytical.append("chip.skill.mercurySaturnTrine")  # appears only if real
+
+    out.append(SkillInsight(
+        key="Analytical",
+        score=int(round(analytical_score * 100)),
+        chips=chips_analytical
+    ))
+
+    # ----------------- Communication -----------------
+    # Drivers: Mercury–Venus Trine (pleasant expression),
+    #          tiny bonus if Mercury in 3/5/10 (expression, creativity, visibility).
+    comm_score = 0.0
+    chips_comm: List[str] = ["chip.skill.mercury"]
+
+    mv_trine = best_score_involving("Mercury", "Venus", "Trine")
+    comm_score += mv_trine * 0.7
+
+    if planet_in("Mercury", [3, 5, 10]):
+        comm_score += 0.08
+
+    comm_score = clamp01(comm_score)
+
+    if mv_trine > 0.0:
+        chips_comm.append("chip.skill.mercuryVenusTrine")
+
+    out.append(SkillInsight(
+        key="Communication",
+        score=int(round(comm_score * 100)),
+        chips=chips_comm
+    ))
+
+    # ----------------- Leadership -----------------
+    # Drivers: Sun–Jupiter Trine (vision + authority),
+    #          tiny bonus if Sun in 10th (public standing).
+    leader_score = 0.0
+    chips_leader: List[str] = ["chip.skill.sun"]
+
+    sj_trine = best_score_involving("Sun", "Jupiter", "Trine")
+    leader_score += sj_trine * 0.8
+
+    if planet_in("Sun", [10]):
+        leader_score += 0.08
+
+    leader_score = clamp01(leader_score)
+
+    if sj_trine > 0.0:
+        chips_leader.append("chip.skill.sunJupiterTrine")
+
+    out.append(SkillInsight(
+        key="Leadership",
+        score=int(round(leader_score * 100)),
+        chips=chips_leader
+    ))
+
+    # ----------------- Creativity -----------------
+    # Drivers: Venus–Mercury Trine (aesthetic articulation),
+    #          tiny bonus if Venus in 5th (arts, play, self-expression).
+    creative_score = 0.0
+    chips_creative: List[str] = ["chip.skill.venus"]
+
+    vm_trine = best_score_involving("Venus", "Mercury", "Trine")
+    creative_score += vm_trine * 0.7
+
+    if planet_in("Venus", [5]):
+        creative_score += 0.08
+
+    creative_score = clamp01(creative_score)
+
+    if vm_trine > 0.0:
+        chips_creative.append("chip.skill.venusMercuryTrine")
+
+    out.append(SkillInsight(
+        key="Creativity",
+        score=int(round(creative_score * 100)),
+        chips=chips_creative
+    ))
+
+    # Stable order
     out.sort(key=lambda x: x.key.lower())
     return out

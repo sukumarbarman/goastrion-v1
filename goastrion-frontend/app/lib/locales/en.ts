@@ -91,7 +91,12 @@ export default {
     "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"
   ],
 
-  common: { loading: "Loading..." },
+  common: {
+    loading: "Loading...",
+    search: "Search",
+    retry: "Retry",
+    notAvailable: "Not available",
+  },
 
   insights: {
 

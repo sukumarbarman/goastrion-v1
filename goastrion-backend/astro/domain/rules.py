@@ -880,6 +880,31 @@ def _skill_aspects(
     hits.sort(key=lambda x: x.get("score", 0.0), reverse=True)
     return hits
 
+def _best_aspect_score(
+    aspects: List[AspectHit],
+    a: str, b: str,
+    allowed: set[str] = frozenset({"Trine"}),
+    min_score: float = 0.0,
+) -> float:
+    best = 0.0
+    for hit in aspects:
+        if hit.name not in allowed:
+            continue
+        if hit.p1 == a and hit.p2 == b or hit.p1 == b and hit.p2 == a:
+            if hit.score > min_score:
+                best = max(best, float(hit.score))
+    return best
+
+def _has_aspect(
+    aspects: List[AspectHit],
+    a: str, b: str, name: str = "Trine",
+    min_score: float = 0.0,
+) -> bool:
+    return _best_aspect_score(aspects, a, b, allowed=frozenset({name}), min_score=min_score) > 0.0
+
+
+
+
 # Small generic kendra helper for several skills (Mercury/Venus/Moon boosts)
 def _kendra_boost_generic(p2h: Dict[str, List[int]], *planets: str) -> float:
     return sum(0.04 for pl in planets if any(h in _KENDRA for h in p2h.get(pl, [])))
@@ -889,6 +914,7 @@ def evaluate_skills_v11(
 ) -> List[Dict[str, Any]]:
     p2h = _p2h_map(planets_in_houses)
     skills: List[Dict[str, Any]] = []
+
     def _houses_of(planets: List[str]) -> List[int]:
         seen: Set[int] = set()
         for pl in planets:
@@ -900,16 +926,21 @@ def evaluate_skills_v11(
     base = 0.26 if "Mercury" in p2h else 0.12
     base += 0.07 * _has_house_support(p2h, [3,6,10])
     base += _kendra_boost(p2h, "Mercury") + _kendra_boost_generic(p2h, "Mercury")
-    asp_sum = _sum_aspect_pairs(aspects, [("Mercury","Jupiter"),("Mercury","Saturn")])
-    score = _cap01(base + 0.48 * asp_sum)
+    mj_trine = _best_aspect_score(aspects, "Mercury", "Jupiter", allowed=frozenset({"Trine"}))
+    ms_trine = _best_aspect_score(aspects, "Mercury", "Saturn",  allowed=frozenset({"Trine"}))
+    score = _cap01(base + 0.38 * mj_trine + 0.32 * ms_trine)  # weights just an example
+    chips = ["chip.skill.mercury"]
+    if _has_aspect(aspects, "Mercury", "Jupiter", "Trine"): chips.append("chip.skill.mercuryJupiterTrine")
+    if _has_aspect(aspects, "Mercury", "Saturn",  "Trine"): chips.append("chip.skill.mercurySaturnTrine")
     skills.append({
         "key": "Analytical",
         "score": int(round(score * 100)),
-        "chips": ["chip.skill.mercury","chip.skill.mercuryJupiterTrine","chip.skill.mercurySaturnTrine"],
+        "chips": chips,
         "reasons": [],
         "highlights": {
-            "planets": ["Mercury"], "houses": [3,6,10],
-            "aspects": _skill_aspects(aspects, [("Mercury","Jupiter"),("Mercury","Saturn")])
+            "planets": ["Mercury"],
+            "houses": [3,6,10],
+            "aspects": _skill_aspects(aspects, [("Mercury","Jupiter"),("Mercury","Saturn")], allowed=frozenset({"Trine"}))
         }
     })
 
@@ -917,33 +948,41 @@ def evaluate_skills_v11(
     base = 0.22 if "Mercury" in p2h else 0.11
     base += 0.09 * _has_house_support(p2h, [2,3])
     base += _kendra_boost(p2h, "Mercury") + _kendra_boost_generic(p2h, "Mercury","Moon","Venus")
-    asp_sum = _sum_aspect_pairs(aspects, [("Mercury","Venus"),("Mercury","Moon")])
-    score = _cap01(base + 0.42 * asp_sum)
+    mv_trine = _best_aspect_score(aspects, "Mercury", "Venus", allowed=frozenset({"Trine"}))
+    mm_trine = _best_aspect_score(aspects, "Mercury", "Moon",  allowed=frozenset({"Trine"}))
+    score = _cap01(base + 0.36 * mv_trine + 0.30 * mm_trine)
+    chips = ["chip.skill.mercury"]
+    if _has_aspect(aspects, "Mercury", "Venus", "Trine"): chips.append("chip.skill.mercuryVenusTrine")
+    if _has_aspect(aspects, "Mercury", "Moon",  "Trine"): chips.append("chip.skill.mercuryMoonTrine")
     skills.append({
         "key": "Communication",
         "score": int(round(score * 100)),
-        "chips": ["chip.skill.mercury","chip.skill.mercuryVenusTrine","chip.skill.mercuryMoonTrine"],
+        "chips": chips,
         "reasons": [],
         "highlights": {
-            "planets": ["Mercury"], "houses": _houses_of(["Mercury"]),
-            "aspects": _skill_aspects(aspects, [("Mercury","Venus"),("Mercury","Moon")])
+            "planets": ["Mercury"],
+            "houses": _houses_of(["Mercury"]),
+            "aspects": _skill_aspects(aspects, [("Mercury","Venus"),("Mercury","Moon")], allowed=frozenset({"Trine"}))
         }
     })
 
     # ---------- Leadership ----------
     base = 0.20 if "Sun" in p2h else 0.10
     base += _kendra_boost(p2h, "Sun")
-    # consider 1/7/10 as leadership angles (7th = public/visibility)
-    base += 0.08 * _has_house_support(p2h, [1,7,10])
-    asp_sum = _sum_aspect_pairs(aspects, [("Sun","Mars"),("Sun","Jupiter")])
-    score = _cap01(base + 0.45 * asp_sum)
+    base += 0.08 * _has_house_support(p2h, [1,7,10])  # visibility angles
+    sj_trine = _best_aspect_score(aspects, "Sun", "Jupiter", allowed=frozenset({"Trine"}))
+    sm_trine = _best_aspect_score(aspects, "Sun", "Mars",    allowed=frozenset({"Trine"}))
+    score = _cap01(base + 0.40 * sj_trine + 0.28 * sm_trine)
+    chips = ["chip.skill.sun"]
+    if _has_aspect(aspects, "Sun", "Jupiter", "Trine"): chips.append("chip.skill.sunJupiterTrine")
+    if _has_aspect(aspects, "Sun", "Mars",    "Trine"): chips.append("chip.skill.sunMarsTrine")
     skills.append({
         "key": "Leadership",
         "score": int(round(score * 100)),
-        "chips": ["chip.skill.sun","chip.skill.sunMarsTrine","chip.skill.sunJupiterTrine"],
+        "chips": chips,
         "reasons": [],
         "highlights": {
-            "aspects": _skill_aspects(aspects, [("Sun","Mars"),("Sun","Jupiter")])
+            "aspects": _skill_aspects(aspects, [("Sun","Jupiter"),("Sun","Mars")], allowed=frozenset({"Trine"}))
         }
     })
 
@@ -951,16 +990,21 @@ def evaluate_skills_v11(
     base = 0.18 + (0.06 if "Venus" in p2h else 0.0) + (0.06 if "Moon" in p2h else 0.0)
     base += _kendra_boost_generic(p2h, "Venus","Moon")
     base += 0.10 * _has_house_support(p2h, [5])
-    asp_sum = _sum_aspect_pairs(aspects, [("Venus","Moon"),("Venus","Jupiter")])
-    score = _cap01(base + 0.40 * asp_sum)
+    vm_trine = _best_aspect_score(aspects, "Venus", "Moon",    allowed=frozenset({"Trine"}))
+    vj_trine = _best_aspect_score(aspects, "Venus", "Jupiter", allowed=frozenset({"Trine"}))
+    score = _cap01(base + 0.34 * vm_trine + 0.28 * vj_trine)
+    chips = ["chip.skill.venus"]
+    if _has_aspect(aspects, "Venus", "Moon",    "Trine"): chips.append("chip.skill.venusMoonTrine")
+    if _has_aspect(aspects, "Venus", "Jupiter", "Trine"): chips.append("chip.skill.venusJupiterTrine")
     skills.append({
         "key": "Creativity",
         "score": int(round(score * 100)),
-        "chips": ["chip.skill.venus","chip.skill.venusMoonTrine","chip.skill.venusJupiterTrine"],
+        "chips": chips,
         "reasons": [],
         "highlights": {
-            "planets": ["Venus","Moon"], "houses": _houses_of(["Venus","Moon"]),
-            "aspects": _skill_aspects(aspects, [("Venus","Moon"),("Venus","Jupiter")])
+            "planets": ["Venus","Moon"],
+            "houses": _houses_of(["Venus","Moon"]),
+            "aspects": _skill_aspects(aspects, [("Venus","Moon"),("Venus","Jupiter")], allowed=frozenset({"Trine"}))
         }
     })
 
@@ -968,29 +1012,36 @@ def evaluate_skills_v11(
     base = 0.20 if "Saturn" in p2h else 0.12
     base += _kendra_boost(p2h, "Saturn")
     base += 0.09 * _has_house_support(p2h, [6,10])
-    asp_sum = _sum_aspect_pairs(aspects, [("Saturn","Mercury")])
-    score = _cap01(base + 0.42 * asp_sum)
+    sm_trine = _best_aspect_score(aspects, "Saturn", "Mercury", allowed=frozenset({"Trine"}))
+    score = _cap01(base + 0.38 * sm_trine)
+    chips = ["chip.skill.saturn"]
+    if _has_aspect(aspects, "Saturn", "Mercury", "Trine"): chips.append("chip.skill.saturnMercuryTrine")
     skills.append({
         "key": "Focus",
         "score": int(round(score * 100)),
-        "chips": ["chip.skill.saturn","chip.skill.saturnMercuryTrine"],
+        "chips": chips,
         "reasons": [],
         "highlights": {
-            "planets": ["Saturn"], "houses": _houses_of(["Saturn"]),
-            "aspects": _skill_aspects(aspects, [("Saturn","Mercury")])
+            "planets": ["Saturn"],
+            "houses": _houses_of(["Saturn"]),
+            "aspects": _skill_aspects(aspects, [("Saturn","Mercury")], allowed=frozenset({"Trine"}))
         }
     })
 
     # ---------- Entrepreneurial Drive ----------
     base = 0.16 + (0.06 if "Mars" in p2h else 0.0) + (0.05 if "Mercury" in p2h else 0.0) + (0.05 if "Jupiter" in p2h else 0.0)
     base += 0.07 * _has_house_support(p2h, [3,5,10,11])
+    # you can let all soft aspects help here (Trine/Sextile/Conjunction) if you want
     asp_sum = _sum_aspect_pairs(aspects, [("Mars","Mercury"),("Mars","Jupiter"),("Mercury","Jupiter")])
     rahu_boost = 0.10 if any(h in (10,11) for h in p2h.get("Rahu", [])) else 0.0
     score = _cap01(base + 0.42 * asp_sum + rahu_boost)
+    chips = ["chip.skill.mars","chip.skill.mercury","chip.skill.jupiter"]
+    if any(h in (10,11) for h in p2h.get("Rahu", [])):
+        chips.append("chip.skill.rahu10or11")
     skills.append({
         "key": "Entrepreneurial",
         "score": int(round(score * 100)),
-        "chips": ["chip.skill.mars","chip.skill.mercury","chip.skill.jupiter","chip.skill.rahu10or11"],
+        "chips": chips,
         "reasons": [],
         "highlights": {
             "planets": ["Mars","Mercury","Jupiter"],
