@@ -18,9 +18,9 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
 
-  // Close menu then run the passed handler (no 'any' here)
+  // Close menu after nav/action on mobile
   const closeAnd =
-    <T extends (...args: unknown[]) => void>(fn: T) =>
+    <T extends (...args: any[]) => void>(fn: T) =>
       (...args: Parameters<T>) => {
         setOpen(false);
         fn(...args);
