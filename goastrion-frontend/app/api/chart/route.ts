@@ -11,7 +11,7 @@ function getBackendBase() {
   return raw.replace(/\/+$/, ""); // strip trailing slash
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   const backend = getBackendBase();
 
   try {
@@ -34,13 +34,16 @@ export async function POST(req: Request) {
         "Cache-Control": "no-store",
       },
     });
-  } catch (err: any) {
-    // Helpful debug payload in dev
+  } catch (err: unknown) {
+    const message =
+      err instanceof Error
+        ? err.message
+        : typeof err === "string"
+        ? err
+        : "Proxy error";
+
     return Response.json(
-      {
-        error: err?.message || "Proxy error",
-        backend,
-      },
+      { error: message, backend },
       { status: 500 }
     );
   }

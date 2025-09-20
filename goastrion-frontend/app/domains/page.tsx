@@ -1,7 +1,7 @@
 // app/domains/page.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import Container from "../components/Container";
 import { useI18n } from "../lib/i18n";
 import ChartWithHighlights from "../components/ChartWithHighlights";
@@ -9,13 +9,20 @@ import { loadCreateState, fetchInsights } from "../lib/insightsClient";
 import { useHighlight } from "../hooks/useSkillHighlight";
 
 /* ---------- Types ---------- */
+type TimeWindow = {
+  start?: string;
+  end?: string;
+  label?: string;
+  // add fields as your API returns them; avoid `any`
+};
+
 type DomainItem = {
   key: string;
   score: number;
   tier?: string;
   chips?: string[];
   reasons?: string[];
-  timeWindows?: Array<any>;
+  timeWindows?: TimeWindow[]; // ← was Array<any>
   highlights?: {
     planets?: string[];
     houses?: number[];
@@ -79,7 +86,10 @@ function joinOxford(items: string[], andWord = "and", comma = ", ") {
 function planetI18nKey(p: string) {
   return `planets.${p.toLowerCase()}`;
 }
-function localizePlanetName(p: string, t: (k: string, vars?: any) => string) {
+function localizePlanetName(
+  p: string,
+  t: (k: string, vars?: Record<string, string | number>) => string // ← was any
+) {
   const label = t(planetI18nKey(p));
   return label === planetI18nKey(p) ? p : label; // if key missing, keep original
 }
@@ -93,13 +103,13 @@ function localizeSvgPlanets(svg: string, t: (k: string) => string) {
 }
 
 export default function DomainsPage() {
-  const { t, locale } = useI18n();
+  const { t /* , locale */ } = useI18n();
 
-  // dev-friendly fallback wrapper: if t(key) returns the key string, use fb instead
-  const tf = (key: string, fb: string) => {
+  // dev-friendly fallback wrapper: memoize so it’s stable and can be added to deps
+  const tf = useCallback((key: string, fb: string) => {
     const v = t(key);
     return v === key ? fb : v;
-  };
+  }, [t]);
 
   // i18n accessors (translation with fallback strings)
   const houseGloss = (h: number) => tf(`insights.housesGloss.${h}`, HOUSE_GLOSS_FALLBACK[h] ?? "");
@@ -153,12 +163,12 @@ export default function DomainsPage() {
       .then(r => r.ok ? r.json() : Promise.reject(new Error("Chart error")))
       .then(json => setSvg(json?.svg ?? null))
       .catch(() => {});
-  }, []);
+  }, [tf]); // ← include tf; it’s memoized so this won’t thrash
 
-  // Localize the SVG on the client whenever svg or locale changes
+  // Localize the SVG on the client whenever svg or t changes
   const localizedSvg = useMemo(() => {
     return svg ? localizeSvgPlanets(svg, t) : null;
-  }, [svg, t, locale]);
+  }, [svg, t]); // ← removed 'locale' per linter suggestion
 
   const occupantsForHouse = (h: number): string[] => ctxHouses[String(h)] ?? [];
   const uniqStr = (arr: string[]) => Array.from(new Set(arr)).filter(Boolean);

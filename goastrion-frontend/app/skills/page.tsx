@@ -1,6 +1,7 @@
 // app/skills/page.tsx
 "use client";
 
+import type React from "react";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Container from "../components/Container";
 import { useI18n } from "../lib/i18n";
@@ -14,7 +15,7 @@ import HighlightController from "../components/HighlightController";
 // Types
 // -----------------------------
 type Skill = { key: string; score: number; chips?: string[] };
-type InsightsResponse = { context?: {}; insights?: { skills?: Skill[] } };
+type InsightsResponse = { context?: unknown; insights?: { skills?: Skill[] } };
 
 // -----------------------------
 // Small UI helpers
@@ -115,7 +116,7 @@ function ChipPill({ label, onHover, onClick }: { label: string; onHover?: () => 
 // Page
 // -----------------------------
 export default function SkillsPage() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
   const [skills, setSkills] = useState<Skill[]>([]);
   const [svg, setSvg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
@@ -165,8 +166,9 @@ export default function SkillsPage() {
       } catch {
         setSvg(null);
       }
-    } catch (e: any) {
-      setErr(e?.message || t("errors.genericGenerate"));
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setErr(msg || t("errors.genericGenerate"));
     } finally {
       setLoading(false);
     }
@@ -174,8 +176,8 @@ export default function SkillsPage() {
 
   useEffect(() => { reload(); }, [reload]);
 
-  // Localize chart SVG whenever svg or locale changes
-  const localizedSvg = useMemo(() => (svg ? localizeSvgPlanets(svg, t) : null), [svg, t, locale]);
+  // Localize chart SVG whenever svg or t changes
+  const localizedSvg = useMemo(() => (svg ? localizeSvgPlanets(svg, t) : null), [svg, t]);
 
   // helper: compute highlight list from a skill's chips
   const planetsForSkill = useCallback((chips?: string[]) => {
@@ -252,7 +254,7 @@ export default function SkillsPage() {
 
             {/* Localized quick legend */}
             <div className="mt-3 text-xs text-slate-400 flex flex-wrap items-center gap-2">
-              <span className="mr-1">{/* no key for "Legend:" in dict yet */}Legend:</span>
+              <span className="mr-1">Legend:</span>
               {Object.keys(PLANET_EMOJI).map((p) => {
                 const label = localizePlanetName(p, t);
                 return (
@@ -282,7 +284,9 @@ export default function SkillsPage() {
               <label className="text-sm text-slate-400">Sort</label>
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as any)}
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                  setSort(e.target.value as "score" | "alpha")
+                }
                 className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200"
               >
                 <option value="score">Score (high → low)</option>

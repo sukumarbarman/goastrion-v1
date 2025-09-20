@@ -3,28 +3,42 @@ import { useI18n } from "../lib/i18n";
 
 export function useChipLabel() {
   const { t } = useI18n();
-  return (key: string) => {
-    // try insights.* first
-    const maybe = t(key as any);
-    if (maybe !== key) return maybe;
 
-    // fallback maps (optional quick wins)
+  return (key: string): string => {
+    // Try direct lookup first
+    const direct = t(key);
+    if (direct !== key) return direct;
+
+    // Fallbacks by prefix
     if (key.startsWith("chip.house_presence.")) {
       const dom = key.split(".").pop() || "";
-      return t(`insights.${dom}.housePresence`) ?? key;
+      // e.g., chip.house_presence.career -> insights.career.housePresence
+      const alt = t(`insights.${dom}.housePresence`);
+      return alt !== `insights.${dom}.housePresence` ? alt : key;
     }
+
     if (key.startsWith("chip.skill.")) {
       const sk = key.split(".").pop() || "";
-      return t(`insights.skills.${sk}`) ?? key;
+      // e.g., chip.skill.mercury -> insights.skills.mercury (label)
+      const alt = t(`insights.skills.${sk}`);
+      return alt !== `insights.skills.${sk}` ? alt : key;
     }
+
     if (key.startsWith("chip.aspectClass.")) {
       const c = key.split(".").pop() || "";
-      return t(`insights.aspectClass.${c}`) ?? key;
+      // e.g., chip.aspectClass.benefic -> insights.aspectClass.benefic
+      const alt = t(`insights.aspectClass.${c}`);
+      return alt !== `insights.aspectClass.${c}` ? alt : key;
     }
+
     if (key.startsWith("chip.aspect.")) {
       const a = key.split(".").pop() || "";
-      return t(`insights.aspect.${a}`) ?? key;
+      // e.g., chip.aspect.Trine -> insights.aspect.Trine
+      const alt = t(`insights.aspect.${a}`);
+      return alt !== `insights.aspect.${a}` ? alt : key;
     }
-    return key; // safe fallback
+
+    // Safe fallback
+    return key;
   };
 }
