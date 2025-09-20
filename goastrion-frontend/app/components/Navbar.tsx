@@ -41,8 +41,13 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             </Link>
             */}
 
-            <Link href="/domains" className="hover:text-white">Domains</Link>
-            <Link href="/skills" className="hover:text-white">Skills</Link>
+            <Link href="/domains" className="hover:text-white">
+              {t("navbar.lifeSpheres")}
+            </Link>
+            <Link href="/skills" className="hover:text-white">
+              {t("navbar.skills")}
+            </Link>
+
 
 
             <Link href="/about" className="hover:text-white">

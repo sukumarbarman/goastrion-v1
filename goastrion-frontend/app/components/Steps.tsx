@@ -1,46 +1,34 @@
+// app/components/Steps.tsx
+"use client";
 import Container from "./Container";
+import { useI18n } from "../lib/i18n";
 
-export default function SkillSpotlight() {
-  const skills = [
-    "Analytical Ability",
-    "Communication",
-    "Leadership",
-    "Creativity",
-    "Focus",
-    "Entrepreneurial Drive",
+export default function Steps() {
+  const { t } = useI18n();
+
+  const ITEMS = [
+    { t: t("steps.1.title"), d: t("steps.1.desc") },
+    { t: t("steps.2.title"), d: t("steps.2.desc") },
+    { t: t("steps.3.title"), d: t("steps.3.desc") },
   ];
 
   return (
-    <section>
+    <section className="py-10">
       <Container>
-        <div className="mb-8">
-          <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
-            Skill spotlight
-          </h2>
-          <p className="mt-2 text-sm md:text-base text-slate-400 max-w-2xl">
-            A quick preview of strengths we highlight from your chart.
-          </p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {skills.map((s, i) => (
+        <h2 className="text-2xl md:text-3xl font-semibold text-white">
+          {t("steps.heading")}
+        </h2>
+        <div className="grid md:grid-cols-3 gap-4 mt-6">
+          {ITEMS.map((it, i) => (
             <div
               key={i}
-              className="bg-[#141A2A] rounded-2xl p-5 border border-white/5 hover:border-cyan-400/30 transition-all"
+              className="rounded-2xl border border-white/10 p-5 bg-[#11162A]"
             >
-              <div className="text-white font-medium">{s}</div>
-
-              {/* pretty bar */}
-              <div className="mt-3 h-2 w-full rounded bg-white/10 overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400"
-                  style={{ width: `${65 + (i % 3) * 10}%` }}
-                />
+              <div className="text-xs text-slate-400">
+                {t("steps.stepLabel", { num: i + 1 })}
               </div>
-
-              <p className="mt-2 text-xs text-slate-400">
-                Hover to preview. Click in Results for details.
-              </p>
+              <div className="mt-1 text-white font-medium">{it.t}</div>
+              <p className="mt-2 text-slate-400 text-sm">{it.d}</p>
             </div>
           ))}
         </div>

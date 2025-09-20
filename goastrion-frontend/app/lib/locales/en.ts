@@ -1,6 +1,8 @@
 // app/lib/i18n/en.ts
 export default {
   navbar: {
+    lifeSpheres: "Life Spheres",
+    skills: "Skills",
     pricing: "Pricing",
     about: "About",
     dashboard: "Dashboard",
@@ -8,6 +10,47 @@ export default {
     book: "Book appointment",
     login: "Log in",
     signup: "Sign up",
+  },
+
+    steps: {
+        heading: "How it works",
+        stepLabel: "Step {num}",
+        "1": {
+          title: "Enter birth details",
+          desc: "Date, time, and location. We handle timezones.",
+        },
+        "2": {
+          title: "We compute your chart",
+          desc: "Fast, private calculations—no signup needed.",
+        },
+        "3": {
+          title: "Get skills & guidance",
+          desc: "Clear scores, study tips, and career direction.",
+        },
+      },
+  hero: {
+    headline: "Find Your True Strengths.",
+    subline: "Your chart reveals the path where you can shine brightest.",
+    support: "Study smarter, grow faster, and choose the right path with confidence.",
+    createBtn: "Create Your Chart",
+    sampleBtn: "See Sample Report",
+    badgeSecure: "Secure",
+    badgePrivate: "Private",
+    badgeFast: "Fast",
+  },
+  skills: {
+    title: "Skill spotlight",
+    note:
+      'Hover to preview. Click <span class="text-slate-200">“See Sample Report”</span> for full details.',
+    sampleReport: "See Sample Report →",
+    list: {
+      analytical: { name: "Analytical Ability", blurb: "Strong pattern recognition and logical breakdown—great for STEM & data tasks." },
+      communication: { name: "Communication", blurb: "Clear articulation; benefits from more public practice." },
+      leadership: { name: "Leadership", blurb: "Emerging leadership; improve by owning small team tasks." },
+      creativity: { name: "Creativity", blurb: "Good idea flow; schedule unstructured brainstorming time." },
+      focus: { name: "Focus", blurb: "Solid focus windows; try 25–30 min deep-work sprints." },
+      entrepreneurial: { name: "Entrepreneurial Drive", blurb: "Initiative & risk tolerance; ship mini-projects often." },
+    },
   },
 
   create: {
@@ -197,8 +240,8 @@ export default {
 
 
     pages: {
-      domainsTitle: "Life Domains",
-      domainsSubtitle: "Pick a domain to see your score, highlights, and time windows.",
+      domainsTitle: "Life Spheres",
+      domainsSubtitle: "Choose a life sphere to explore your score, highlights, and timing.",
       skillsTitle: "Skill Spotlights",
       skillsSubtitle: "Foundational capabilities inferred from your chart.",
       highlightsTitle: "Highlights",

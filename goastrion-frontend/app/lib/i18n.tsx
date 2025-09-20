@@ -1,6 +1,13 @@
+// app/lib/i18n.tsx
 "use client";
 
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { dictionaries } from "./locales/dictionaries";
 
 type Locale = keyof typeof dictionaries;
@@ -8,10 +15,9 @@ type Locale = keyof typeof dictionaries;
 type I18nContextValue = {
   locale: Locale;
   setLocale: (l: Locale) => void;
-  t: (key: string) => string;
+  t: (key: string, vars?: Record<string, string | number>) => string;
 };
 
-// remove unused param to satisfy eslint
 const noopSetLocale: I18nContextValue["setLocale"] = () => {};
 
 const I18nCtx = createContext<I18nContextValue>({
@@ -20,7 +26,7 @@ const I18nCtx = createContext<I18nContextValue>({
   t: (k) => k,
 });
 
-/** Safe getter for dot-separated keys, without using `any`. */
+/** Safe getter for dot-separated keys. */
 function getPath(obj: unknown, path: string): unknown {
   let cur: unknown = obj;
   for (const part of path.split(".")) {
@@ -31,6 +37,14 @@ function getPath(obj: unknown, path: string): unknown {
     }
   }
   return cur;
+}
+
+/** Simple interpolation: replaces {key} with vars[key]. */
+function interpolate(template: string, vars?: Record<string, string | number>) {
+  if (!vars) return template;
+  return template.replace(/\{(\w+)\}/g, (_, k) =>
+    Object.prototype.hasOwnProperty.call(vars, k) ? String(vars[k]) : `{${k}}`
+  );
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
@@ -54,9 +68,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   }, [locale]);
 
   const t = useMemo(() => {
-    return (key: string) => {
+    return (key: string, vars?: Record<string, string | number>) => {
       const val = getPath(dictionaries[locale], key);
-      return typeof val === "string" ? val : key;
+      const str = typeof val === "string" ? val : key;
+      return interpolate(str, vars);
     };
   }, [locale]);
 
@@ -67,6 +82,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ---- Only ONE hook export below ----
 export function useI18n() {
   return useContext(I18nCtx);
 }
