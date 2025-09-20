@@ -30,6 +30,21 @@ type DomainItem = {
   };
 };
 
+// --- Add this helper (exactly like your Create page logic) ---
+type TzId = "IST" | "UTC";
+const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
+
+function localCivilToUtcIso(dob: string, tob: string, tzId: TzId) {
+  // Build a Date using UTC math to avoid Safari parsing quirks.
+  // dob: "YYYY-MM-DD", tob: "HH:MM"
+  const [Y, M, D] = dob.split("-").map(Number);
+  const [h, m] = tob.split(":").map(Number);
+  const tzHours = TZ_HOURS[tzId] ?? 0;
+  // Local civil -> UTC by subtracting offset
+  const millis = Date.UTC(Y, (M ?? 1) - 1, D ?? 1, (h ?? 0), (m ?? 0)) - tzHours * 3600_000;
+  return { dtIsoUtc: new Date(millis).toISOString(), tzHours };
+}
+
 type InsightsResponse = {
   context?: { planets_in_houses?: Record<string, string[]> };
   insights?: { domains?: DomainItem[] };
@@ -129,12 +144,8 @@ export default function DomainsPage() {
     const st = loadCreateState();
     if (!st) { setErr(tf("errors.genericGenerate", "Failed to generate chart.")); return; }
 
-    const tzHours = st.tzId === "IST" ? 5.5 : 0;
-    const offset =
-      tzHours >= 0
-        ? `+${String(Math.floor(tzHours)).padStart(2,"0")}:${String(Math.round((tzHours%1)*60)).padStart(2,"0")}`
-        : `-${String(Math.floor(-tzHours)).padStart(2,"0")}:${String(Math.round((-tzHours%1)*60)).padStart(2,"0")}`;
-    const dtIsoUtc = new Date(`${st.dob}T${st.tob}:00${offset}`).toISOString();
+    const { dtIsoUtc, tzHours } = localCivilToUtcIso(st.dob, st.tob, st.tzId as TzId);
+
 
     // Insights + context
     fetchInsights({
