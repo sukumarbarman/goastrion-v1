@@ -1,4 +1,3 @@
-// app/domains/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
@@ -22,8 +21,7 @@ function localCivilToUtcIso(dob: string, tob: string, tzId: TzId) {
   const [h, m] = tob.split(":").map(Number);
   const tzHours = TZ_HOURS[tzId] ?? 0;
   const ms =
-    Date.UTC(Y, (M ?? 1) - 1, D ?? 1, (h ?? 0), (m ?? 0)) -
-    tzHours * 3600_000;
+    Date.UTC(Y, (M ?? 1) - 1, D ?? 1, (h ?? 0), (m ?? 0)) - tzHours * 3600_000;
   const iso = new Date(ms).toISOString();
   if (!iso || Number.isNaN(ms)) throw new Error("Bad datetime");
   return { dtIsoUtc: iso, tzHours };
@@ -107,8 +105,37 @@ function localizeSvgPlanets(svg: string, t: (k: string) => string) {
   const pattern = new RegExp(`(>)(\\s*)(${names.join("|")})(\\s*)(<)`, "gi");
   return svg.replace(
     pattern,
-    (_m, gt, pre, name, post, lt) => `${gt}${pre}${localizePlanetName(String(name), t)}${post}${lt}`
+    (_m, gt, pre, name, post, lt) =>
+      `${gt}${pre}${localizePlanetName(String(name), t)}${post}${lt}`
   );
+}
+
+/* ---------- Small UI helper for interactive sentences ---------- */
+function useInteractiveHandlers(
+  planets: string[],
+  setPreviewPlanets: (ps: string[]) => void,
+  lockReplace: (ps: string[]) => void
+) {
+  const has = planets && planets.length > 0;
+  return {
+    onMouseEnter: () => has && setPreviewPlanets(planets),
+    onMouseLeave: () => has && setPreviewPlanets([]),
+    onFocus: () => has && setPreviewPlanets(planets),
+    onBlur: () => has && setPreviewPlanets([]),
+    onKeyDown: (e: React.KeyboardEvent) => {
+      if (!has) return;
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        lockReplace(planets);
+      }
+    },
+    onClick: () => has && lockReplace(planets),
+    tabIndex: has ? 0 : -1,
+    role: has ? "button" : undefined,
+    className: has
+      ? "cursor-pointer hover:text-slate-200 focus:outline-none focus:ring-1 focus:ring-cyan-400 rounded"
+      : undefined,
+  };
 }
 
 export default function DomainsPage() {
@@ -373,9 +400,7 @@ export default function DomainsPage() {
             const houseOccupants = uniqStr(
               houses.flatMap((h) => occupantsForHouse(h))
             );
-            const aspectPlanets = uniqStr(
-              aspects.flatMap((a) => [a.p1, a.p2])
-            );
+            const aspectPlanets = uniqStr(aspects.flatMap((a) => [a.p1, a.p2]));
             const allForDomain = uniqStr([
               ...houseOccupants,
               ...planets,
@@ -384,6 +409,30 @@ export default function DomainsPage() {
 
             const parts = buildOption2Parts(d);
             const tierKey = d.tier ? `insights.tiers.${d.tier}` : undefined;
+
+            // Handlers builders
+            const housesHandlers = parts.housesLine
+              ? useInteractiveHandlers(
+                  parts.housesLine.planets,
+                  setPreviewPlanets,
+                  lockReplace
+                )
+              : null;
+            const planetsHandlers = parts.planetsLine
+              ? useInteractiveHandlers(
+                  parts.planetsLine.planets,
+                  setPreviewPlanets,
+                  lockReplace
+                )
+              : null;
+            const aspectsHeaderHandlers =
+              parts.aspectsAllPlanets && parts.aspectsAllPlanets.length > 0
+                ? useInteractiveHandlers(
+                    parts.aspectsAllPlanets,
+                    setPreviewPlanets,
+                    lockReplace
+                  )
+                : null;
 
             return (
               <div
@@ -409,21 +458,59 @@ export default function DomainsPage() {
                   />
                 </div>
 
-                {/* Localized sentences */}
+                {/* Localized sentences (now interactive) */}
                 <div className="mt-3 text-sm text-slate-300 leading-6 space-y-1.5">
                   <div>{parts.line1.text}</div>
-                  {parts.housesLine && <div>{parts.housesLine.text}</div>}
-                  {parts.planetsLine && <div>{parts.planetsLine.text}</div>}
+
+                  {parts.housesLine && (
+                    <div
+                      {...(housesHandlers as any)}
+                      aria-label="Highlight planets occupying these houses"
+                      title={t("insights.ui.hoverToPreview")}
+                    >
+                      {parts.housesLine.text}
+                    </div>
+                  )}
+
+                  {parts.planetsLine && (
+                    <div
+                      {...(planetsHandlers as any)}
+                      aria-label="Highlight listed planets"
+                      title={t("insights.ui.hoverToPreview")}
+                    >
+                      {parts.planetsLine.text}
+                    </div>
+                  )}
 
                   {parts.aspectsItems.length > 0 && (
                     <div>
-                      <div className="font-medium text-slate-200">
+                      <div
+                        className="font-medium text-slate-200"
+                        {...(aspectsHeaderHandlers as any)}
+                        aria-label="Highlight planets involved in notable aspects"
+                        title={t("insights.ui.hoverToPreview")}
+                      >
                         {parts.aspectsHeader}
                       </div>
                       <ul className="mt-1 list-disc list-inside space-y-1">
-                        {parts.aspectsItems.map((it, idx) => (
-                          <li key={idx}>{it.text}</li>
-                        ))}
+                        {parts.aspectsItems.map((it, idx) => {
+                          const liHandlers = useInteractiveHandlers(
+                            it.planets,
+                            setPreviewPlanets,
+                            lockReplace
+                          );
+                          return (
+                            <li key={idx}>
+                              <span
+                                {...(liHandlers as any)}
+                                aria-label="Highlight aspect planets"
+                                title={t("insights.ui.hoverToPreview")}
+                              >
+                                {it.text}
+                              </span>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
@@ -474,7 +561,9 @@ export default function DomainsPage() {
                     const p1 = localizePlanetName(a.p1, t);
                     const p2 = localizePlanetName(a.p2, t);
                     const label = `${p1}–${p2}${
-                      tone ? ` (${tone} ${a.name.toLowerCase()})` : ` (${a.name.toLowerCase()})`
+                      tone
+                        ? ` (${tone} ${a.name.toLowerCase()})`
+                        : ` (${a.name.toLowerCase()})`
                     }`;
                     return (
                       <button

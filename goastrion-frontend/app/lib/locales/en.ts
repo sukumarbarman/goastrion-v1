@@ -1,7 +1,7 @@
 // app/lib/i18n/en.ts
 export default {
   navbar: {
-    lifeSpheres: "Life Spheres",
+    lifeSpheres: "Life Wheel",
     skills: "Skills",
     pricing: "Pricing",
     about: "About",
@@ -240,8 +240,8 @@ export default {
 
 
     pages: {
-      domainsTitle: "Life Spheres",
-      domainsSubtitle: "Choose a life sphere to explore your score, highlights, and timing.",
+      domainsTitle: "Life Wheel",
+      domainsSubtitle: "Choose a life wheel to explore your score, highlights, and timing.",
       skillsTitle: "Skill Spotlights",
       skillsSubtitle: "Foundational capabilities inferred from your chart.",
       highlightsTitle: "Highlights",
