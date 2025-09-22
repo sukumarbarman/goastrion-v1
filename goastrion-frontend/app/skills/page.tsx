@@ -315,8 +315,6 @@ export default function SkillsPage() {
               >
                 <option value="all">All</option>
                 <option value="3">Top 3</option>
-                <option value="5">Top 5</option>
-                <option value="10">Top 10</option>
               </select>
             </div>
             <button
@@ -464,10 +462,6 @@ export default function SkillsPage() {
         </section>
       </div>
 
-      <p className="mt-8 text-xs text-slate-500">
-        Tip: Hover any chip to preview its planets on the chart; click a chip or the “Highlight” button to lock highlights. Use the top-right Clear inside
-        the Chart card to reset.
-      </p>
     </Container>
   );
 }

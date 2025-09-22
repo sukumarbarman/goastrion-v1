@@ -11,6 +11,28 @@ export default {
     login: "Log in",
     signup: "Sign up",
   },
+      about: {
+        title: "About GoAstrion",
+        tagline:
+          "GoAstrion helps students and professionals make smarter life choices with clear, practical guidance—powered by Vedic astrology.",
+        points: {
+          career: "Career: find your strengths & learning path",
+          finance: "Finance: plan habits and money decisions",
+          marriage: "Marriage: understand compatibility patterns",
+          health: "Health: build sustainable daily routines",
+          education: "Education: pick subjects & skills confidently",
+        },
+        cta: {
+          start: "Get Started",
+          generate: "Generate My Chart",
+        },
+        imageAlt: "A student exploring career options on GoAstrion",
+        mission: {
+          title: "Our Mission",
+          body:
+            "We translate complex astrological signals into simple, actionable steps—so you can choose subjects, careers, and habits with clarity, not confusion.",
+        },
+      },
 
     steps: {
         heading: "How it works",

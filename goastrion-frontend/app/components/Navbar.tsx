@@ -62,7 +62,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             </Link>
 
             <LanguageSwitcher />
-
+{/*
             <button
               onClick={onOpenAppt}
               className="hidden md:inline-flex rounded-full border border-cyan-400/40 bg-cyan-500/15 px-3 py-1.5 text-sm text-cyan-200 hover:bg-cyan-500/25"
@@ -81,7 +81,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             >
               {t("navbar.signup")}
             </button>
-
+*/}
             {/* Mobile menu toggle */}
             <button
               className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/10 text-slate-200"
