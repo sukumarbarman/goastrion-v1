@@ -1,8 +1,14 @@
-// Minimal static list. Add your real routes.
+// app/sitemap.ts
 export default function sitemap() {
   const base = "https://goastrion.com";
-  const routes = ["", "/career-guidance", "/finance", "/marriage", "/health"];
   const now = new Date();
+
+  // ✅ Include only real, deployed routes
+  const routes: string[] = [
+    "",          // /
+    // "/faq",   // uncomment only if /faq page exists
+    // add more routes here as you create them
+  ];
 
   return routes.map((r) => ({
     url: `${base}${r}`,
