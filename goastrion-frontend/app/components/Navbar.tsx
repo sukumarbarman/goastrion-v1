@@ -120,6 +120,16 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
         >
           <nav className="px-2 py-2">
             <ul className="divide-y divide-white/5">
+            <li>
+                <Link href="/about" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
+                  {t("navbar.about")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/create" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
+                  {t("create.title")}
+                </Link>
+              </li>
               <li>
                 <Link href="/domains" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
                   {t("navbar.lifeSpheres")}
@@ -131,15 +141,17 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
                 </Link>
               </li>
               <li>
-                <Link href="/about" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("navbar.about")}
+                <Link href="/guides" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
+                  {t("navbar.guides")}
                 </Link>
               </li>
               <li>
-                <Link href="/create" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("create.title")}
+                <Link href="/faq" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
+                  {t("navbar.faq")}
                 </Link>
               </li>
+
+
             </ul>
 
             {/* Actions */}

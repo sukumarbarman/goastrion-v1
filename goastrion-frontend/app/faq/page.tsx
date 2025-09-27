@@ -74,7 +74,7 @@ const FAQ_LD = {
       acceptedAnswer: {
         "@type": "Answer",
         text:
-          "Enter your local birth date and time. The app converts it to UTC internally using the selected timezone. India uses IST (UTC+05:30) and has no daylight saving. For other countries, select the appropriate timezone; we handle offsets automatically.",
+          "Born in India: enter your local birth date and time and choose IST (UTC+05:30). India has no daylight saving time. Born outside India: convert your local birth time to UTC and choose UTC in the app.",
       },
     },
     {
@@ -197,9 +197,9 @@ export default function Page() {
         <details className="rounded-xl bg-white/5 p-4">
           <summary className="cursor-pointer font-medium">How does timezone work? Do I enter IST/UTC?</summary>
           <p className="mt-2">
-            Enter your <b>local</b> birth date and time. The app converts to UTC internally using the selected timezone.
-            India uses IST (UTC+05:30) and has no daylight saving. If you were born outside India, select that
-            timezone—we handle the offset automatically.
+            <b>Born in India:</b> enter your local birth date &amp; time and choose <b>IST (UTC+05:30)</b>. India has no
+            daylight saving.<br />
+            <b>Born outside India:</b> convert your local birth time to <b>UTC</b> and choose <b>UTC</b> in the app.
           </p>
         </details>
 
