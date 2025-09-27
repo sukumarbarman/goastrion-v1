@@ -154,7 +154,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
 
             </ul>
 
-            {/* Actions */}
+            {/* Actions
             <div className="mt-3 grid grid-cols-2 gap-2 px-2">
               <button
                 onClick={closeAnd(onOpenAppt)}
@@ -175,6 +175,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
                 {t("navbar.signup")}
               </button>
             </div>
+            */}
           </nav>
         </div>
       )}
