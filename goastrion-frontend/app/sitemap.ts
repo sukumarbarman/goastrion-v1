@@ -3,17 +3,19 @@ export default function sitemap() {
   const base = "https://goastrion.com";
   const now = new Date();
 
-  // ✅ Include only real, deployed routes
-  const routes: string[] = [
-    "",          // /
-    // "/faq",   // uncomment only if /faq page exists
-    // add more routes here as you create them
+  const routes = [
+    "/",            // home
+    "/create",
+    "/domains",
+    "/skills",
+    "/faq",
+    "/about",
   ];
 
-  return routes.map((r) => ({
-    url: `${base}${r}`,
+  return routes.map((path) => ({
+    url: `${base}${path === "/" ? "" : path}`,
     lastModified: now,
     changeFrequency: "weekly",
-    priority: r === "" ? 1.0 : 0.8,
+    priority: path === "/" ? 1.0 : 0.8,
   }));
 }
