@@ -1,86 +1,31 @@
-// app/lib/i18n/hi.ts
-export default {
-  navbar: {
-    pricing: "मूल्य",
-    about: "हमारे बारे में",
-    dashboard: "डैशबोर्ड",
-    results: "परिणाम",
-    book: "अपॉइंटमेंट बुक करें",
-    login: "लॉगिन",
-    signup: "साइन अप",
-  },
-  create: {
-    title: "कुंडली बनाएं",
-    note: "उत्तर भारतीय शैली की कुंडली बनाने के लिए जन्म विवरण भरें।",
-    dob: "जन्म तिथि",
-    tob: "जन्म समय",
-    timezone: "समय क्षेत्र",
-    place: "स्थान",
-    placePlaceholder: "शहर, देश (उदा. कोलकाता, भारत)",
-    find: "खोजें",
-    finding: "खोज रहा है...",
-    lat: "अक्षांश",
-    lon: "देशांतर",
-    generate: "जेनरेट करें",
-    generating: "तैयार हो रहा है...",
-    reset: "रीसेट",
-    validation: {
-      missingFields: "कृपया तिथि, समय, अक्षांश और देशांतर भरें।",
-      badDate: "कृपया तिथि YYYY-MM-DD प्रारूप में दर्ज करें।",
-      badYearRange: "वर्ष 4 अंकों का होना चाहिए (1000–2099 के बीच)।",
-    },
-    locationFound: "स्थान मिल गया।",
-  },
-  timezones: {
-    ist: "आईएसटी (UTC+05:30)",
-    utc: "यूटीसी (UTC+00:00)",
-  },
-  results: {
-    title: "चार्ट सारांश",
-    lagnaSign: "लग्न (आरोही)",
-    sunSign: "सूर्य राशि",
-    moonSign: "चंद्र राशि",
-    moonNakshatra: "चंद्र नक्षत्र",
-    lagnaDeg: "लग्न (डिग्री)",
-    sunDeg: "सूर्य (डिग्री)",
-    moonDeg: "चंद्र (डिग्री)",
-  },
-  planets: {
-    sun: "सूर्य",
-    moon: "चंद्र",
-    mars: "मंगल",
-    mercury: "बुध",
-    jupiter: "बृहस्पति",
-    venus: "शुक्र",
-    saturn: "शनि",
-    rahu: "राहु",
-    ketu: "केतु",
-  },
-  dasha: {
-    sectionTitle: "दशा टाइमलाइन",
-    titleFullTimeline: "विंशोत्तरी महादशा — पूर्ण समयरेखा",
-    colLord: "स्वामी",
-    colStart: "आरंभ",
-    colEnd: "समाप्ति",
-    colDuration: "अवधि",
-    colADLord: "अंतर्दशा स्वामी",
-    prevADTitle: "पूर्व महादशा — अंतर्दशा",
-    curADTitle: "वर्तमान महादशा — अंतर्दशा",
-    nextADTitle: "अगली महादशा — अंतर्दशा",
-    noAntardasha: "अंतर्दशा उपलब्ध नहीं है।",
-  },
-  errors: {
-    genericGeocode: "स्थान नहीं मिला।",
-    genericGenerate: "कुंडली तैयार नहीं हो सकी।",
-  },
+// app/lib/locales/hi.ts
+import core from "./hi-core";
+import insights from "./hi-insights";
 
-  zodiac: [
-    "मेष","वृषभ","मिथुन","कर्क","सिंह","कन्या",
-    "तुला","वृश्चिक","धनु","मकर","कुंभ","मीन"
-  ],
-  nakshatras: [
-    "अश्विनी","भरणी","कृत्तिका","रोहिणी","मृगशिरा","आर्द्रा","पुनर्वसु","पुष्य","आश्लेषा",
-    "मघा","पूर्व फाल्गुनी","उत्तर फाल्गुनी","हस्त","चित्रा","स्वाती","विशाखा","अनुराधा","ज्येष्ठा",
-    "मूल","पूर्वाषाढ़ा","उत्तराषाढ़ा","श्रवण","धनिष्ठा","शतभिषा","पूर्व भाद्रपदा","उत्तर भाद्रपदा","रेवती"
-  ],
-} as const;
+type PlainObject = Record<string, unknown>;
+
+function isPlainObject(v: unknown): v is PlainObject {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+// tiny deep merge that preserves objects/arrays (no `any`)
+function deepMerge<T extends PlainObject, U extends PlainObject>(a: T, b: U): T & U {
+  const out: PlainObject = isPlainObject(a) ? { ...a } : {};
+
+  for (const [k, v] of Object.entries(b)) {
+    const cur = (out as PlainObject)[k];
+
+    if (isPlainObject(v) && isPlainObject(cur)) {
+      (out as PlainObject)[k] = deepMerge(cur, v);
+    } else if (Array.isArray(v)) {
+      (out as PlainObject)[k] = [...v];
+    } else {
+      (out as PlainObject)[k] = v;
+    }
+  }
+
+  return out as T & U;
+}
+
+const hi = deepMerge(core, insights) as typeof core & typeof insights;
+export default hi;
