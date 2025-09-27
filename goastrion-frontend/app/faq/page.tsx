@@ -5,10 +5,11 @@ import Link from "next/link";
 export const metadata = {
   title: "GoAstrion FAQs",
   description:
-    "Answers to common questions about generating North Indian (Vedic) birth charts, highlights, privacy, and more.",
+    "Answers about charts, the Life Wheel, timezone handling, languages/localization, and whether latitude/longitude are needed.",
   alternates: { canonical: "https://goastrion.com/faq" },
 };
 
+// ---------- JSON-LD (Rich Results) ----------
 const FAQ_LD = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
@@ -37,34 +38,45 @@ const FAQ_LD = {
       acceptedAnswer: {
         "@type": "Answer",
         text:
-          "You’ll need your date of birth, time of birth, and place (latitude/longitude improves accuracy).",
+          "You’ll need your date of birth, time of birth, and place. Latitude/longitude is optional but improves accuracy.",
       },
     },
     {
       "@type": "Question",
-      name: "What are Domains and Skills in the results?",
+      name: "What is the Life Wheel?",
       acceptedAnswer: {
         "@type": "Answer",
         text:
-          "Domains summarize areas like Career, Finance, Marriage, and Health from house strengths and aspects. Skills highlight personal tendencies such as analytical ability and leadership.",
+          "Life Wheel is our summary view that highlights key areas like Career, Finance, Marriage, and Health based on house strengths and planetary aspects.",
       },
     },
     {
       "@type": "Question",
-      name: "Is my data private?",
+      name: "How does timezone work? Do I enter IST/UTC?",
       acceptedAnswer: {
         "@type": "Answer",
         text:
-          "We only use the details you enter to compute your chart and insights. We don’t sell your personal data. See the Privacy page for details.",
+          "Enter your local birth date and time. The app converts it to UTC internally using the selected timezone. India uses IST (UTC+05:30) and has no daylight saving. For other countries, select the appropriate timezone; we handle offsets automatically.",
       },
     },
     {
       "@type": "Question",
-      name: "How accurate are the insights?",
+      name: "Which languages are supported (India & international)?",
       acceptedAnswer: {
         "@type": "Answer",
         text:
-          "Insights are computed programmatically from planetary placements, house emphasis, and configured rules. They are guidance—not a substitute for professional advice.",
+          "We support English and are rolling out a full multilingual experience covering major Indian and international languages. " +
+          "India: Hindi (hi-IN), Bengali (bn-IN), Marathi (mr-IN), Tamil (ta-IN), Telugu (te-IN), Gujarati (gu-IN), Kannada (kn-IN), Malayalam (ml-IN), Punjabi (pa-IN), Odia (or-IN), Assamese (as-IN), Urdu (ur-IN, RTL). " +
+          "International: Spanish (es), Portuguese—Brazil (pt-BR), French (fr), German (de), Indonesian (id), Turkish (tr), Vietnamese (vi), Arabic (ar, RTL), Japanese (ja), Korean (ko), Thai (th), Chinese—Simplified (zh-CN), Chinese—Traditional (zh-TW), Russian (ru), Filipino/Tagalog (fil), Nepali (ne).",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is latitude/longitude required?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text:
+          "Not required. Selecting a city/place auto-fills coordinates. Exact lat/lon can slightly improve house cusp precision—handy near time zone borders or at high latitudes.",
       },
     },
     {
@@ -73,12 +85,13 @@ const FAQ_LD = {
       acceptedAnswer: {
         "@type": "Answer",
         text:
-          "Go to the Create page, enter your birth details, and generate your chart. Then review Domains and Skills for a guided understanding.",
+          "Go to the Create page, enter your birth details, and generate your chart. Then review the Life Wheel and Skills for a guided understanding.",
       },
     },
   ],
 } as const;
 
+// ---------- Page ----------
 export default function Page() {
   return (
     <main className="max-w-3xl mx-auto px-6 py-10">
@@ -88,9 +101,9 @@ export default function Page() {
         <Link href="/create" className="underline decoration-indigo-400 hover:opacity-80">
           Create
         </Link>{" "}
-        page, then explore{" "}
+        page, then explore the{" "}
         <Link href="/domains" className="underline decoration-indigo-400 hover:opacity-80">
-          Domains
+          Life Wheel
         </Link>{" "}
         and{" "}
         <Link href="/skills" className="underline decoration-indigo-400 hover:opacity-80">
@@ -123,48 +136,64 @@ export default function Page() {
         <details className="rounded-xl bg-white/5 p-4">
           <summary className="cursor-pointer font-medium">What details do I need to generate a chart?</summary>
           <p className="mt-2">
-            You’ll need your date of birth, time of birth, and place (latitude/longitude improves accuracy).
+            Date of birth, time of birth, and place. Latitude/longitude is optional but improves accuracy.
           </p>
         </details>
 
         <details className="rounded-xl bg-white/5 p-4">
-          <summary className="cursor-pointer font-medium">What are Domains and Skills in the results?</summary>
+          <summary className="cursor-pointer font-medium">What is the Life Wheel?</summary>
           <p className="mt-2">
-            Domains summarize areas like Career, Finance, Marriage, and Health from house strengths and aspects. Skills
-            highlight personal tendencies such as analytical ability and leadership.
+            Life Wheel is our summary view that highlights key areas like Career, Finance, Marriage, and Health based on
+            house strengths and planetary aspects.
           </p>
         </details>
 
         <details className="rounded-xl bg-white/5 p-4">
-          <summary className="cursor-pointer font-medium">Is my data private?</summary>
+          <summary className="cursor-pointer font-medium">How does timezone work? Do I enter IST/UTC?</summary>
           <p className="mt-2">
-            We only use the details you enter to compute your chart and insights. We don’t sell your personal data. See
-            our{" "}
-            <Link href="/privacy" className="underline decoration-indigo-400 hover:opacity-80">
-              Privacy
-            </Link>{" "}
-            page for details.
+            Enter your <b>local</b> birth date and time. The app converts to UTC internally using the selected timezone.
+            India uses IST (UTC+05:30) and has no daylight saving. If you were born outside India, select that
+            timezone—we handle the offset automatically.
           </p>
         </details>
 
         <details className="rounded-xl bg-white/5 p-4">
-          <summary className="cursor-pointer font-medium">How accurate are the insights?</summary>
+          <summary className="cursor-pointer font-medium">Which languages are supported (India &amp; international)?</summary>
+          <div className="mt-2 space-y-2">
+            <p>
+              We support <b>English</b> and are rolling out a full multilingual experience covering major Indian and
+              international languages.
+            </p>
+            <p>
+              <b>India:</b> Hindi (hi-IN), Bengali (bn-IN), Marathi (mr-IN), Tamil (ta-IN), Telugu (te-IN), Gujarati
+              (gu-IN), Kannada (kn-IN), Malayalam (ml-IN), Punjabi (pa-IN), Odia (or-IN), Assamese (as-IN), Urdu (ur-IN, RTL).
+            </p>
+            <p>
+              <b>International:</b> Spanish (es), Portuguese—Brazil (pt-BR), French (fr), German (de), Indonesian (id),
+              Turkish (tr), Vietnamese (vi), Arabic (ar, RTL), Japanese (ja), Korean (ko), Thai (th), Chinese—Simplified
+              (zh-CN), Chinese—Traditional (zh-TW), Russian (ru), Filipino/Tagalog (fil), Nepali (ne).
+            </p>
+          </div>
+        </details>
+
+        <details className="rounded-xl bg-white/5 p-4">
+          <summary className="cursor-pointer font-medium">Is latitude/longitude required?</summary>
           <p className="mt-2">
-            Insights are computed programmatically from planetary placements, house emphasis, and configured rules. They
-            are guidance—not a substitute for professional advice.
+            Not required. Selecting a city/place auto-fills coordinates. Exact lat/lon can slightly improve house cusp
+            precision—handy near time zone borders or at high latitudes.
           </p>
         </details>
 
         <details className="rounded-xl bg-white/5 p-4">
           <summary className="cursor-pointer font-medium">Where do I start?</summary>
           <p className="mt-2">
-            Go to the{" "}
+            Go to{" "}
             <Link href="/create" className="underline decoration-indigo-400 hover:opacity-80">
               Create
-            </Link>{" "}
-            page, enter your birth details, and generate your chart. Then review{" "}
+            </Link>
+            , enter your birth details, and generate your chart. Then review the{" "}
             <Link href="/domains" className="underline decoration-indigo-400 hover:opacity-80">
-              Domains
+              Life Wheel
             </Link>{" "}
             and{" "}
             <Link href="/skills" className="underline decoration-indigo-400 hover:opacity-80">
