@@ -5,11 +5,11 @@ const hiInsights = {
     copy: {
       line1_template: "अभी {domain} {phase} में है ({score}/100)।",
       phase_by_tier: {
-        weak: "निर्माण चरण",           // a building phase
-        moderate: "शेपिंग चरण",        // a shaping phase
-        strong: "मज़बूत गति",          // strong momentum
-        excellent: "शिखर चरण",         // a peak phase
-        unknown: "विकसित होता चरण",    // an evolving phase
+        weak: "निर्माण चरण",
+        moderate: "शेपिंग चरण",
+        strong: "मज़बूत गति",
+        excellent: "शिखर चरण",
+        unknown: "विकसित होता चरण",
       },
       houses_intro: "{houseList} {themes} पर रोशनी डालते हैं।",
       housesWord: "भाव",
@@ -51,7 +51,6 @@ const hiInsights = {
       7: "7वाँ", 8: "8वाँ", 9: "9वाँ", 10: "10वाँ", 11: "11वाँ", 12: "12वाँ",
     },
 
-    // चिप टोन (UI व कॉपी)
     aspectTone: {
       Conjunction: "तीव्र",
       Opposition: "दो ध्रुवों वाला",
@@ -113,7 +112,6 @@ const hiInsights = {
       house: "भाव",
     },
 
-    // योग/दृष्टि सूची के लेबल
     aspect: {
       Conjunction: "संयोग (Conjunction)",
       Opposition: "विपरीत (Opposition)",
@@ -122,28 +120,24 @@ const hiInsights = {
       Sextile: "षडाष्टक (Sextile)",
     },
 
-    // टियर बैज
     tiers: { weak: "कमज़ोर", moderate: "मध्यम", strong: "मज़बूत", excellent: "उत्कृष्ट" },
 
     actions: { highlightAllDomain: "इस डोमेन के सभी हाइलाइट करें" },
 
-    // डोमेन कार्ड्स + housePresence
     domains: {
       career:    { title: "करियर",    chip10th: "10वाँ भाव", chip6th: "6ठा भाव",  chip11th: "11वाँ भाव", housePresence: "करियर भावों में ग्रह" },
-      finance:   { title: "वित्त",     chip2nd: "2रा भाव",   chip11th: "11वाँ भाव",                          housePresence: "धन भावों में ग्रह" },
+      finance:   { title: "वित्त",     chip2nd: "2रा भाव",   chip11th: "11वाँ भाव",                           housePresence: "धन भावों में ग्रह" },
       health:    { title: "स्वास्थ्य",  chipAsc: "लग्न",      chip6th: "6ठा भाव",                              housePresence: "स्वास्थ्य भावों में ग्रह" },
       marriage:  { title: "विवाह",     chip7th: "7वाँ भाव",                                                    housePresence: "विवाह भाव में ग्रह" },
       education: { title: "शिक्षा",     chip5th: "5वाँ भाव",                                                    housePresence: "शिक्षा भावों में ग्रह" },
     },
 
-    // बैकएंड फ्लैट-की एलियस
     career:    { chip10th: "10वाँ भाव", chip6th: "6ठा भाव", chip11th: "11वाँ भाव" },
     finance:   { chip2nd: "2रा भाव",    chip11th: "11वाँ भाव" },
     health:    { chipAsc: "लग्न",       chip6th: "6ठा भाव" },
     marriage:  { chip7th: "7वाँ भाव" },
     education: { chip5th: "5वाँ भाव" },
 
-    // केंद्रीकृत चिप लेबल
     chip: {
       house_presence: {
         career: "करियर भावों में ग्रह",
@@ -163,7 +157,6 @@ const hiInsights = {
       aspectClass: { benefic: "शुभ प्रभाव" },
       house: "भाव",
 
-      // कौशल चिप्स
       skill: {
         mercury: "बुध की शक्ति",
         venus: "शुक्र की शक्ति",
@@ -185,7 +178,6 @@ const hiInsights = {
       },
     },
 
-    // कौशल कार्ड शीर्षक (+ फॉलबैक एलियस)
     skills: {
       Analytical: "विश्लेषण क्षमता",
       Communication: "संचार",
@@ -193,4 +185,56 @@ const hiInsights = {
       Creativity: "रचनात्मकता",
       Focus: "एकाग्रता व अनुशासन",
       Entrepreneurial: "उद्यमी ड्राइव",
-      // t('i
+      // allow t('insights.skills.mercury') etc. as label fallbacks
+      mercury: "बुध की शक्ति",
+      venus: "शुक्र की शक्ति",
+      sun: "सूर्य की शक्ति",
+      saturn: "शनि की शक्ति",
+      mars: "मंगल की शक्ति",
+      jupiter: "बृहस्पति की शक्ति",
+      rahu10or11: "राहु 10/11 में (समर्थन सहित)",
+    },
+
+    aspectClass: { benefic: "शुभ प्रभाव" },
+  },
+
+  chip: {
+    house_presence: {
+      career: "करियर भावों में ग्रह",
+      finance: "धन भावों में ग्रह",
+      health: "स्वास्थ्य भावों में ग्रह",
+      marriage: "विवाह भाव में ग्रह",
+      education: "शिक्षा भावों में ग्रह",
+    },
+    benefic_harmony: "शुभ त्रिकोण/षडाष्टक",
+    aspect: {
+      Conjunction: "संयोग (Conjunction)",
+      Opposition: "विपरीत (Opposition)",
+      Trine: "त्रिकोण (Trine)",
+      Square: "चतुष्कोण (Square)",
+      Sextile: "षडाष्टक (Sextile)",
+    },
+    aspectClass: { benefic: "शुभ प्रभाव" },
+    skill: {
+      mercury: "बुध की शक्ति",
+      venus: "शुक्र की शक्ति",
+      sun: "सूर्य की शक्ति",
+      saturn: "शनि की शक्ति",
+      mars: "मंगल की शक्ति",
+      jupiter: "बृहस्पति की शक्ति",
+      rahu10or11: "राहु 10/11 में (समर्थन सहित)",
+      mercuryJupiterTrine: "बुध–बृहस्पति त्रिकोण",
+      mercurySaturnTrine: "बुध–शनि त्रिकोण",
+      mercuryVenusTrine: "बुध–शुक्र त्रिकोण",
+      mercuryMoonTrine: "बुध–चंद्र त्रिकोण",
+      venusMercuryTrine: "शुक्र–बुध त्रिकोण",
+      venusMoonTrine: "शुक्र–चंद्र त्रिकोण",
+      venusJupiterTrine: "शुक्र–बृहस्पति त्रिकोण",
+      sunMarsTrine: "सूर्य–मंगल त्रिकोण",
+      sunJupiterTrine: "सूर्य–बृहस्पति त्रिकोण",
+      saturnMercuryTrine: "शनि–बुध त्रिकोण",
+    },
+  },
+} as const;
+
+export default hiInsights;

@@ -132,5 +132,117 @@ const bnInsights = {
       career:    { title: "ক্যারিয়ার",    chip10th: "১০ম ভাব", chip6th: "৬ষ্ঠ ভাব", chip11th: "১১তম ভাব", housePresence: "ক্যারিয়ার-ভাবের গ্রহ" },
       finance:   { title: "ফাইন্যান্স",   chip2nd: "২য় ভাব",  chip11th: "১১তম ভাব",                       housePresence: "ধন-ভাবের গ্রহ" },
       health:    { title: "স্বাস্থ্য",     chipAsc: "লগ্ন",     chip6th: "৬ষ্ঠ ভাব",                        housePresence: "স্বাস্থ্য-ভাবের গ্রহ" },
-      marriage:  { title: "বিবাহ",        chip7th: "৭ম ভাব",                                          housePresence: "বিবাহ-ভবে গ্রহ" },
-      education: { title: "শি
+      marriage:  { title: "বিবাহ",        chip7th: "৭ম ভাব",                                          housePresence: "বিবাহ-ভাবের গ্রহ" },
+      education: { title: "শিক্ষা",       chip5th: "৫ম ভাব",                                          housePresence: "শিক্ষা-ভাবের গ্রহ" },
+    },
+
+    // ব্যাকএন্ড ফ্ল্যাট-কি এলিয়াস
+    career:    { chip10th: "১০ম ভাব", chip6th: "৬ষ্ঠ ভাব", chip11th: "১১তম ভাব" },
+    finance:   { chip2nd: "২য় ভাব",  chip11th: "১১তম ভাব" },
+    health:    { chipAsc: "লগ্ন",     chip6th: "৬ষ্ঠ ভাব" },
+    marriage:  { chip7th: "৭ম ভাব" },
+    education: { chip5th: "৫ম ভাব" },
+
+    // কেন্দ্রীভূত চিপ লেবেল
+    chip: {
+      house_presence: {
+        career: "ক্যারিয়ার-ভাবের গ্রহ",
+        finance: "ধন-ভাবের গ্রহ",
+        health: "স্বাস্থ্য-ভাবের গ্রহ",
+        marriage: "বিবাহ-ভাবের গ্রহ",
+        education: "শিক্ষা-ভাবের গ্রহ",
+      },
+      benefic_harmony: "শুভ ত্রিকোণ/ষড়াষ্টক",
+      aspect: {
+        Conjunction: "সংযোগ (Conjunction)",
+        Opposition: "বিপরীত (Opposition)",
+        Trine: "ত্রিকোণ (Trine)",
+        Square: "চতুষ্কোণ (Square)",
+        Sextile: "ষড়াষ্টক (Sextile)",
+      },
+      aspectClass: { benefic: "শুভ প্রভাব" },
+      house: "ভাব",
+
+      // স্কিল চিপ
+      skill: {
+        mercury: "বুধের শক্তি",
+        venus: "শুক্রের শক্তি",
+        sun: "সূর্যের শক্তি",
+        saturn: "শনির শক্তি",
+        mars: "মঙ্গলের শক্তি",
+        jupiter: "বৃহস্পতির শক্তি",
+        rahu10or11: "রাহু ১০/১১-এ (সমর্থনসহ)",
+        mercuryJupiterTrine: "বুধ–বৃহস্পতি ত্রিকোণ",
+        mercurySaturnTrine: "বুধ–শনি ত্রিকোণ",
+        mercuryVenusTrine: "বুধ–শুক্র ত্রিকোণ",
+        mercuryMoonTrine: "বুধ–চন্দ্র ত্রিকোণ",
+        venusMercuryTrine: "শুক্র–বুধ ত্রিকোণ",
+        venusMoonTrine: "শুক্র–চন্দ্র ত্রিকোণ",
+        venusJupiterTrine: "শুক্র–বৃহস্পতি ত্রিকোণ",
+        sunMarsTrine: "সূর্য–মঙ্গল ত্রিকোণ",
+        sunJupiterTrine: "সূর্য–বৃহস্পতি ত্রিকোণ",
+        saturnMercuryTrine: "শনি–বুধ ত্রিকোণ",
+      },
+    },
+
+    // স্কিল কার্ড টাইটেল (+ ফfallback এলিয়াস)
+    skills: {
+      Analytical: "বিশ্লেষণ ক্ষমতা",
+      Communication: "যোগাযোগ",
+      Leadership: "নেতৃত্ব",
+      Creativity: "সৃজনশীলতা",
+      Focus: "ফোকাস ও শৃঙ্খলা",
+      Entrepreneurial: "উদ্যোক্তা ড্রাইভ",
+      mercury: "বুধের শক্তি",
+      venus: "শুক্রের শক্তি",
+      sun: "সূর্যের শক্তি",
+      saturn: "শনির শক্তি",
+      mars: "মঙ্গলের শক্তি",
+      jupiter: "বৃহস্পতির শক্তি",
+      rahu10or11: "রাহু ১০/১১-এ (সমর্থনসহ)",
+    },
+
+    aspectClass: { benefic: "শুভ প্রভাব" },
+  },
+
+  // রুট-লেভেল এলিয়াস (পূর্বের কলগুলোর সাথে সামঞ্জস্য)
+  chip: {
+    house_presence: {
+      career: "ক্যারিয়ার-ভাবের গ্রহ",
+      finance: "ধন-ভাবের গ্রহ",
+      health: "স্বাস্থ্য-ভাবের গ্রহ",
+      marriage: "বিবাহ-ভাবের গ্রহ",
+      education: "শিক্ষা-ভাবের গ্রহ",
+    },
+    benefic_harmony: "শুভ ত্রিকোণ/ষড়াষ্টক",
+    aspect: {
+      Conjunction: "সংযোগ (Conjunction)",
+      Opposition: "বিপরীত (Opposition)",
+      Trine: "ত্রিকোণ (Trine)",
+      Square: "চতুষ্কোণ (Square)",
+      Sextile: "ষড়াষ্টক (Sextile)",
+    },
+    aspectClass: { benefic: "শুভ প্রভাব" },
+    skill: {
+      mercury: "বুধের শক্তি",
+      venus: "শুক্রের শক্তি",
+      sun: "সূর্যের শক্তি",
+      saturn: "শনির শক্তি",
+      mars: "মঙ্গলের শক্তি",
+      jupiter: "বৃহস্পতির শক্তি",
+      rahu10or11: "রাহু ১০/১১-এ (সমর্থনসহ)",
+      mercuryJupiterTrine: "বুধ–বৃহস্পতি ত্রিকোণ",
+      mercurySaturnTrine: "বুধ–শনি ত্রিকোণ",
+      mercuryVenusTrine: "বুধ–শুক্র ত্রিকোণ",
+      mercuryMoonTrine: "বুধ–চন্দ্র ত্রিকোণ",
+      venusMercuryTrine: "শুক্র–বুধ ত্রিকোণ",
+      venusMoonTrine: "শুক্র–চন্দ্র ত্রিকোণ",
+      venusJupiterTrine: "শুক্র–বৃহস্পতি ত্রিকোণ",
+      sunMarsTrine: "সূর্য–মঙ্গল ত্রিকোণ",
+      sunJupiterTrine: "সূর্য–বৃহস্পতি ত্রিকোণ",
+      saturnMercuryTrine: "শনি–বুধ ত্রিকোণ",
+    },
+  },
+} as const;
+
+export default bnInsights;
