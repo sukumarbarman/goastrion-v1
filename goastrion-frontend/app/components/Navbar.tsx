@@ -44,10 +44,14 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
 
           {/* Desktop links */}
           <nav className="hidden md:flex gap-6 text-sm text-slate-300">
-            <Link href="/domains" className="hover:text-white">{t("navbar.lifeSpheres")}</Link>
-            <Link href="/skills" className="hover:text-white">{t("navbar.skills")}</Link>
             <Link href="/about" className="hover:text-white">{t("navbar.about")}</Link>
             <Link href="/create" className="hover:text-white">{t("create.title")}</Link>
+            <Link href="/domains" className="hover:text-white">{t("navbar.lifeSpheres")}</Link>
+            <Link href="/skills" className="hover:text-white">{t("navbar.skills")}</Link>
+            <Link href="/guides" className="hover:text-white">{t("navbar.guides")}</Link>
+            <Link href="/faq" className="hover:text-white">{t("navbar.faq")}</Link>
+
+
           </nav>
 
           {/* Right cluster */}

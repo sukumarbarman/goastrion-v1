@@ -10,6 +10,7 @@ export default function sitemap() {
     "/skills",
     "/faq",
     "/about",
+    "/guides",
   ];
 
   return routes.map((path) => ({

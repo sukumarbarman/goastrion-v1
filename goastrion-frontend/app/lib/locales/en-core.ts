@@ -11,6 +11,8 @@ const enCore = {
     book: "Book appointment",
     login: "Log in",
     signup: "Sign up",
+    guides: "Guides",
+    faq: "FAQ",
   },
 
   about: {
