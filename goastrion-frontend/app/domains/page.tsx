@@ -43,17 +43,7 @@ const HOUSE_GLOSS_FALLBACK: Record<number, string> = {
   12: "Retreat, expenses",
 };
 
-const PLANET_GLOSS_FALLBACK: Record<string, string> = {
-  Sun: "authority, vitality",
-  Moon: "mind, flow",
-  Mars: "drive, initiative",
-  Mercury: "analysis, communication",
-  Jupiter: "growth, wisdom",
-  Venus: "art, harmony",
-  Saturn: "discipline, structure",
-  Rahu: "ambition, surge",
-  Ketu: "detachment, insight",
-};
+
 
 const ASPECT_TONE_FALLBACK: Record<string, string> = {
   Trine: "harmonious",

@@ -88,32 +88,3 @@ export function useI18n() {
 }
 
 
-/* i18n helpers */
-function planetLabel(eng: string, t: (k: string) => string) {
-  // normalize to lower for lookup; accept any case from SVG
-  const key = eng.toLowerCase();
-  const map: Record<string, string> = {
-    sun: t("planets.sun"),
-    moon: t("planets.moon"),
-    mars: t("planets.mars"),
-    mercury: t("planets.mercury"),
-    jupiter: t("planets.jupiter"),
-    venus: t("planets.venus"),
-    saturn: t("planets.saturn"),
-    rahu: t("planets.rahu"),
-    ketu: t("planets.ketu"),
-  };
-  return map[key] || eng;
-}
-
-function localizeSvgPlanets(svg: string, t: (k: string) => string) {
-  // Match: >   Sun   <  (allowing any whitespace), case-insensitive.
-  // Also works when the text is in a <tspan> ... </tspan> since it's still >text< somewhere.
-  const names = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"];
-  const pattern = new RegExp(`(>)(\\s*)(${names.join("|")})(\\s*)(<)`, "gi");
-
-  return svg.replace(pattern, (_m, gt, pre, name, post, lt) => {
-    const localized = planetLabel(String(name), t);
-    return `${gt}${pre}${localized}${post}${lt}`;
-  });
-}
