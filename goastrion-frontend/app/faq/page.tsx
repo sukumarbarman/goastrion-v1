@@ -5,7 +5,7 @@ import Link from "next/link";
 export const metadata = {
   title: "GoAstrion FAQs",
   description:
-    "Answers about charts, the Life Wheel, timezone handling, languages/localization, and whether latitude/longitude are needed.",
+    "Answers about charts, the Life Wheel, Skills, timezone handling, languages/localization, latitude/longitude, MD/AD timing—and why you should use GoAstrion.",
   alternates: { canonical: "https://goastrion.com/faq" },
 };
 
@@ -14,6 +14,15 @@ const FAQ_LD = {
   "@context": "https://schema.org",
   "@type": "FAQPage",
   mainEntity: [
+    {
+      "@type": "Question",
+      name: "Why should I use this?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text:
+          "GoAstrion turns your birth details into an instant North Indian Vedic chart, a Life Wheel of key areas (Career, Finance, Marriage, Health), and a practical Skills profile. It’s built for clarity and action: simple language, multilingual support, privacy-first handling, and optional timing context via MD/AD. Use it to reflect, plan next steps, and make better education/career decisions.",
+      },
+    },
     {
       "@type": "Question",
       name: "Is the chart free?",
@@ -52,6 +61,15 @@ const FAQ_LD = {
     },
     {
       "@type": "Question",
+      name: "What is Skill?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text:
+          "Skills are tendencies inferred from planetary placements, house emphasis, and select aspects—e.g., analytical ability, communication, leadership, creativity, focus, entrepreneurial drive. They are guides to strengths you can cultivate, not fixed destiny.",
+      },
+    },
+    {
+      "@type": "Question",
       name: "How does timezone work? Do I enter IST/UTC?",
       acceptedAnswer: {
         "@type": "Answer",
@@ -77,6 +95,15 @@ const FAQ_LD = {
         "@type": "Answer",
         text:
           "Not required. Selecting a city/place auto-fills coordinates. Exact lat/lon can slightly improve house cusp precision—handy near time zone borders or at high latitudes.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What are MD and AD?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text:
+          "MD (Maha Dasha) and AD (Antar Dasha) are periods in the Vimshottari dasha system used in Vedic astrology to time themes in life. Maha Dasha sets a multi-year planetary backdrop; Antar Dasha fine-tunes shorter sub-periods within that backdrop. We use these as timing context alongside your Life Wheel.",
       },
     },
     {
@@ -114,6 +141,16 @@ export default function Page() {
 
       <div className="mt-8 space-y-4 text-slate-200/90">
         <details className="rounded-xl bg-white/5 p-4">
+          <summary className="cursor-pointer font-medium">Why should I use this?</summary>
+          <p className="mt-2">
+            GoAstrion turns your birth details into an instant Vedic chart, a <b>Life Wheel</b> of key areas (Career,
+            Finance, Marriage, Health), and a practical <b>Skills</b> profile. It’s built for clarity and action:
+            simple language, multilingual support, privacy-first handling, and optional <b>MD/AD</b> timing context. Use
+            it to reflect, plan next steps, and make better education/career decisions.
+          </p>
+        </details>
+
+        <details className="rounded-xl bg-white/5 p-4">
           <summary className="cursor-pointer font-medium">Is the chart free?</summary>
           <p className="mt-2">
             You can generate a basic chart for free on the{" "}
@@ -145,6 +182,15 @@ export default function Page() {
           <p className="mt-2">
             Life Wheel is our summary view that highlights key areas like Career, Finance, Marriage, and Health based on
             house strengths and planetary aspects.
+          </p>
+        </details>
+
+        <details className="rounded-xl bg-white/5 p-4">
+          <summary className="cursor-pointer font-medium">What is Skill?</summary>
+          <p className="mt-2">
+            Skills are tendencies inferred from planetary placements, house emphasis, and select aspects—e.g., analytical
+            ability, communication, leadership, creativity, focus, entrepreneurial drive. They’re guides to strengths
+            you can cultivate, not fixed destiny.
           </p>
         </details>
 
@@ -181,6 +227,15 @@ export default function Page() {
           <p className="mt-2">
             Not required. Selecting a city/place auto-fills coordinates. Exact lat/lon can slightly improve house cusp
             precision—handy near time zone borders or at high latitudes.
+          </p>
+        </details>
+
+        <details className="rounded-xl bg-white/5 p-4">
+          <summary className="cursor-pointer font-medium">What are MD and AD?</summary>
+          <p className="mt-2">
+            <b>MD (Maha Dasha)</b> and <b>AD (Antar Dasha)</b> are periods in the Vimshottari dasha system used in Vedic
+            astrology to time themes in life. Maha Dasha gives a multi-year planetary backdrop; Antar Dasha fine-tunes
+            shorter sub-periods within that backdrop. We use these as timing context alongside your Life Wheel.
           </p>
         </details>
 
