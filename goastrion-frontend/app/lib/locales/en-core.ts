@@ -196,6 +196,30 @@ const enCore = {
     btn: "Generate My Chart",
   },
 },
+// ⬇️ MOVE THIS BLOCK OUT OF `guides` (root-level sibling)
+  faqPage: {
+    heading: "Frequently Asked Questions",
+    introPrefix: "New to GoAstrion? Start on the",
+    introMiddle: "page, then explore the",
+    introAnd: "and",
+    linkCreate: "Create",
+    linkLifeWheel: "Life Wheel",
+    linkSkills: "Skills",
+    items: [
+      { q: "Why should I use this?", a: "GoAstrion turns your birth details..." },
+      { q: "Is the chart free?", a: "You can generate a basic chart..." },
+      { q: "Do you use Vedic (sidereal) calculations and North Indian style?", a: "Yes. GoAstrion uses..." },
+      { q: "What details do I need to generate a chart?", a: "Date of birth, time of birth..." },
+      { q: "What is the Life Wheel?", a: "Life Wheel is our summary view..." },
+      { q: "What is Skill?", a: "Skills are tendencies inferred..." },
+      { q: "How does timezone work? Do I enter IST/UTC?", a: "Born in India: choose IST..." },
+      { q: "Which languages are supported (India & international)?", a: "We support English and..." },
+      { q: "Is latitude/longitude required?", a: "Not required. Selecting a city..." },
+      { q: "What are MD and AD?", a: "MD (Maha Dasha) and AD..." },
+      { q: "Where do I start?", a: "Go to the Create page..." },
+    ],
+  },
+
 
 } as const;
 

@@ -38,7 +38,6 @@ export function useChipLabel() {
       return alt !== `insights.aspect.${a}` ? alt : key;
     }
 
-    // Safe fallback
     return key;
   };
 }
