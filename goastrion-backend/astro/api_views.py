@@ -192,7 +192,7 @@ class InsightsView(APIView):
 
     def post(self, request):
         try:
-            # 1) Load validated configs (AspectConfig.json, DomainRuleSet.json)
+            # 1) Load validated configs (AspectConfig.json, DomainConfig.json)
             try:
                 aspect_cfg, domain_rules = load_config()
             except Exception as e:

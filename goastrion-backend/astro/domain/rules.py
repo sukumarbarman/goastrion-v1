@@ -468,7 +468,7 @@ def _apply_json_rules(
     progressed_ctx: Optional[Dict[str, Any]] = None,
 ) -> Tuple[Dict[str, float], List[Dict[str, Any]]]:
     """
-    Evaluate DomainRuleSet.json rules and return per-part boosts and any time windows (for UI).
+    Evaluate DomainConfig.json rules and return per-part boosts and any time windows (for UI).
     Transit/dasha/progressed contexts are optional; rules silently no-op if data isn't provided.
     """
     rules = (block or {}).get("rules") or []
