@@ -1,30 +1,47 @@
 // app/gtm-tracker.tsx
 "use client";
-import { useEffect } from "react";
-import { usePathname } from "next/navigation";
 
-declare global {
-  interface Window {
-    dataLayer: unknown[];
-    gtag: (...args:
-      | ["js", Date]
-      | ["config", string, { page_path?: string }]
-      | ["event", string, Record<string, unknown>?]
-    ) => void;
-  }
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID as string | undefined;
+
+// Minimal gtag signature we need (no external @types required)
+type GtagFn = (
+  command: "event",
+  eventName: string,
+  params?: Record<string, unknown>
+) => void;
+
+function getGtag(): GtagFn | undefined {
+  if (typeof window === "undefined") return undefined;
+  const maybe = (window as unknown as { gtag?: unknown }).gtag;
+  return typeof maybe === "function" ? (maybe as GtagFn) : undefined;
 }
 
-const GA_ID: string | undefined = process.env.NEXT_PUBLIC_GA_ID;
+function sendPageview(url: string) {
+  if (!GA_ID) return;
+  const gtag = getGtag();
+  if (!gtag) return;
+
+  gtag("event", "page_view", {
+    page_location:
+      typeof window !== "undefined" ? window.location.origin + url : url,
+    page_path: url,
+    page_title: typeof document !== "undefined" ? document.title : undefined,
+    send_to: GA_ID,
+  });
+}
 
 export default function GATracker() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (typeof window === "undefined" || !GA_ID || typeof window.gtag !== "function") return;
-    const search = typeof window !== "undefined" ? window.location.search : "";
-    const url = search ? `${pathname}${search}` : pathname;
-    window.gtag("config", GA_ID, { page_path: url });
-  }, [pathname]);
+    if (!pathname) return;
+    const url = `${pathname}${searchParams?.toString() ? `?${searchParams}` : ""}`;
+    sendPageview(url);
+  }, [pathname, searchParams]);
 
   return null;
 }

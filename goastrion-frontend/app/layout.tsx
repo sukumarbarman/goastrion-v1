@@ -21,10 +21,8 @@ const ORG = {
   "@type": "Organization",
   name: "GoAstrion",
   url: SITE_URL,
-  logo: `${SITE_URL}/logo.png`, // TODO: update to your actual logo path
-  sameAs: [
-    "https://www.youtube.com/@Area5L",
-  ],
+  logo: `${SITE_URL}/logo.png`,
+  sameAs: ["https://www.youtube.com/@Area5L"],
 };
 
 const WEBSITE = {
@@ -56,26 +54,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
+
+                // (Optional) If you don't have a consent banner, grant analytics now
+                gtag('consent','default', {
+                  ad_storage: 'denied',
+                  analytics_storage: 'granted',
+                  ad_user_data: 'denied',
+                  ad_personalization: 'denied'
+                });
+
                 gtag('js', new Date());
-                gtag('config', '${GA_ID}', { anonymize_ip: true, transport_type: 'beacon' });
+                // IMPORTANT: turn off auto page_view to avoid double-counting
+                gtag('config', '${GA_ID}', { send_page_view: false, transport_type: 'beacon' });
               `}
             </Script>
           </>
         )}
 
         {/* JSON-LD: Organization & WebSite */}
-        <Script
-          id="ld-org"
-          type="application/ld+json"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG) }}
-        />
-        <Script
-          id="ld-website"
-          type="application/ld+json"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
-        />
+        <Script id="ld-org" type="application/ld+json" strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG) }} />
+        <Script id="ld-website" type="application/ld+json" strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }} />
 
         <I18nProvider>
           {/* Anything using useSearchParams must be inside Suspense */}
