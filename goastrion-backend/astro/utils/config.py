@@ -230,14 +230,14 @@ def _validate_and_normalize_domain_rules(cfg: Dict[str, Any], where: str) -> Dic
 # ------------------------- public API ------------------------- #
 def load_config() -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """
-    Reads and validates AspectConfig.json and DomainConfig.json.
+    Reads and validates AspectConfig.json and DomainRuleSet.json.
     Returns (aspect_cfg, domain_rules).
     Raises FileNotFoundError / JSONDecodeError / ValueError with context.
     """
     cfg_dir = _cfg_dir()
 
     aspect_path = _first_existing(cfg_dir, ["AspectConfig.json", "aspect_config.json"])
-    domain_path = _first_existing(cfg_dir, ["DomainConfig.json", "domain_rules.json"])
+    domain_path = _first_existing(cfg_dir, ["DomainRuleSet.json", "domain_rules.json"])
 
     if aspect_path is None:
         raise FileNotFoundError(
@@ -245,7 +245,7 @@ def load_config() -> Tuple[Dict[str, Any], Dict[str, Any]]:
         )
     if domain_path is None:
         raise FileNotFoundError(
-            f"Domain rules not found in {cfg_dir} (looked for DomainConfig.json, domain_rules.json)"
+            f"Domain rules not found in {cfg_dir} (looked for DomainRuleSet.json, domain_rules.json)"
         )
 
     try:

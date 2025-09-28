@@ -26,15 +26,7 @@ type ApiResp = {
   error?: string;
 };
 
-const API_BASE: string = (() => {
-  const v = process.env.NEXT_PUBLIC_API_BASE;
-  if (process.env.NODE_ENV === 'production') {
-    if (!v) throw new Error('NEXT_PUBLIC_API_BASE is not set in production');
-    return v;
-  }
-  // dev fallback for local runs only
-  return v ?? 'http://127.0.0.1:8000';
-})();
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
 /* -------------------- Persistence -------------------- */
 const STORAGE_KEY = "ga_create_state_v1";
