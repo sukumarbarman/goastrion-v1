@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Container from "./Container";
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
+import Link from "next/link";
+
 
 // ---- locale dictionary helper types (for strict typing, no `any`) ----
 type Dictionaries = typeof dictionaries;
@@ -658,6 +660,49 @@ export default function CreateChartClient() {
           </>
         )}
       </div>
+
+
+{/* ---- Post-Results Deep Links ---- */}
+<div className="mt-8 rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-cyan-500/10 via-emerald-400/5 to-transparent">
+  <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
+    <div className="flex-1">
+
+<p className="mt-1 text-slate-300 text-sm md:text-base">
+  Curious about your <strong>undiscovered</strong> Skills & Career path? Don’t wait—just click{" "}
+  <span className="inline-block animate-bounce" role="img" aria-label="hand">👉</span>
+</p>
+
+
+    </div>
+
+    <div className="flex items-center gap-3">
+      <Link
+        href="/domains"
+        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+        aria-label="Explore your Life Wheel"
+      >
+        ✨ Life Wheel
+      </Link>
+
+      <Link
+        href="/skills"
+        className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+        aria-label="See your top Skills"
+      >
+        🚀 Skills
+      </Link>
+    </div>
+  </div>
+</div>
+{/* ---- /Post-Results Deep Links ---- */}
+
+
+
+
+
+
     </Container>
+
+
   );
 }
