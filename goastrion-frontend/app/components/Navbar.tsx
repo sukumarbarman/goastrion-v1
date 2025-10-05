@@ -48,8 +48,10 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             <Link href="/create" className="hover:text-white">{t("create.title")}</Link>
             <Link href="/domains" className="hover:text-white">{t("navbar.lifeSpheres")}</Link>
             <Link href="/skills" className="hover:text-white">{t("navbar.skills")}</Link>
+            <Link href="/saturn" className="hover:text-white">Saturn</Link>
             <Link href="/guides" className="hover:text-white">{t("navbar.guides")}</Link>
             <Link href="/faq" className="hover:text-white">{t("navbar.faq")}</Link>
+
 
 
           </nav>
@@ -138,6 +140,11 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
               <li>
                 <Link href="/skills" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
                   {t("navbar.skills")}
+                </Link>
+              </li>
+              <li>
+                <Link href="/saturn" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
+                  Saturn
                 </Link>
               </li>
               <li>

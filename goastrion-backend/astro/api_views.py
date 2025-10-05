@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone,timedelta, date
 
 
 from rest_framework.permissions import AllowAny
@@ -28,6 +28,26 @@ from .ephem.swiss import compute_all_planets, get_sign_name
 from .utils.astro import assign_planets_to_houses
 from .domain.aspects import compute_aspects
 from .domain.insights import build_domain_insights, build_skill_insights
+from .domain.transits import compute_transit_hits_now
+
+from zoneinfo import ZoneInfo
+from .ephem.swiss import compute_all_planets, compute_angles, compute_all_planets
+from .domain.transits import compute_transit_hits_now
+from .shubhdin_helpers import (
+    duration_days, fmt_start_end_duration, normalize_scores, best_window,
+    grow_window, non_overlapping_top_windows, dedupe_windows,
+    angle_diff, dates_in_range, format_dates_list_ascii, make_caution_line
+)
+
+# --- add near your other imports ---
+from datetime import datetime, timezone, timedelta, date
+from zoneinfo import ZoneInfo
+
+from .ephem.swiss import compute_all_planets, compute_angles
+from .domain.saturn_watch import saturn_overview
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 
 
 
@@ -322,4 +342,732 @@ class InsightsView(APIView):
             return Response({"error": str(e)}, status=500)
 
 
+# astro/api_views.py
+from datetime import datetime, timezone, timedelta, date
+from zoneinfo import ZoneInfo
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 
+from .ephem.swiss import compute_all_planets, compute_angles
+from .domain.saturn_watch import saturn_overview
+
+# api_views.py
+
+class SaturnOverviewView(APIView):
+    """
+    POST /api/v1/saturn/overview
+    Body:
+    {
+      "datetime": "1990-11-20T17:30:00Z",
+      "lat": 22.30,
+      "lon": 87.92,
+      "tz": "Asia/Kolkata",
+      "horizon_months": 18,           # optional
+      "horizon_years": 100,           # optional (overrides months if present)
+      "anchor": "today|birth|date",   # optional, default "today"
+      "start_date": "YYYY-MM-DD",     # optional if anchor="date"
+
+      "include": {
+        "sade_sati": true,            # default true
+        "stations": true,             # default true
+        "retro": true,                # default true (maps to 'retrograde')
+        "ashtama": false,             # default false
+        "kantaka": false,             # default false
+        "support_hits": false,        # default false
+        "stress_hits": false          # default false
+      },
+
+      "max_windows": 12               # optional cap applied to list-like sections
+    }
+    """
+    authentication_classes: list = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            data: Dict[str, Any] = request.data or {}
+
+            # --- Requireds / basics -------------------------------------------------
+            dt_raw = (data.get("datetime") or "").strip()
+            if not dt_raw:
+                return Response({"error": "datetime required"}, status=400)
+
+            # normalize Z -> +00:00 for fromisoformat
+            dt_str = dt_raw.replace("Z", "+00:00")
+
+            try:
+                lat = float(data.get("lat"))
+                lon = float(data.get("lon"))
+            except (TypeError, ValueError):
+                return Response({"error": "lat/lon required and must be numbers"}, status=400)
+
+            tz_str = (data.get("tz") or "Asia/Kolkata").strip()
+            try:
+                tz = ZoneInfo(tz_str)
+            except Exception:
+                return Response({"error": f"invalid tz: {tz_str}"}, status=400)
+
+            # --- Horizon: years takes precedence over months -----------------------
+            if "horizon_years" in data and data.get("horizon_years") is not None:
+                try:
+                    horizon_years = float(data.get("horizon_years"))
+                except (TypeError, ValueError):
+                    return Response({"error": "horizon_years must be a number"}, status=400)
+                horizon_days = max(1, int(round(horizon_years * 365.25)))
+            else:
+                try:
+                    horizon_months = int(data.get("horizon_months", 18))
+                except (TypeError, ValueError):
+                    return Response({"error": "horizon_months must be an integer"}, status=400)
+                horizon_days = max(1, horizon_months * 30)
+
+            # safety cap ≤ 100y
+            horizon_days = min(horizon_days, int(100 * 365.25))
+
+            # --- Parse birth datetime; keep aware UTC for tz transforms -------------
+            try:
+                dt_aw = datetime.fromisoformat(dt_str).astimezone(timezone.utc)
+            except Exception:
+                return Response({"error": "invalid datetime format (use ISO8601)"}, status=400)
+            dt_utc = dt_aw.replace(tzinfo=None)  # Swiss expects naive UTC
+
+            # --- Natal angles & planets (sidereal Lahiri) ---------------------------
+            angles = compute_angles(dt_utc, lat, lon, tz_offset_hours=0.0, ayanamsa="lahiri")
+            _, natal_pos = compute_all_planets(dt_utc, lat, lon, tz_offset_hours=0.0, ayanamsa="lahiri")
+
+            # --- Anchor date selection (in user's local calendar) -------------------
+            anchor = str(data.get("anchor", "today")).lower()
+            start_date_iso = data.get("start_date")
+
+            if anchor == "birth":
+                start_day = dt_aw.astimezone(tz).date()
+            elif anchor == "date" and start_date_iso:
+                try:
+                    start_day = date.fromisoformat(start_date_iso)
+                except Exception:
+                    return Response({"error": "start_date must be YYYY-MM-DD"}, status=400)
+            else:  # default: today
+                start_day = datetime.now(tz=tz).date()
+
+            # --- Compute context (event-based, fast) --------------------------------
+            sat_ctx = saturn_overview(
+                today_local=start_day,
+                horizon_days=horizon_days,
+                moon_natal_deg=float(natal_pos["Moon"]),
+                asc_natal_deg=float(angles.get("Asc")),
+                mc_natal_deg=float(angles.get("MC")) if angles.get("MC") is not None else None,
+                lat=lat, lon=lon, user_tz_str=tz_str, ayanamsa="lahiri",
+            )
+
+            # --- Includes & trimming ------------------------------------------------
+            include = data.get("include") or {}
+            inc_sade   = bool(include.get("sade_sati", True))
+            inc_stn    = bool(include.get("stations", True))
+            inc_ret    = bool(include.get("retro", True))
+            inc_asht   = bool(include.get("ashtama", False))
+            inc_kant   = bool(include.get("kantaka", False))
+            inc_supp   = bool(include.get("support_hits", False))
+            inc_stress = bool(include.get("stress_hits", False))
+
+            max_windows = int(data.get("max_windows", 12))
+            if max_windows < 0:
+                max_windows = 0  # treat negative as 0 (show nothing)
+
+            def _cap_list(val):
+                if isinstance(val, list) and max_windows > 0:
+                    return val[:max_windows]
+                return val
+
+            out: Dict[str, Any] = {
+                "query_id": "saturn_overview_v1",
+                "generated_at": datetime.now(timezone.utc).isoformat(),
+                "tz": tz_str,
+                "anchor": anchor,
+                "start_date": start_day.isoformat(),
+                "horizon_days": horizon_days,
+            }
+
+            # Sade Sati (with caution_days recomputed after window trimming)
+            if inc_sade and "sade_sati" in sat_ctx:
+                ss = dict(sat_ctx.get("sade_sati") or {})
+                wins: List[Dict[str, Any]] = list(ss.get("windows") or [])
+                if max_windows > 0:
+                    wins = wins[:max_windows]
+                # Rebuild caution_days from trimmed windows (important)
+                ss["windows"] = wins
+                ss["caution_days"] = sorted({d for w in wins for d in (w.get("stations") or [])})
+                out["sade_sati"] = ss
+
+            if inc_stn and "stations" in sat_ctx:
+                out["stations"] = _cap_list(sat_ctx.get("stations", []))
+
+            if inc_ret and "retrograde" in sat_ctx:
+                out["retrograde"] = _cap_list(sat_ctx.get("retrograde", []))
+
+            if inc_asht and "ashtama" in sat_ctx:
+                out["ashtama"] = _cap_list(sat_ctx.get("ashtama", []))
+
+            if inc_kant and "kantaka" in sat_ctx:
+                out["kantaka"] = _cap_list(sat_ctx.get("kantaka", []))
+
+            if inc_supp and "support_hits" in sat_ctx:
+                out["support_hits"] = _cap_list(sat_ctx.get("support_hits", []))
+
+            if inc_stress and "stress_hits" in sat_ctx:
+                out["stress_hits"] = _cap_list(sat_ctx.get("stress_hits", []))
+
+            return Response(out, status=200)
+
+        except Exception as e:
+            # You can add Sentry/structlog here
+            return Response({"error": str(e)}, status=400)
+
+
+
+
+
+
+
+# ---------------- ShubhDinRunView (v1, future-only per local TZ) ---------------- #
+class ShubhDinRunView(APIView):
+    """
+    POST /api/v1/shubhdin/run
+    Accepts either:
+      - { "birth": { "date": "YYYY-MM-DD", "time": "HH:MM", "lat": <f>, "lon": <f> }, "tz": "Asia/Kolkata", "horizon_months": 12, ... }
+      - or legacy: { "datetime": "YYYY-MM-DDTHH:MM:SSZ", "lat": <f>, "lon": <f>, "tz": "Asia/Kolkata", "horizon_months": 12 }
+    """
+    permission_classes = [AllowAny]
+    _GOAL_KEYS = (
+        "promotion", "job_change", "startup", "property", "marriage",
+        "business_expand", "business_start", "new_relationship"
+    )
+
+    def post(self, request):
+        try:
+            # ------------------ input ------------------
+            data = request.data or {}
+            birth = (data.get("birth") or {}) if isinstance(data.get("birth"), dict) else {}
+            goals = data.get("goals") or list(self._GOAL_KEYS)
+
+            business = (data.get("business") or {}) if isinstance(data.get("business"), dict) else {}
+            business_type = (business.get("type") or data.get("business_type") or "other").strip().lower()
+
+            tz_str = (data.get("tz") or "Asia/Kolkata").strip() or "Asia/Kolkata"
+            try:
+                USER_TZ = ZoneInfo(tz_str)
+            except Exception:
+                USER_TZ = ZoneInfo("Asia/Kolkata")
+
+            # horizon months clamp 1..24
+            try:
+                hm = int(data.get("horizon_months", 12))
+            except Exception:
+                hm = 12
+            hm = max(1, min(24, hm))
+            H_DEFAULT = hm * 30
+            H_MARR    = min(24 * 30, max(H_DEFAULT, 18 * 30))  # ensure ~≥18 months for marriage
+
+            # ---------- parse input (legacy OR new) ----------
+            if "datetime" in data and "lat" in data and "lon" in data:
+                try:
+                    dt_aw = parse_client_iso_to_aware_utc(str(data.get("datetime")).strip())
+                except Exception as e:
+                    return Response({"error": f"invalid datetime: {e}"}, status=400)
+                try:
+                    lat = float(data.get("lat")); lon = float(data.get("lon"))
+                except Exception:
+                    return Response({"error": "lat/lon must be numbers"}, status=400)
+                if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                    return Response({"error": "lat/lon out of range"}, status=400)
+                dt_naive_utc = aware_utc_to_naive(dt_aw)
+            else:
+                b_date = str(birth.get("date", "")).strip()
+                b_time = str(birth.get("time", "")).strip()
+                lat_raw, lon_raw = birth.get("lat"), birth.get("lon")
+                if not b_date or not b_time:
+                    return Response({"error": "birth.date and birth.time are required (or use legacy datetime/lat/lon)"}, status=400)
+                try:
+                    lat = float(lat_raw); lon = float(lon_raw)
+                except Exception:
+                    return Response({"error": "birth.lat and birth.lon must be numbers"}, status=400)
+                if not (-90 <= lat <= 90 and -180 <= lon <= 180):
+                    return Response({"error": "lat/lon out of range"}, status=400)
+                try:
+                    dt_aw = datetime.fromisoformat(f"{b_date}T{b_time}:00+00:00").astimezone(timezone.utc)
+                except Exception as e:
+                    return Response({"error": f"invalid birth date/time: {e}"}, status=400)
+                dt_naive_utc = dt_aw.replace(tzinfo=None)
+
+            # ---------- load configs ----------
+            try:
+                aspect_cfg, _domain_rules = load_config()
+            except Exception as e:
+                return Response({"error": f"config: {e}"}, status=500)
+
+            # ---------- natal points ----------
+            angles = compute_angles(dt_naive_utc, lat, lon, tz_offset_hours=0.0, ayanamsa="lahiri")
+            asc_deg = angles.get("Asc"); mc_deg = angles.get("MC")
+            _, natal_pos = compute_all_planets(dt_naive_utc, lat, lon, tz_offset_hours=0.0, ayanamsa="lahiri")
+
+            natal_points = {"Asc": float(asc_deg)}
+            if mc_deg is not None:
+                natal_points["MC"] = float(mc_deg)
+            for k, v in natal_pos.items():
+                natal_points[k] = float(v)
+
+            # ---------- Vimshottari timeline (MD/AD) ----------
+            try:
+                tl = compute_vimshottari_full(dt_aw, lat, lon, 0.0, horizon_years=120.0)
+                md_periods = []   # (start_date, end_date, lord)
+                ad_periods = []   # (start_date, end_date, lord)
+                for p in getattr(tl, "mahadashas", []):
+                    s = p.start.date(); e = p.end.date()
+                    md_periods.append((s, e, p.lord))
+                    key = f"{p.lord}@{p.start.replace(tzinfo=timezone.utc).isoformat()}"
+                    for ad in getattr(tl, "antardashas", {}).get(key, []):
+                        ad_periods.append((ad.start.date(), ad.end.date(), ad.lord))
+            except Exception:
+                md_periods, ad_periods = [], []  # fail-open
+
+            # ---------- tiny helpers ----------
+            today_local = datetime.now(USER_TZ).date()
+
+            def local_date_to_naive_utc(d: date, hour_local: int = 9) -> datetime:
+                dt_local = datetime(d.year, d.month, d.day, hour_local, 0, 0, tzinfo=USER_TZ)
+                dt_aw_utc = dt_local.astimezone(timezone.utc)
+                return dt_aw_utc.replace(tzinfo=None)
+
+            def dasha_lords_for_date(d: date) -> tuple[Optional[str], Optional[str]]:
+                md = None; ad = None
+                for s, e, lord in md_periods:
+                    if s <= d <= e:
+                        md = lord
+                        break
+                if md:
+                    for s, e, lord in ad_periods:
+                        if s <= d <= e:
+                            ad = lord
+                            break
+                return md, ad
+
+            def dasha_multiplier(goal: str, md: Optional[str], ad: Optional[str]) -> float:
+                support = {
+                    "promotion":        {"Sun","Saturn","Mercury","Jupiter"},
+                    "job_change":       {"Mercury","Jupiter","Mars","Sun"},
+                    "startup":          {"Jupiter","Mercury","Sun","Venus"},
+                    "property":         {"Venus","Saturn","Jupiter","Moon"},
+                    "marriage":         {"Venus","Moon","Jupiter"},
+                    "business_expand":  {"Jupiter","Mercury","Venus","Sun"},
+                    "business_start":   {"Jupiter","Mercury","Venus","Sun"},
+                    "new_relationship": {"Venus","Moon","Jupiter"},
+                }
+                contra = {
+                    "promotion":        {"Rahu","Ketu"},
+                    "job_change":       {"Rahu","Ketu"},
+                    "startup":          {"Saturn","Rahu","Ketu"},
+                    "property":         {"Mars","Rahu","Ketu"},
+                    "marriage":         {"Saturn","Mars","Rahu","Ketu"},
+                    "business_expand":  {"Rahu","Ketu","Saturn"},
+                    "business_start":   {"Rahu","Ketu","Saturn"},
+                    "new_relationship": {"Saturn","Mars","Rahu","Ketu"},
+                }
+                sup = support.get(goal, set())
+                con = contra.get(goal, set())
+                m = 1.0
+                if md in sup: m *= 1.20
+                if ad in sup: m *= 1.10
+                if md in con: m *= 0.90
+                if ad in con: m *= 0.95
+                return m
+
+            def day_score_base(d: date) -> tuple[float, dict]:
+                """Compute raw transit score + flags & tags for a local date."""
+                dt = local_date_to_naive_utc(d, hour_local=9)
+
+                # transit hits (aspect engine)
+                hits = compute_transit_hits_now(
+                    dt_naive_utc=dt, lat=lat, lon=lon, natal_points=natal_points, aspect_cfg=aspect_cfg
+                )
+
+                # combustion flag
+                _, tpos = compute_all_planets(dt, lat, lon, tz_offset_hours=0.0, ayanamsa="lahiri")
+                sun = float(tpos.get("Sun", 0.0))
+                merc = float(tpos.get("Mercury", 0.0))
+                combust = angle_diff(sun, merc) <= 8.0
+
+                benefics = set(aspect_cfg.get("benefics", []))
+                malefics = set(aspect_cfg.get("malefics", []))
+                raw = 0.0; tags: List[str] = []
+                for h in hits.get("aspect", []):
+                    p = h.get("planet"); a = h.get("aspect"); w = float(h.get("score", 0.0))
+                    if p in benefics: raw += w
+                    elif p in malefics: raw += w * 0.5
+                    if a in ("Trine","Sextile") and w > 0.5:
+                        tags.append(f"{p} {a}")
+
+                md_lord, ad_lord = dasha_lords_for_date(d)
+                meta = {"tags": tags[:3], "hits": hits, "flags": {"combust": combust}, "dasha": {"md": md_lord, "ad": ad_lord}}
+                return (raw, meta)
+
+            def sweep_goal(goal: str, days_count: int) -> List[Dict]:
+                out = []
+                for i in range(days_count):
+                    d = today_local + timedelta(days=i)
+                    raw, meta = day_score_base(d)
+                    md_lord = meta.get("dasha", {}).get("md")
+                    ad_lord = meta.get("dasha", {}).get("ad")
+                    mult = dasha_multiplier(goal, md_lord, ad_lord)
+                    out.append({"date": d.isoformat(), "raw": raw * mult, "meta": meta})
+                return out
+
+            # ------- small utilities (windowing/formatting) -------
+            def best_day_within(days: List[Dict], start_iso: str, end_iso: str) -> Optional[Dict]:
+                """Return max-scoring day dict inside [start_iso, end_iso], with MD/AD tags folded in."""
+                slice_days = [d for d in days if start_iso <= d["date"] <= end_iso]
+                if not slice_days:
+                    return None
+                bd = max(slice_days, key=lambda x: x["score"])
+                md = bd.get("meta", {}).get("dasha", {}).get("md")
+                ad = bd.get("meta", {}).get("dasha", {}).get("ad")
+                tags = bd.get("meta", {}).get("tags", [])
+                return {
+                    "date": bd["date"],
+                    "score": bd["score"],
+                    "tags": tags + ([f"MD:{md}"] if md else []) + ([f"AD:{ad}"] if ad else [])
+                }
+
+            def make_caution_line(iso_list: List[str]) -> str:
+                if not iso_list:
+                    return ""
+                # Present as: "Please don’t finalize deals or make large transactions on: 17 Nov 2025, 18 Nov 2025; use another recommended day."
+                # Limit to 8 dates for readability.
+                def fmt(s: str) -> str:
+                    y, m, d = [int(x) for x in s.split("-")]
+                    return datetime(y, m, d).strftime("%d %b %Y")
+                shown = [fmt(s) for s in iso_list[:8]]
+                tail = ", …" if len(iso_list) > 8 else ""
+                return f"Please don’t finalize deals or make large transactions on: {', '.join(shown)}{tail}; use another recommended day."
+
+            # NOTE: The following helpers are assumed available from your helpers module:
+            # normalize_scores, best_window, grow_window, duration_days, fmt_start_end_duration,
+            # non_overlapping_top_windows, dedupe_windows, dates_in_range, angle_diff
+
+            # ------------------ horizons ------------------
+            H_PROMO   = H_DEFAULT
+            H_JOB     = H_DEFAULT
+            H_PROP    = H_DEFAULT
+            H_STARTUP = H_DEFAULT
+            H_EXPAND  = H_DEFAULT
+            H_REL     = H_DEFAULT  # new_relationship
+
+            results: List[Dict] = []
+
+            # ------------------ Promotion ------------------
+            if "promotion" in goals:
+                promo_days = sweep_goal("promotion", H_PROMO); normalize_scores(promo_days)
+                promo_win = []
+                seed = best_window(promo_days, span=7)
+                if seed:
+                    si, ei = grow_window(promo_days, seed["si"], seed["ei"], cutoff=55.0, patience=5)
+                    a_iso, b_iso = promo_days[si]["date"], promo_days[ei]["date"]
+                    promo_win = [{"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)}]
+                promo_win = dedupe_windows(promo_win, limit=1)
+                headline = f"Best windows: {fmt_start_end_duration(promo_win[0]['start'], promo_win[0]['end'])}" if promo_win else "Best windows: n/a"
+
+                top_date_line: List[Dict] = []
+                if promo_win:
+                    bd = best_day_within(promo_days, promo_win[0]["start"], promo_win[0]["end"])
+                    if bd: top_date_line = [bd]
+
+                results.append({
+                    "goal": "promotion",
+                    "headline": headline,
+                    "score": int(top_date_line[0]["score"]) if top_date_line else int(max((d["score"] for d in promo_days), default=0)),
+                    "confidence": "medium" if promo_win else "low",
+                    "dates": top_date_line,
+                    "windows": promo_win,
+                    "explain": ["Transit + dasha support career houses (10th/6th)."] +
+                               ([f"Leverage appraisal talks near {top_date_line[0]['date']}."] if top_date_line else []),
+                    "cautions": ["Avoid 16:30-17:15 (Rahu Kaal)"]
+                })
+
+            # ------------------ Job change ------------------
+            if "job_change" in goals:
+                job_days = sweep_goal("job_change", H_JOB); normalize_scores(job_days)
+                picked = non_overlapping_top_windows(job_days, span=7, k=3)
+                job_wins = []
+                for w in picked:
+                    si, ei = grow_window(job_days, w["si_orig"], w["ei_orig"], cutoff=55.0, patience=5)
+                    a_iso, b_iso = job_days[si]["date"], job_days[ei]["date"]
+                    job_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
+                job_wins = dedupe_windows(job_wins, limit=3)
+                headline = ("Best windows: " + ", ".join(fmt_start_end_duration(w["start"], w["end"]) for w in job_wins)) if job_wins else "Best windows: n/a"
+
+                top_date_line: List[Dict] = []
+                if job_wins:
+                    bd = best_day_within(job_days, job_wins[0]["start"], job_wins[0]["end"])
+                    if bd: top_date_line = [bd]
+
+                results.append({
+                    "goal": "job_change",
+                    "headline": headline,
+                    "score": int(top_date_line[0]["score"]) if top_date_line else int(max((d["score"] for d in job_days), default=0)),
+                    "confidence": "medium" if job_wins else "low",
+                    "dates": top_date_line,
+                    "windows": job_wins,
+                    "explain": ["Mercury + Jupiter favor offers/interviews; Mars gives momentum (with supportive MD/AD)."],
+                    "cautions": ["Watch Mercury combust days for clarity"]
+                })
+
+            # ------------------ Startup ------------------
+            if "startup" in goals:
+                startup_days = sweep_goal("startup", H_STARTUP); normalize_scores(startup_days)
+                startup_wins = []
+                best_line: List[Dict] = []
+                if startup_days:
+                    span = min(60, len(startup_days))
+                    seed60 = best_window(startup_days, span=span)
+                    if seed60:
+                        si, ei = grow_window(startup_days, seed60["si"], seed60["ei"], cutoff=60.0, patience=6)
+                        a_iso, b_iso = startup_days[si]["date"], startup_days[ei]["date"]
+                        startup_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
+                startup_wins = dedupe_windows(startup_wins, limit=1)
+                headline = f"Best windows: {fmt_start_end_duration(startup_wins[0]['start'], startup_wins[0]['end'])}" if startup_wins else "Best windows: n/a"
+                if startup_wins:
+                    bd = best_day_within(startup_days, startup_wins[0]["start"], startup_wins[0]["end"])
+                    if bd: best_line = [bd]
+
+                results.append({
+                    "goal": "startup",
+                    "headline": headline,
+                    "score": int(best_line[0]["score"]) if best_line else int(max((d["score"] for d in startup_days), default=0)),
+                    "confidence": "medium" if startup_wins else "low",
+                    "dates": best_line,
+                    "windows": startup_wins,
+                    "explain": ["Jupiter trine to your natal Sun/Asc with supportive dasha signals green light."] +
+                               ([f"Incorporate near {best_line[0]['date']} (strong Moon/Nakshatra)."] if best_line else []),
+                    "cautions": []
+                })
+
+            # ------------------ Property ------------------
+            if "property" in goals:
+                prop_days = sweep_goal("property", H_PROP); normalize_scores(prop_days)
+                picked_prop = non_overlapping_top_windows(prop_days, span=1, k=5)
+                prop_wins = []
+                for w in picked_prop:
+                    si, ei = grow_window(prop_days, w["si_orig"], w["ei_orig"], cutoff=58.0, patience=2)
+                    a_iso, b_iso = prop_days[si]["date"], prop_days[ei]["date"]
+                    prop_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
+                prop_wins = dedupe_windows(prop_wins, limit=3)
+                headline = ("Best windows: " + ", ".join(fmt_start_end_duration(w["start"], w["end"]) for w in prop_wins)) if prop_wins else "Best windows: n/a"
+
+                top_date_line: List[Dict] = []
+                if prop_wins:
+                    bd = best_day_within(prop_days, prop_wins[0]["start"], prop_wins[0]["end"])
+                    if bd: top_date_line = [bd]
+
+                results.append({
+                    "goal": "property",
+                    "headline": headline,
+                    "score": int(top_date_line[0]["score"]) if top_date_line else int(max((d["score"] for d in prop_days), default=0)),
+                    "confidence": "high" if prop_wins else "low",
+                    "dates": top_date_line,
+                    "windows": prop_wins,
+                    "explain": ["Venus + Moon auspicious; Saturn steady for paperwork (dasha-boosted where applicable)."],
+                    "cautions": ["Skip Rahu/Gulika windows"]
+                })
+
+            # ------------------ Marriage ------------------
+            if "marriage" in goals:
+                marr_days = sweep_goal("marriage", H_MARR); normalize_scores(marr_days)
+                marr_wins = []
+                if marr_days:
+                    seed30 = best_window(marr_days, span=30)
+                    if seed30:
+                        si, ei = grow_window(marr_days, seed30["si"], seed30["ei"], cutoff=55.0, patience=5)
+                        a_iso, b_iso = marr_days[si]["date"], marr_days[ei]["date"]
+                        marr_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
+                marr_wins = dedupe_windows(marr_wins, limit=1)
+                headline = f"Best windows: {fmt_start_end_duration(marr_wins[0]['start'], marr_wins[0]['end'])}" if marr_wins else "Best windows: n/a"
+
+                best_line: List[Dict] = []
+                if marr_wins:
+                    bd = best_day_within(marr_days, marr_wins[0]["start"], marr_wins[0]["end"])
+                    if bd: best_line = [bd]
+
+                results.append({
+                    "goal": "marriage",
+                    "headline": headline,
+                    "score": int(best_line[0]["score"]) if best_line else int(max((d["score"] for d in marr_days), default=0)),
+                    "confidence": "medium" if marr_wins else "low",
+                    "dates": best_line,
+                    "windows": marr_wins,
+                    "explain": ["Venus/Moon strengthened; benefic aspect to 7th lord (dasha-aligned)."] +
+                               ([f"{best_line[0]['date']} is particularly good."] if best_line else []),
+                    "cautions": []
+                })
+
+            # ------------------ Business: Expand ------------------
+            if "business_expand" in goals:
+                expand_days = sweep_goal("business_expand", H_EXPAND); normalize_scores(expand_days)
+                picked_exp = non_overlapping_top_windows(expand_days, span=21, k=2)
+                expand_wins = []
+                for w in picked_exp:
+                    si, ei = grow_window(expand_days, w["si_orig"], w["ei_orig"], cutoff=56.0, patience=4)
+                    a_iso, b_iso = expand_days[si]["date"], expand_days[ei]["date"]
+                    expand_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
+                expand_wins = dedupe_windows(expand_wins, limit=2)
+                headline = ("Best windows: " + ", ".join(fmt_start_end_duration(w["start"], w["end"]) for w in expand_wins)) if expand_wins else "Best windows: n/a"
+
+                # best date inside first window
+                top_date_line: List[Dict] = []
+                if expand_wins:
+                    bd = best_day_within(expand_days, expand_wins[0]["start"], expand_wins[0]["end"])
+                    if bd: top_date_line = [bd]
+
+                # Mercury combust caution days within windows
+                caution_days = []
+                for w in expand_wins:
+                    for d in dates_in_range(expand_days, w["start"], w["end"]):
+                        if d.get("meta", {}).get("flags", {}).get("combust"):
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                caution_text = ([make_caution_line(caution_days)] if caution_days else [])
+
+                results.append({
+                    "goal": "business_expand",
+                    "headline": headline,
+                    "score": int(top_date_line[0]["score"]) if top_date_line else int(max((d["score"] for d in expand_days), default=0)),
+                    "confidence": "medium" if expand_wins else "low",
+                    "dates": top_date_line,
+                    "windows": expand_wins,
+                    "explain": [
+                        "Jupiter (growth) + Mercury (sales/ops) supportive; Venus aids customer appeal.",
+                        "Use these spans for launches, partnerships, and opening new locations (dasha-aligned)."
+                    ],
+                    "cautions": caution_text,
+                    "caution_days": caution_days
+                })
+
+            # ------------------ Business: Start ------------------
+            if "business_start" in goals:
+                start_days = sweep_goal("business_start", H_STARTUP); normalize_scores(start_days)
+                span_by_type = {
+                    "tech": 60, "ecom": 45, "retail": 30, "services": 45,
+                    "manufacturing": 75, "real_estate": 60, "other": 45
+                }
+                base_span = span_by_type.get(business_type, 45)
+                span = min(base_span, len(start_days)) if start_days else 0
+
+                start_wins = []
+                if span >= 1:
+                    seeds = non_overlapping_top_windows(start_days, span=span, k=2)
+                    for s in seeds:
+                        si, ei = grow_window(start_days, s["si_orig"], s["ei_orig"], cutoff=60.0, patience=6)
+                        a_iso, b_iso = start_days[si]["date"], start_days[ei]["date"]
+                        start_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
+                start_wins = dedupe_windows(start_wins, limit=2)
+                headline = ("Best windows: " + ", ".join(fmt_start_end_duration(w["start"], w["end"]) for w in start_wins)) if start_wins else "Best windows: n/a"
+
+                best_line: List[Dict] = []
+                if start_wins:
+                    bd = best_day_within(start_days, start_wins[0]["start"], start_wins[0]["end"])
+                    if bd: best_line = [bd]
+
+                # Mercury combust caution days inside windows
+                caution_days = []
+                for w in start_wins:
+                    for d in dates_in_range(start_days, w["start"], w["end"]):
+                        if d.get("meta", {}).get("flags", {}).get("combust"):
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                caution_text = ([make_caution_line(caution_days)] if caution_days else [])
+
+                type_nice = {
+                    "tech": "Tech / SaaS",
+                    "ecom": "E-commerce",
+                    "retail": "Retail",
+                    "services": "Services",
+                    "manufacturing": "Manufacturing",
+                    "real_estate": "Real Estate"
+                }.get(business_type, "Business")
+
+                expl = [f"{type_nice}: Jupiter (expansion) + Mercury (ops/legal) supportive; Venus aids brand/UX (dasha-aligned)."]
+                if best_line:
+                    expl.append(f"Incorporate/commence near {best_line[0]['date']} for a strong lunar/nakshatra tone.")
+
+                results.append({
+                    "goal": "business_start",
+                    "headline": headline,
+                    "score": int(best_line[0]["score"]) if best_line else int(max((d["score"] for d in start_days), default=0)),
+                    "confidence": "medium" if start_wins else "low",
+                    "dates": best_line,
+                    "windows": start_wins,
+                    "explain": expl,
+                    "cautions": caution_text,
+                    "caution_days": caution_days
+                })
+
+            # ------------------ New Relationship ------------------
+            if "new_relationship" in goals:
+                rel_days = sweep_goal("new_relationship", H_REL); normalize_scores(rel_days)
+                seeds = non_overlapping_top_windows(rel_days, span=10, k=2)
+                rel_wins = []
+                for s in seeds:
+                    si, ei = grow_window(rel_days, s["si_orig"], s["ei_orig"], cutoff=58.0, patience=4)
+                    a_iso, b_iso = rel_days[si]["date"], rel_days[ei]["date"]
+                    rel_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
+                rel_wins = dedupe_windows(rel_wins, limit=2)
+                headline = ("Best windows: " + ", ".join(fmt_start_end_duration(w["start"], w["end"]) for w in rel_wins)) if rel_wins else "Best windows: n/a"
+
+                best_line: List[Dict] = []
+                if rel_wins:
+                    bd = best_day_within(rel_days, rel_wins[0]["start"], rel_wins[0]["end"])
+                    if bd: best_line = [bd]
+
+                # Caution dates: Venus hard aspects (Square/Opposition) with Saturn/Mars
+                caution_days = []
+                HARD = {"Square", "Opposition"}
+                def is_venus_hard(hit: dict) -> bool:
+                    a = hit.get("aspect"); w = float(hit.get("score", 0.0))
+                    p = hit.get("planet"); tgt = hit.get("target")
+                    if a not in HARD or w < 0.6:
+                        return False
+                    pair = {p, tgt}
+                    return ("Venus" in pair) and (("Saturn" in pair) or ("Mars" in pair))
+
+                for w in rel_wins:
+                    for d in dates_in_range(rel_days, w["start"], w["end"]):
+                        hits = d.get("meta", {}).get("hits", {}).get("aspect", [])
+                        if any(is_venus_hard(h) for h in hits):
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                caution_text = ([make_caution_line(caution_days)] if caution_days else [])
+
+                results.append({
+                    "goal": "new_relationship",
+                    "headline": headline,
+                    "score": int(best_line[0]["score"]) if best_line else int(max((d["score"] for d in rel_days), default=0)),
+                    "confidence": "medium" if rel_wins else "low",
+                    "dates": best_line,
+                    "windows": rel_wins,
+                    "explain": [
+                        "Venus/Moon benefic patterns boost connection and openness (dasha-aligned).",
+                        "Use these spans for first meets, dates, and social events."
+                    ],
+                    "cautions": caution_text,
+                    "caution_days": caution_days
+                })
+
+            return Response({
+                "query_id": "qd_shubhdin_v1",
+                "generated_at": datetime.utcnow().replace(tzinfo=timezone.utc).isoformat(),
+                "tz": tz_str,
+                "horizon_months": hm,
+                "confidence_overall": "medium",
+                "results": results
+            }, status=200)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=500)

@@ -691,6 +691,12 @@ export default function CreateChartClient() {
       >
         🚀 Skills
       </Link>
+	  
+	  
+
+
+
+
     </div>
   </div>
 </div>
