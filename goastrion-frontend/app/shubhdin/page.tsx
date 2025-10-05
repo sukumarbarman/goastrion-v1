@@ -1,18 +1,11 @@
 // app/shubhdin/page.tsx
 import ShubhDinResults, { ShubhDinResponse } from "../components/ShubhDinResults";
-import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 async function fetchData(): Promise<ShubhDinResponse> {
-  // Build a safe absolute URL for server-side fetch
-  const hdrs = await headers();
-  const origin =
-    hdrs.get("origin") ||
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    "http://localhost:3000";
-
-  const res = await fetch(`${origin}/api/shubhdin`, {
+  // Use an internal relative fetch to our Next proxy
+  const res = await fetch("/api/shubhdin", {
     method: "POST",
     cache: "no-store",
     headers: { "Content-Type": "application/json" },
@@ -23,10 +16,14 @@ async function fetchData(): Promise<ShubhDinResponse> {
       tz: "Asia/Kolkata",
       horizon_months: 18,
     }),
+    // Ensures this call runs on the server and bypasses any caching layers
+    // (Next 15 generally respects cache: "no-store" already)
+    next: { revalidate: 0 },
   });
 
   if (!res.ok) {
-    throw new Error(`ShubhDin proxy error: ${res.status}`);
+    const text = await res.text().catch(() => "");
+    throw new Error(`ShubhDin proxy error: ${res.status} ${text}`);
   }
   return (await res.json()) as ShubhDinResponse;
 }
