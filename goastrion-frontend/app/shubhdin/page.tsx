@@ -1,11 +1,18 @@
 // app/shubhdin/page.tsx
 import ShubhDinResults, { ShubhDinResponse } from "../components/ShubhDinResults";
+import { headers } from "next/headers";
+
+export const dynamic = "force-dynamic";
 
 async function fetchData(): Promise<ShubhDinResponse> {
-  const API =
-    process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/$/, "") ||
-    "http://127.0.0.1:8000";
-  const res = await fetch(`${API}/api/v1/shubhdin/run`, {
+  // Build a safe absolute URL for server-side fetch
+  const hdrs = await headers();
+  const origin =
+    hdrs.get("origin") ||
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    "http://localhost:3000";
+
+  const res = await fetch(`${origin}/api/shubhdin`, {
     method: "POST",
     cache: "no-store",
     headers: { "Content-Type": "application/json" },
@@ -17,8 +24,9 @@ async function fetchData(): Promise<ShubhDinResponse> {
       horizon_months: 18,
     }),
   });
+
   if (!res.ok) {
-    throw new Error(`ShubhDin API error: ${res.status}`);
+    throw new Error(`ShubhDin proxy error: ${res.status}`);
   }
   return (await res.json()) as ShubhDinResponse;
 }
