@@ -4,8 +4,10 @@ import ShubhDinResults, { ShubhDinResponse } from "../components/ShubhDinResults
 export const dynamic = "force-dynamic";
 
 async function fetchData(): Promise<ShubhDinResponse> {
-  // Use an internal relative fetch to our Next proxy
-  const res = await fetch("/api/shubhdin", {
+  const origin = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/+$/, "");
+  if (!origin) throw new Error("Missing NEXT_PUBLIC_SITE_URL");
+
+  const res = await fetch(`${origin}/api/shubhdin`, {
     method: "POST",
     cache: "no-store",
     headers: { "Content-Type": "application/json" },
@@ -16,8 +18,6 @@ async function fetchData(): Promise<ShubhDinResponse> {
       tz: "Asia/Kolkata",
       horizon_months: 18,
     }),
-    // Ensures this call runs on the server and bypasses any caching layers
-    // (Next 15 generally respects cache: "no-store" already)
     next: { revalidate: 0 },
   });
 

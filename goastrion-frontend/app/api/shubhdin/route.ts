@@ -3,36 +3,33 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function getBackendBase(): string {
-  // IMPORTANT: set BACKEND_URL in prod, e.g. http://127.0.0.1:8001
-  const raw = process.env.BACKEND_URL || "http://127.0.0.1:8001";
+  const raw = process.env.BACKEND_URL || "http://127.0.0.1:8001"; // Gunicorn port
   return raw.replace(/\/+$/, "");
 }
 
-// ---- Types for strictness (no `any`) ----
 type ShubhDinRequest = {
-  datetime: string;          // UTC ISO (e.g., "1990-11-20T12:00:00Z")
-  lat: number;               // decimal degrees
-  lon: number;               // decimal degrees
-  tz?: string;               // IANA (e.g., "Asia/Kolkata") - optional
-  // add optional knobs here if backend supports them
-  // e.g. horizon_days?: number; filters?: { avoid_station?: boolean };
+  datetime: string;
+  lat: number;
+  lon: number;
+  tz?: string;
 };
-type ShubhDinResponse = unknown; // passthrough JSON from backend
 
 export async function POST(req: Request): Promise<Response> {
   const backend = getBackendBase();
   const url = `${backend}/api/v1/shubhdin/run`;
 
-  try {
-    const rawBody = await req.text();
-    const body = rawBody ? JSON.parse(rawBody) as ShubhDinRequest : ({} as ShubhDinRequest);
+  // --- NEW: timeout guard ---
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 30_000); // 30s
 
-    // Minimal validation to avoid 500 on backend
-    if (!body?.datetime || typeof body.lat !== "number" || typeof body.lon !== "number") {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields: datetime, lat, lon" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
-      );
+  try {
+    const raw = await req.text();
+    const body = raw ? (JSON.parse(raw) as ShubhDinRequest) : ({} as ShubhDinRequest);
+
+    if (!body.datetime || typeof body.lat !== "number" || typeof body.lon !== "number") {
+      return new Response(JSON.stringify({ error: "Missing required fields: datetime, lat, lon" }), {
+        status: 400, headers: { "Content-Type": "application/json" },
+      });
     }
 
     const upstream = await fetch(url, {
@@ -40,6 +37,7 @@ export async function POST(req: Request): Promise<Response> {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
       cache: "no-store",
+      signal: ctrl.signal, // ← NEW
     });
 
     const contentType = upstream.headers.get("content-type") || "application/json";
@@ -47,8 +45,7 @@ export async function POST(req: Request): Promise<Response> {
 
     if (!upstream.ok) {
       console.error("[/api/shubhdin] backend error", {
-        status: upstream.status,
-        url,
+        status: upstream.status, url,
         req: JSON.stringify(body).slice(0, 500),
         resp: text.slice(0, 500),
       });
@@ -60,18 +57,21 @@ export async function POST(req: Request): Promise<Response> {
     });
   } catch (err) {
     console.error("[/api/shubhdin] proxy error →", err);
-    const message = err instanceof Error ? err.message : "Proxy error";
-    return new Response(JSON.stringify({ error: message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
+    const msg = err instanceof Error ? err.message : "Proxy error";
+    const code = String(msg).includes("aborted") ? 504 : 500; // timeout → 504
+    return new Response(JSON.stringify({ error: msg }), {
+      status: code, headers: { "Content-Type": "application/json" },
     });
+  } finally {
+    clearTimeout(timer); // ← NEW
   }
 }
 
-// Optional: friendlier GET (so /api/shubhdin in browser is helpful)
+
+// Optional: friendly GET so browser shows a hint instead of 405
 export async function GET(): Promise<Response> {
   return new Response(
-    JSON.stringify({ ok: true, hint: "POST JSON here: { datetime, lat, lon, tz? }" }),
+    JSON.stringify({ ok: true, hint: "POST JSON { datetime, lat, lon, tz } to this endpoint." }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
 }
