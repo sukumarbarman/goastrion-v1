@@ -49,6 +49,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             <Link href="/domains" className="hover:text-white">{t("navbar.lifeSpheres")}</Link>
             <Link href="/skills" className="hover:text-white">{t("navbar.skills")}</Link>
             <Link href="/saturn" className="hover:text-white">Saturn</Link>
+            <Link href="/shubhdin" className="hover:text-white">ShubhDin</Link>
             <Link href="/guides" className="hover:text-white">{t("navbar.guides")}</Link>
             <Link href="/faq" className="hover:text-white">{t("navbar.faq")}</Link>
 
@@ -145,6 +146,11 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
               <li>
                 <Link href="/saturn" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
                   Saturn
+                </Link>
+              </li>
+              <li>
+                <Link href="/shubhdin" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
+                  Shubhdin
                 </Link>
               </li>
               <li>

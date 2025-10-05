@@ -524,12 +524,27 @@ class SaturnOverviewView(APIView):
             return Response({"error": str(e)}, status=400)
 
 
+# astro/api_views.py  (replace the existing ShubhDinRunView with this one)
+# astro/api_views.py  (drop-in replacement)
 
+from datetime import datetime, timezone, timedelta, date
+from zoneinfo import ZoneInfo
+from typing import List, Dict, Tuple, Optional, Any
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 
+from .ephem.swiss import compute_all_planets, compute_angles
+from .domain.saturn_watch import saturn_overview
 
+# Reuse your existing utils from helpers and elsewhere:
+# - parse_client_iso_to_aware_utc, aware_utc_to_naive
+# - load_config
+# - compute_vimshottari_full
+# - best_window, grow_window, duration_days, fmt_start_end_duration,
+#   non_overlapping_top_windows, dedupe_windows, dates_in_range, angle_diff
 
-# ---------------- ShubhDinRunView (v1, future-only per local TZ) ---------------- #
 class ShubhDinRunView(APIView):
     """
     POST /api/v1/shubhdin/run
@@ -542,6 +557,48 @@ class ShubhDinRunView(APIView):
         "promotion", "job_change", "startup", "property", "marriage",
         "business_expand", "business_start", "new_relationship"
     )
+
+    # ---------------- local normalization (wider spread; ASCII-safe tags later) -----
+    @staticmethod
+    def _normalize_scores_wide(daylist: List[Dict], raw_key: str = "raw", out_key: str = "score") -> None:
+        """
+        Wider, robust normalization:
+          p50 -> ~58, p90 -> ~90, p97 -> ~97; clamp [3, 99]
+        Leaves more headroom so not every top day shows as 98/99.
+        """
+        vals = [float(d.get(raw_key, 0.0)) for d in daylist]
+        if not vals:
+            return
+        sv = sorted(vals)
+        n = len(sv)
+
+        def pct(p: float) -> float:
+            if n == 1: return sv[0]
+            idx = p * (n - 1)
+            lo = int(idx); hi = min(lo + 1, n - 1)
+            frac = idx - lo
+            return sv[lo] * (1 - frac) + sv[hi] * frac
+
+        p50 = pct(0.50)
+        p90 = pct(0.90)
+        p97 = pct(0.97)
+        # piecewise: below p50 compress, between p50..p90 linear, above p90 slower
+        for d in daylist:
+            x = float(d.get(raw_key, 0.0))
+            if x <= p50:
+                # push lows into 3..58
+                if p50 - 1e-9 > sv[0]:
+                    z = (x - sv[0]) / max(1e-6, (p50 - sv[0]))
+                else:
+                    z = 0.0
+                s = 3 + 55 * max(0.0, min(1.0, z))
+            elif x <= p90:
+                z = (x - p50) / max(1e-6, (p90 - p50))
+                s = 58 + 30 * max(0.0, min(1.0, z))
+            else:
+                z = (x - p90) / max(1e-6, (p97 - p90 if p97 > p90 else (sv[-1] - p90 + 1e-6)))
+                s = 88 + 11 * max(0.0, min(1.0, z))
+            d[out_key] = round(max(3.0, min(99.0, s)), 2)
 
     def post(self, request):
         try:
@@ -610,11 +667,13 @@ class ShubhDinRunView(APIView):
             asc_deg = angles.get("Asc"); mc_deg = angles.get("MC")
             _, natal_pos = compute_all_planets(dt_naive_utc, lat, lon, tz_offset_hours=0.0, ayanamsa="lahiri")
 
-            natal_points = {"Asc": float(asc_deg)}
+            natal_points: Dict[str, float] = {}
+            if asc_deg is not None:
+                natal_points["Asc"] = float(asc_deg)
             if mc_deg is not None:
                 natal_points["MC"] = float(mc_deg)
             for k, v in natal_pos.items():
-                natal_points[k] = float(v)
+                natal_points[str(k)] = float(v)
 
             # ---------- Vimshottari timeline (MD/AD) ----------
             try:
@@ -672,8 +731,7 @@ class ShubhDinRunView(APIView):
                     "business_start":   {"Rahu","Ketu","Saturn"},
                     "new_relationship": {"Saturn","Mars","Rahu","Ketu"},
                 }
-                sup = support.get(goal, set())
-                con = contra.get(goal, set())
+                sup = support.get(goal, set()); con = contra.get(goal, set())
                 m = 1.0
                 if md in sup: m *= 1.20
                 if ad in sup: m *= 1.10
@@ -681,49 +739,176 @@ class ShubhDinRunView(APIView):
                 if ad in con: m *= 0.95
                 return m
 
+            # --------------- STRICT Transit → Natal scoring ---------------
+            ASPECTS = [
+                ("Conjunction", 0.0,   4.0, 1.00),
+                ("Sextile",     60.0,  2.0, 0.85),
+                ("Square",      90.0,  2.0, 0.65),
+                ("Trine",       120.0, 3.0, 1.00),
+                ("Opposition",  180.0, 3.0, 0.85),
+            ]
+            benefics = set(aspect_cfg.get("benefics", []))
+            malefics = set(aspect_cfg.get("malefics", []))
+
+            def aspect_hit(delta: float) -> Optional[Tuple[str, float]]:
+                # Return (aspect_name, strength 0..1) for closest aspect within orb.
+                best: Optional[Tuple[str, float]] = None
+                for name, ang, orb, base in ASPECTS:
+                    diff = abs(delta - ang)
+                    if diff <= orb or abs(diff - 360.0) <= orb:
+                        taper = max(0.0, 1.0 - (min(diff, 360.0 - diff) / orb))
+                        strength = base * (0.6 + 0.4 * taper)
+                        if best is None or strength > best[1]:
+                            best = (name, strength)
+                return best
+
             def day_score_base(d: date) -> tuple[float, dict]:
-                """Compute raw transit score + flags & tags for a local date."""
+                """Personalized raw score from TRANSIT → NATAL aspects only."""
                 dt = local_date_to_naive_utc(d, hour_local=9)
-
-                # transit hits (aspect engine)
-                hits = compute_transit_hits_now(
-                    dt_naive_utc=dt, lat=lat, lon=lon, natal_points=natal_points, aspect_cfg=aspect_cfg
-                )
-
-                # combustion flag
                 _, tpos = compute_all_planets(dt, lat, lon, tz_offset_hours=0.0, ayanamsa="lahiri")
+
+                # Combustion flag (Sun–Mercury)
                 sun = float(tpos.get("Sun", 0.0))
                 merc = float(tpos.get("Mercury", 0.0))
                 combust = angle_diff(sun, merc) <= 8.0
 
-                benefics = set(aspect_cfg.get("benefics", []))
-                malefics = set(aspect_cfg.get("malefics", []))
-                raw = 0.0; tags: List[str] = []
-                for h in hits.get("aspect", []):
-                    p = h.get("planet"); a = h.get("aspect"); w = float(h.get("score", 0.0))
-                    if p in benefics: raw += w
-                    elif p in malefics: raw += w * 0.5
-                    if a in ("Trine","Sextile") and w > 0.5:
-                        tags.append(f"{p} {a}")
+                # actors
+                transiting_planets = [p for p in ("Sun","Moon","Mercury","Venus","Mars","Jupiter","Saturn","Rahu","Ketu") if p in tpos]
 
+                raw = 0.0
+                tag_buf: List[str] = []
+
+                for p in transiting_planets:
+                    p_deg = float(tpos[p])
+                    for tgt, natal_deg in natal_points.items():
+                        delta = angle_diff(p_deg, float(natal_deg))
+                        hit = aspect_hit(delta)
+                        if not hit:
+                            continue
+                        a_name, a_strength = hit
+                        # weight by benefic/malefic of transiting planet
+                        if p in benefics:
+                            w = 1.00
+                        elif p in malefics:
+                            w = 0.70
+                        else:
+                            w = 0.85
+                        contrib = a_strength * w
+                        raw += contrib
+                        # ASCII-safe tag (UI can prettify "->" to "→")
+                        if a_name in ("Trine", "Sextile") and contrib >= 0.60:
+                            tag_buf.append(f"{p} {a_name} -> {tgt}")
+
+                # Dasha context
                 md_lord, ad_lord = dasha_lords_for_date(d)
-                meta = {"tags": tags[:3], "hits": hits, "flags": {"combust": combust}, "dasha": {"md": md_lord, "ad": ad_lord}}
+                tags = list(dict.fromkeys(tag_buf))[:4]
+
+                meta = {
+                    "tags": tags,
+                    "hits": {"_source": "t->n local"},   # breadcrumb only
+                    "flags": {"combust": combust},
+                    "dasha": {"md": md_lord, "ad": ad_lord}
+                }
                 return (raw, meta)
 
-            def sweep_goal(goal: str, days_count: int) -> List[Dict]:
-                out = []
-                for i in range(days_count):
-                    d = today_local + timedelta(days=i)
-                    raw, meta = day_score_base(d)
-                    md_lord = meta.get("dasha", {}).get("md")
-                    ad_lord = meta.get("dasha", {}).get("ad")
-                    mult = dasha_multiplier(goal, md_lord, ad_lord)
-                    out.append({"date": d.isoformat(), "raw": raw * mult, "meta": meta})
+            # ------------------ horizons ------------------
+            H_PROMO   = H_DEFAULT
+            H_JOB     = H_DEFAULT
+            H_PROP    = H_DEFAULT
+            H_STARTUP = H_DEFAULT
+            H_EXPAND  = H_DEFAULT
+            H_REL     = H_DEFAULT  # new_relationship
+
+            # ========== SATURN CONTEXT (one shot; goal-agnostic) ==========
+            H_MAX = max(H_PROMO, H_JOB, H_PROP, H_STARTUP, H_EXPAND, H_REL, H_MARR)
+            try:
+                sat_ctx = saturn_overview(
+                    today_local=today_local,
+                    horizon_days=H_MAX,
+                    moon_natal_deg=float(natal_pos["Moon"]),
+                    asc_natal_deg=float(natal_points.get("Asc")) if "Asc" in natal_points else None,
+                    mc_natal_deg=float(natal_points.get("MC")) if "MC" in natal_points else None,
+                    lat=lat, lon=lon, user_tz_str=tz_str, ayanamsa="lahiri",
+                ) or {}
+            except Exception:
+                sat_ctx = {}
+
+            def _collect_windows(section: str) -> list[tuple[str, str]]:
+                wins = []
+                sec = sat_ctx.get(section)
+                if isinstance(sec, dict):
+                    for w in (sec.get("windows") or []):
+                        a = w.get("start"); b = w.get("end")
+                        if a and b: wins.append((a, b))
+                return wins
+
+            def _collect_days_in_windows(wins: list[tuple[str, str]]) -> set[str]:
+                if not wins: return set()
+                out = set()
+                cur = today_local
+                end = today_local + timedelta(days=H_MAX)
+                while cur <= end:
+                    iso = cur.isoformat()
+                    for a, b in wins:
+                        if a <= iso <= b:
+                            out.add(iso); break
+                    cur += timedelta(days=1)
                 return out
 
-            # ------- small utilities (windowing/formatting) -------
+            def _collect_station_days_from_ss() -> set[str]:
+                out = set()
+                ss = (sat_ctx.get("sade_sati") or {})
+                for w in ss.get("windows", []):
+                    for d in (w.get("stations") or []):
+                        if isinstance(d, str): out.add(d)
+                return out
+
+            SS_WINS        = _collect_windows("sade_sati")
+            RETRO_WINS_RAW = (sat_ctx.get("retrograde") or [])
+            RETRO_WINS     = [(w.get("start"), w.get("end")) for w in RETRO_WINS_RAW if w.get("start") and w.get("end")]
+            ASHTAMA_WINS   = _collect_windows("ashtama")
+            KANTAKA_WINS   = _collect_windows("kantaka")
+
+            SS_STATION_DAYS = _collect_station_days_from_ss()
+            SS_DAYS         = _collect_days_in_windows(SS_WINS)
+            RETRO_DAYS      = _collect_days_in_windows(RETRO_WINS)
+            ASHTAMA_DAYS    = _collect_days_in_windows(ASHTAMA_WINS)
+            KANTAKA_DAYS    = _collect_days_in_windows(KANTAKA_WINS)
+
+            def _collect_hit_days(key: str) -> set[str]:
+                out = set()
+                for it in (sat_ctx.get(key) or []):
+                    d = it.get("date")
+                    if isinstance(d, str): out.add(d)
+                return out
+
+            SAT_SUPPORT_DAYS = _collect_hit_days("support_hits")
+            SAT_STRESS_DAYS  = _collect_hit_days("stress_hits")
+
+            def saturn_multiplier_for(goal: str, d_iso: str) -> tuple[float, list[str]]:
+                m = 1.0
+                tags: list[str] = []
+
+                if d_iso in SS_STATION_DAYS:
+                    m *= 0.95; tags.append("Saturn Station")
+                if d_iso in SS_DAYS:
+                    tags.append("Sade Sati")
+                    goal_penalty = {"promotion":0.96,"job_change":0.96,"marriage":0.97,"new_relationship":0.97}.get(goal, 0.98)
+                    m *= goal_penalty
+                if d_iso in RETRO_DAYS:
+                    m *= 0.98; tags.append("Saturn Retro")
+                if d_iso in ASHTAMA_DAYS or d_iso in KANTAKA_DAYS:
+                    m *= 0.97
+                    if d_iso in ASHTAMA_DAYS: tags.append("Ashtama (Saturn)")
+                    if d_iso in KANTAKA_DAYS: tags.append("Kantaka (Saturn)")
+                if d_iso in SAT_SUPPORT_DAYS:
+                    m *= 1.04; tags.append("Saturn Support")
+                if d_iso in SAT_STRESS_DAYS:
+                    m *= 0.96; tags.append("Saturn Stress")
+                return m, tags
+
+            # ------- utilities (windowing/formatting) -------
             def best_day_within(days: List[Dict], start_iso: str, end_iso: str) -> Optional[Dict]:
-                """Return max-scoring day dict inside [start_iso, end_iso], with MD/AD tags folded in."""
                 slice_days = [d for d in days if start_iso <= d["date"] <= end_iso]
                 if not slice_days:
                     return None
@@ -737,39 +922,55 @@ class ShubhDinRunView(APIView):
                     "tags": tags + ([f"MD:{md}"] if md else []) + ([f"AD:{ad}"] if ad else [])
                 }
 
+            def _cap_dates(dates: List[str], n: int = 10) -> tuple[List[str], int]:
+                return (dates[:n], max(0, len(dates) - n))
+
             def make_caution_line(iso_list: List[str]) -> str:
                 if not iso_list:
                     return ""
-                # Present as: "Please don’t finalize deals or make large transactions on: 17 Nov 2025, 18 Nov 2025; use another recommended day."
-                # Limit to 8 dates for readability.
                 def fmt(s: str) -> str:
                     y, m, d = [int(x) for x in s.split("-")]
                     return datetime(y, m, d).strftime("%d %b %Y")
-                shown = [fmt(s) for s in iso_list[:8]]
-                tail = ", …" if len(iso_list) > 8 else ""
-                return f"Please don’t finalize deals or make large transactions on: {', '.join(shown)}{tail}; use another recommended day."
+                shown = [fmt(s) for s in iso_list]
+                return f"Please don’t finalize deals or make large transactions on: {', '.join(shown)}; use another recommended day."
 
-            # NOTE: The following helpers are assumed available from your helpers module:
-            # normalize_scores, best_window, grow_window, duration_days, fmt_start_end_duration,
-            # non_overlapping_top_windows, dedupe_windows, dates_in_range, angle_diff
+            # ============ sweep goal: with Dasha + Saturn multipliers ============
+            def sweep_goal(goal: str, days_count: int) -> List[Dict]:
+                out = []
+                for i in range(days_count):
+                    d = today_local + timedelta(days=i)
+                    raw, meta = day_score_base(d)
 
-            # ------------------ horizons ------------------
-            H_PROMO   = H_DEFAULT
-            H_JOB     = H_DEFAULT
-            H_PROP    = H_DEFAULT
-            H_STARTUP = H_DEFAULT
-            H_EXPAND  = H_DEFAULT
-            H_REL     = H_DEFAULT  # new_relationship
+                    # mild downweight if no personal benefic tag
+                    def has_personal_benefic(tags: List[str]) -> bool:
+                        return any((t.split(" ")[0] in {"Jupiter","Venus","Moon"}) for t in tags)
+                    if not has_personal_benefic(meta.get("tags", [])):
+                        raw *= 0.8
+
+                    md_lord = meta.get("dasha", {}).get("md")
+                    ad_lord = meta.get("dasha", {}).get("ad")
+                    dasha_mult = dasha_multiplier(goal, md_lord, ad_lord)
+
+                    d_iso = d.isoformat()
+                    sat_mult, sat_tags = saturn_multiplier_for(goal, d_iso)
+
+                    meta_tags = (meta.get("tags") or []) + sat_tags
+                    meta["tags"] = list(dict.fromkeys(meta_tags))[:5]
+
+                    out.append({"date": d_iso, "raw": raw * dasha_mult * sat_mult, "meta": meta})
+                # local, wider normalization
+                self._normalize_scores_wide(out, raw_key="raw", out_key="score")
+                return out
 
             results: List[Dict] = []
 
-            # ------------------ Promotion ------------------
+            # ------------------ Promotion (tighter windows) ------------------
             if "promotion" in goals:
-                promo_days = sweep_goal("promotion", H_PROMO); normalize_scores(promo_days)
+                promo_days = sweep_goal("promotion", H_PROMO)
                 promo_win = []
                 seed = best_window(promo_days, span=7)
                 if seed:
-                    si, ei = grow_window(promo_days, seed["si"], seed["ei"], cutoff=55.0, patience=5)
+                    si, ei = grow_window(promo_days, seed["si"], seed["ei"], cutoff=60.0, patience=3)
                     a_iso, b_iso = promo_days[si]["date"], promo_days[ei]["date"]
                     promo_win = [{"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)}]
                 promo_win = dedupe_windows(promo_win, limit=1)
@@ -777,8 +978,18 @@ class ShubhDinRunView(APIView):
 
                 top_date_line: List[Dict] = []
                 if promo_win:
-                    bd = best_day_within(promo_days, promo_win[0]["start"], promo_win[0]["end"])
+                    bd = best_day_within(promo_days, promo_win[0]["start"], promo_win[0]["end"]);
                     if bd: top_date_line = [bd]
+
+                # Saturn station cautions (capped)
+                caution_days = []
+                for w in promo_win:
+                    for d in dates_in_range(promo_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                shown, more = _cap_dates(caution_days, n=10)
+                cautions = ["Avoid 16:30-17:15 (Rahu Kaal)"] + ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
 
                 results.append({
                     "goal": "promotion",
@@ -789,25 +1000,35 @@ class ShubhDinRunView(APIView):
                     "windows": promo_win,
                     "explain": ["Transit + dasha support career houses (10th/6th)."] +
                                ([f"Leverage appraisal talks near {top_date_line[0]['date']}."] if top_date_line else []),
-                    "cautions": ["Avoid 16:30-17:15 (Rahu Kaal)"]
+                    "cautions": cautions,
+                    "caution_days": caution_days
                 })
 
-            # ------------------ Job change ------------------
+            # ------------------ Job change (tighter) ------------------
             if "job_change" in goals:
-                job_days = sweep_goal("job_change", H_JOB); normalize_scores(job_days)
-                picked = non_overlapping_top_windows(job_days, span=7, k=3)
+                job_days = sweep_goal("job_change", H_JOB)
+                picked = non_overlapping_top_windows(job_days, span=7, k=2)
                 job_wins = []
                 for w in picked:
-                    si, ei = grow_window(job_days, w["si_orig"], w["ei_orig"], cutoff=55.0, patience=5)
+                    si, ei = grow_window(job_days, w["si_orig"], w["ei_orig"], cutoff=60.0, patience=3)
                     a_iso, b_iso = job_days[si]["date"], job_days[ei]["date"]
                     job_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
-                job_wins = dedupe_windows(job_wins, limit=3)
+                job_wins = dedupe_windows(job_wins, limit=2)
                 headline = ("Best windows: " + ", ".join(fmt_start_end_duration(w["start"], w["end"]) for w in job_wins)) if job_wins else "Best windows: n/a"
 
                 top_date_line: List[Dict] = []
                 if job_wins:
                     bd = best_day_within(job_days, job_wins[0]["start"], job_wins[0]["end"])
                     if bd: top_date_line = [bd]
+
+                caution_days = []
+                for w in job_wins:
+                    for d in dates_in_range(job_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                shown, more = _cap_dates(caution_days, n=10)
+                cautions = ["Watch Mercury combust days for clarity"] + ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
 
                 results.append({
                     "goal": "job_change",
@@ -817,19 +1038,20 @@ class ShubhDinRunView(APIView):
                     "dates": top_date_line,
                     "windows": job_wins,
                     "explain": ["Mercury + Jupiter favor offers/interviews; Mars gives momentum (with supportive MD/AD)."],
-                    "cautions": ["Watch Mercury combust days for clarity"]
+                    "cautions": cautions,
+                    "caution_days": caution_days
                 })
 
-            # ------------------ Startup ------------------
+            # ------------------ Startup (tighter) ------------------
             if "startup" in goals:
-                startup_days = sweep_goal("startup", H_STARTUP); normalize_scores(startup_days)
+                startup_days = sweep_goal("startup", H_STARTUP)
                 startup_wins = []
                 best_line: List[Dict] = []
                 if startup_days:
-                    span = min(60, len(startup_days))
-                    seed60 = best_window(startup_days, span=span)
-                    if seed60:
-                        si, ei = grow_window(startup_days, seed60["si"], seed60["ei"], cutoff=60.0, patience=6)
+                    span = min(45, len(startup_days))
+                    seed = best_window(startup_days, span=span)
+                    if seed:
+                        si, ei = grow_window(startup_days, seed["si"], seed["ei"], cutoff=62.0, patience=4)
                         a_iso, b_iso = startup_days[si]["date"], startup_days[ei]["date"]
                         startup_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
                 startup_wins = dedupe_windows(startup_wins, limit=1)
@@ -837,6 +1059,15 @@ class ShubhDinRunView(APIView):
                 if startup_wins:
                     bd = best_day_within(startup_days, startup_wins[0]["start"], startup_wins[0]["end"])
                     if bd: best_line = [bd]
+
+                caution_days = []
+                for w in startup_wins:
+                    for d in dates_in_range(startup_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                shown, more = _cap_dates(caution_days, n=10)
+                caution_text = ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
 
                 results.append({
                     "goal": "startup",
@@ -847,16 +1078,17 @@ class ShubhDinRunView(APIView):
                     "windows": startup_wins,
                     "explain": ["Jupiter trine to your natal Sun/Asc with supportive dasha signals green light."] +
                                ([f"Incorporate near {best_line[0]['date']} (strong Moon/Nakshatra)."] if best_line else []),
-                    "cautions": []
+                    "cautions": caution_text,
+                    "caution_days": caution_days
                 })
 
-            # ------------------ Property ------------------
+            # ------------------ Property (tighter) ------------------
             if "property" in goals:
-                prop_days = sweep_goal("property", H_PROP); normalize_scores(prop_days)
-                picked_prop = non_overlapping_top_windows(prop_days, span=1, k=5)
+                prop_days = sweep_goal("property", H_PROP)
+                picked_prop = non_overlapping_top_windows(prop_days, span=3, k=3)
                 prop_wins = []
                 for w in picked_prop:
-                    si, ei = grow_window(prop_days, w["si_orig"], w["ei_orig"], cutoff=58.0, patience=2)
+                    si, ei = grow_window(prop_days, w["si_orig"], w["ei_orig"], cutoff=60.0, patience=2)
                     a_iso, b_iso = prop_days[si]["date"], prop_days[ei]["date"]
                     prop_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
                 prop_wins = dedupe_windows(prop_wins, limit=3)
@@ -867,6 +1099,15 @@ class ShubhDinRunView(APIView):
                     bd = best_day_within(prop_days, prop_wins[0]["start"], prop_wins[0]["end"])
                     if bd: top_date_line = [bd]
 
+                caution_days = []
+                for w in prop_wins:
+                    for d in dates_in_range(prop_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                shown, more = _cap_dates(caution_days, n=10)
+                caution_text = ["Skip Rahu/Gulika windows"] + ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
+
                 results.append({
                     "goal": "property",
                     "headline": headline,
@@ -875,17 +1116,18 @@ class ShubhDinRunView(APIView):
                     "dates": top_date_line,
                     "windows": prop_wins,
                     "explain": ["Venus + Moon auspicious; Saturn steady for paperwork (dasha-boosted where applicable)."],
-                    "cautions": ["Skip Rahu/Gulika windows"]
+                    "cautions": caution_text,
+                    "caution_days": caution_days
                 })
 
-            # ------------------ Marriage ------------------
+            # ------------------ Marriage (tighter) ------------------
             if "marriage" in goals:
-                marr_days = sweep_goal("marriage", H_MARR); normalize_scores(marr_days)
+                marr_days = sweep_goal("marriage", H_MARR)
                 marr_wins = []
                 if marr_days:
-                    seed30 = best_window(marr_days, span=30)
-                    if seed30:
-                        si, ei = grow_window(marr_days, seed30["si"], seed30["ei"], cutoff=55.0, patience=5)
+                    seed = best_window(marr_days, span=24)
+                    if seed:
+                        si, ei = grow_window(marr_days, seed["si"], seed["ei"], cutoff=60.0, patience=4)
                         a_iso, b_iso = marr_days[si]["date"], marr_days[ei]["date"]
                         marr_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
                 marr_wins = dedupe_windows(marr_wins, limit=1)
@@ -896,6 +1138,15 @@ class ShubhDinRunView(APIView):
                     bd = best_day_within(marr_days, marr_wins[0]["start"], marr_wins[0]["end"])
                     if bd: best_line = [bd]
 
+                caution_days = []
+                for w in marr_wins:
+                    for d in dates_in_range(marr_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
+                caution_days = sorted(set(caution_days))
+                shown, more = _cap_dates(caution_days, n=10)
+                caution_text = ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
+
                 results.append({
                     "goal": "marriage",
                     "headline": headline,
@@ -905,35 +1156,41 @@ class ShubhDinRunView(APIView):
                     "windows": marr_wins,
                     "explain": ["Venus/Moon strengthened; benefic aspect to 7th lord (dasha-aligned)."] +
                                ([f"{best_line[0]['date']} is particularly good."] if best_line else []),
-                    "cautions": []
+                    "cautions": caution_text,
+                    "caution_days": caution_days
                 })
 
-            # ------------------ Business: Expand ------------------
+            # ------------------ Business: Expand (tighter) ------------------
             if "business_expand" in goals:
-                expand_days = sweep_goal("business_expand", H_EXPAND); normalize_scores(expand_days)
+                expand_days = sweep_goal("business_expand", H_EXPAND)
                 picked_exp = non_overlapping_top_windows(expand_days, span=21, k=2)
                 expand_wins = []
                 for w in picked_exp:
-                    si, ei = grow_window(expand_days, w["si_orig"], w["ei_orig"], cutoff=56.0, patience=4)
+                    si, ei = grow_window(expand_days, w["si_orig"], w["ei_orig"], cutoff=62.0, patience=4)
                     a_iso, b_iso = expand_days[si]["date"], expand_days[ei]["date"]
                     expand_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
                 expand_wins = dedupe_windows(expand_wins, limit=2)
                 headline = ("Best windows: " + ", ".join(fmt_start_end_duration(w["start"], w["end"]) for w in expand_wins)) if expand_wins else "Best windows: n/a"
 
-                # best date inside first window
                 top_date_line: List[Dict] = []
                 if expand_wins:
                     bd = best_day_within(expand_days, expand_wins[0]["start"], expand_wins[0]["end"])
                     if bd: top_date_line = [bd]
 
-                # Mercury combust caution days within windows
                 caution_days = []
+                # combustion days
                 for w in expand_wins:
                     for d in dates_in_range(expand_days, w["start"], w["end"]):
                         if d.get("meta", {}).get("flags", {}).get("combust"):
                             caution_days.append(d["date"])
+                # Saturn station
+                for w in expand_wins:
+                    for d in dates_in_range(expand_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
                 caution_days = sorted(set(caution_days))
-                caution_text = ([make_caution_line(caution_days)] if caution_days else [])
+                shown, more = _cap_dates(caution_days, n=10)
+                caution_text = ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
 
                 results.append({
                     "goal": "business_expand",
@@ -950,21 +1207,21 @@ class ShubhDinRunView(APIView):
                     "caution_days": caution_days
                 })
 
-            # ------------------ Business: Start ------------------
+            # ------------------ Business: Start (tighter) ------------------
             if "business_start" in goals:
-                start_days = sweep_goal("business_start", H_STARTUP); normalize_scores(start_days)
+                start_days = sweep_goal("business_start", H_STARTUP)
                 span_by_type = {
-                    "tech": 60, "ecom": 45, "retail": 30, "services": 45,
-                    "manufacturing": 75, "real_estate": 60, "other": 45
+                    "tech": 45, "ecom": 40, "retail": 28, "services": 40,
+                    "manufacturing": 60, "real_estate": 50, "other": 40
                 }
-                base_span = span_by_type.get(business_type, 45)
+                base_span = span_by_type.get(business_type, 40)
                 span = min(base_span, len(start_days)) if start_days else 0
 
                 start_wins = []
                 if span >= 1:
                     seeds = non_overlapping_top_windows(start_days, span=span, k=2)
                     for s in seeds:
-                        si, ei = grow_window(start_days, s["si_orig"], s["ei_orig"], cutoff=60.0, patience=6)
+                        si, ei = grow_window(start_days, s["si_orig"], s["ei_orig"], cutoff=62.0, patience=4)
                         a_iso, b_iso = start_days[si]["date"], start_days[ei]["date"]
                         start_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
                 start_wins = dedupe_windows(start_wins, limit=2)
@@ -975,14 +1232,20 @@ class ShubhDinRunView(APIView):
                     bd = best_day_within(start_days, start_wins[0]["start"], start_wins[0]["end"])
                     if bd: best_line = [bd]
 
-                # Mercury combust caution days inside windows
                 caution_days = []
+                # combustion
                 for w in start_wins:
                     for d in dates_in_range(start_days, w["start"], w["end"]):
                         if d.get("meta", {}).get("flags", {}).get("combust"):
                             caution_days.append(d["date"])
+                # Saturn station
+                for w in start_wins:
+                    for d in dates_in_range(start_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
                 caution_days = sorted(set(caution_days))
-                caution_text = ([make_caution_line(caution_days)] if caution_days else [])
+                shown, more = _cap_dates(caution_days, n=10)
+                caution_text = ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
 
                 type_nice = {
                     "tech": "Tech / SaaS",
@@ -1009,13 +1272,13 @@ class ShubhDinRunView(APIView):
                     "caution_days": caution_days
                 })
 
-            # ------------------ New Relationship ------------------
+            # ------------------ New Relationship (tighter + bugfix) ------------------
             if "new_relationship" in goals:
-                rel_days = sweep_goal("new_relationship", H_REL); normalize_scores(rel_days)
+                rel_days = sweep_goal("new_relationship", H_REL)
                 seeds = non_overlapping_top_windows(rel_days, span=10, k=2)
                 rel_wins = []
                 for s in seeds:
-                    si, ei = grow_window(rel_days, s["si_orig"], s["ei_orig"], cutoff=58.0, patience=4)
+                    si, ei = grow_window(rel_days, s["si_orig"], s["ei_orig"], cutoff=58.0, patience=4)  # FIXED: use ei_orig
                     a_iso, b_iso = rel_days[si]["date"], rel_days[ei]["date"]
                     rel_wins.append({"start": a_iso, "end": b_iso, "duration_days": duration_days(a_iso, b_iso)})
                 rel_wins = dedupe_windows(rel_wins, limit=2)
@@ -1026,7 +1289,7 @@ class ShubhDinRunView(APIView):
                     bd = best_day_within(rel_days, rel_wins[0]["start"], rel_wins[0]["end"])
                     if bd: best_line = [bd]
 
-                # Caution dates: Venus hard aspects (Square/Opposition) with Saturn/Mars
+                # Optional extra caution: Venus hard aspects and Saturn station
                 caution_days = []
                 HARD = {"Square", "Opposition"}
                 def is_venus_hard(hit: dict) -> bool:
@@ -1042,8 +1305,13 @@ class ShubhDinRunView(APIView):
                         hits = d.get("meta", {}).get("hits", {}).get("aspect", [])
                         if any(is_venus_hard(h) for h in hits):
                             caution_days.append(d["date"])
+                for w in rel_wins:
+                    for d in dates_in_range(rel_days, w["start"], w["end"]):
+                        if d["date"] in SS_STATION_DAYS:
+                            caution_days.append(d["date"])
                 caution_days = sorted(set(caution_days))
-                caution_text = ([make_caution_line(caution_days)] if caution_days else [])
+                shown, more = _cap_dates(caution_days, n=10)
+                caution_text = ([make_caution_line(shown) + (f" (+{more} more)" if more else "")] if shown else [])
 
                 results.append({
                     "goal": "new_relationship",

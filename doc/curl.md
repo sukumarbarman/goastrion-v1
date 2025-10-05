@@ -29,3 +29,12 @@ curl -s -X POST "http://127.0.0.1:8000/api/insights" -H "Content-Type: applicati
 curl -s -X POST "http://127.0.0.1:8000/api/insights" -H "Content-Type: application/json" -d '{"datetime":"1856-07-10T00:00:00Z","lat":44.5600,"lon":15.2700,"tz_offset_hours":0}' | python -m json.tool
 # Mahatma Gandhi
 curl -s -X POST "http://127.0.0.1:8000/api/insights" -H "Content-Type: application/json" -d '{"datetime":"1869-10-02T03:06:19Z","lat":21.6417,"lon":69.6293,"tz_offset_hours":0}' | python -m json.tool
+
+
+# saturn 
+
+ curl -sS -X POST "http://127.0.0.1:8000/api/v1/saturn/overview"   -H "Content-Type: application/json"   -d '{"datetime":"1990-11-20T17:30:00Z","lat":22.30,"lon":87.92,"tz":"Asia/Kolkata","anchor":"birth","horizon_years":100}' | python -m json.tool
+
+# subhdin
+curl -sS -X POST "http://127.0.0.1:8000/api/v1/shubhdin/run"   -H "Content-Type: application/json"   -d '{"datetime":"1990-11-20T17:30:00Z","lat":22.30,"lon":87.92,"tz":"Asia/Kolkata","horizon_months":18}' | python -m json.tool
+
