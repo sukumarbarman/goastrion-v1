@@ -321,7 +321,7 @@ export default function ShubhDinInline({
       ? "ShubhDin — Smart Windows"
       : displayMode === "single"
       ? `ShubhDin (Good Days) — ${prettyGoal(goal) || "selected"}`
-      : "ShubhDin (Good Days) — all goals";
+      : "ShubhDin (Good Days)";
 
   return (
     <section className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">

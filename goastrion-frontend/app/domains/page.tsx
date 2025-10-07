@@ -371,7 +371,6 @@ export default function DomainsPage() {
 
                 {/* Localized sentences (interactive) */}
                 <div className="mt-3 text-sm text-slate-300 leading-6 space-y-1.5">
-                  <div>{parts.line1.text}</div>
 
                   {parts.housesLine && (
                     <div {...housesHandlers!}>{parts.housesLine.text}</div>

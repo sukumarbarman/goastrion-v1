@@ -172,7 +172,7 @@ export default function ShubhDinInline({
   return (
     <section className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">ShubhDin (Good Days) — all goals</h2>
+        <h2 className="text-lg font-semibold text-white">ShubhDin (Good Days)</h2>
         {loading && <span className="text-xs text-white/60">loading…</span>}
       </div>
 

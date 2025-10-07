@@ -39,3 +39,10 @@ svg [data-planet].highlighted ~ rect,
 svg [data-planet].highlighted ~ circle {
   filter: drop-shadow(0 0 4px rgba(0,0,0,.25));
 }
+
+
+@media print {
+  nav, footer { display: none !important; }
+  main { padding: 0 !important; }
+  body { background: #fff !important; color: #000 !important; }
+}

@@ -35,13 +35,48 @@ const enCore = {
     },
   },
 
-  steps: {
-    heading: "How it works",
-    stepLabel: "Step {num}",
-    "1": { title: "Enter birth details", desc: "Date, time, and location. We handle timezones." },
-    "2": { title: "We compute your chart", desc: "Fast, private calculations—no signup needed." },
-    "3": { title: "Get skills & guidance", desc: "Clear scores, study tips, and career direction." },
-  },
+    steps: {
+      heading: "How it works",
+      stepLabel: "Step {num}",
+      "1": {
+        title: "Enter birth details",
+        desc: "Date, time, and location. India: choose IST (UTC+05:30). Outside India: convert to UTC and choose UTC."
+      },
+      "2": {
+        title: "We compute your chart",
+        desc: "Fast, private calculations—no signup needed. We also check Saturn · Sade Sati context."
+      },
+      "3": {
+        title: "Get skills, guidance & ShubhDin",
+        desc: "See clear strengths and next steps, plus upcoming ShubhDin (good-day) windows for study, interviews, launches, or travel."
+      }
+    },
+      shubhdin: {
+        badge: "ShubhDin · Good Day",
+        title: "Find your Shubh Din — feel the timing click",
+        sub: "We read your chart and Saturn/Moon context to suggest windows that feel lighter and supportive — for study, interviews, launches, travel, or a calmer day.",
+        pt1: "Smart windows from your birth details (IST/UTC handled)",
+        pt2: "Gentle timing notes — action over anxiety",
+        pt3: "Optional MD/AD context for longer trends",
+        cta: "Check my ShubhDin",
+        how: "How it works",
+        tz: "India: choose IST (UTC+05:30). Outside India: convert your birth time to UTC and choose UTC.",
+        alt: "Smiling young woman checking a calendar on her phone, hopeful about a good day"
+      },
+      domains: {
+        badge: "Life Wheel",
+        title: "See where to focus first",
+        sub: "Your Life Wheel highlights Career, Finance, Marriage, and Health from house strengths and planetary aspects—so you know where small efforts pay off big.",
+        career: "Career",
+        careerSub: "strengths & learning path",
+        finance: "Finance",
+        financeSub: "habits & money decisions",
+        marriage: "Marriage",
+        marriageSub: "compatibility patterns",
+        health: "Health",
+        healthSub: "sustainable routines",
+        cta: "Explore Life Wheel"
+      },
 
   hero: {
     headline: "Find Your True Strengths.",
