@@ -5,7 +5,7 @@ import Container from "./Container";
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
 import Link from "next/link";
-
+import ShubhDinInline from "./shubhdin/ShubhDinInline"; // ⬅️ NEW
 
 // ---- locale dictionary helper types (for strict typing, no `any`) ----
 type Dictionaries = typeof dictionaries;
@@ -153,6 +153,10 @@ const EN_NAKS = [
   "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"
 ];
 
+/* ---- Shared defaults so tab & results never drift ---- */
+const DEFAULT_SHUBHDIN_HORIZON = 24;   // months
+const DEFAULT_SHUBHDIN_GOAL = "general";
+
 export default function CreateChartClient() {
   const { t, locale } = useI18n();
 
@@ -179,6 +183,7 @@ export default function CreateChartClient() {
   /* geocode debounce */
   const [placeTyping, setPlaceTyping] = useState("");
   const lastQueryRef = useRef<string | null>(null);
+  const nowUtcIso = new Date().toISOString();
 
   /* -------- Restore on mount -------- */
   useEffect(() => {
@@ -287,17 +292,14 @@ export default function CreateChartClient() {
       const data: ApiResp = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 
-
-
       // Localize SVG planet names
       const localizedSvg = data.svg ? localizeSvgPlanets(data.svg, t) : "";
 
       // Localize summary labels & values
       const rawSummary = data.summary || null;
-        const dict = dictionaries[locale] as LocaleDict;
-        const locZodiac = dict.zodiac;
-        const locNaks = dict.nakshatras;
-
+      const dict = dictionaries[locale] as LocaleDict;
+      const locZodiac = dict.zodiac;
+      const locNaks = dict.nakshatras;
 
       const labelMap: Record<string, string> = {
         lagna_sign: t("results.lagnaSign"),
@@ -486,13 +488,16 @@ export default function CreateChartClient() {
   }
 
   /* -------------------- UI -------------------- */
+  // Derive birth UTC for ShubhDin (safe even if fields are empty; guarded before render)
+  const birthUtcIso = (dob && tob) ? localCivilToUtcIso(dob, tob, tzId).dtIsoUtc : "";
+
   return (
     <Container>
       <div className="mb-8">
         <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
           {t("create.title")}
         </h2>
-      <p className="mt-2 text-sm md:text-base text-slate-400 max-w-2xl">
+        <p className="mt-2 text-sm md:text-base text-slate-400 max-w-2xl">
           {t("create.note")}
         </p>
       </div>
@@ -651,6 +656,20 @@ export default function CreateChartClient() {
               </div>
             </div>
 
+
+            {/* >>> ShubhDin BETWEEN Summary and Dasha <<< */}
+            {dob && tob && lat && lon && (
+              <div className="mt-6">
+                <ShubhDinInline
+                  datetime={nowUtcIso}              // ⬅️ use NOW for ShubhDin
+                  lat={parseFloat(lat)}
+                  lon={parseFloat(lon)}
+                  tzId={tzId}                       // ⬅️ pass tzId; component sends tz_offset_hours
+                  horizonMonths={24}
+                />
+              </div>
+            )}
+
             {vimshottari && (
               <div className="mt-6">
                 <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
@@ -691,8 +710,8 @@ export default function CreateChartClient() {
       >
         🚀 Skills
       </Link>
-	  
-	  
+
+
 
 
 
@@ -708,7 +727,5 @@ export default function CreateChartClient() {
 
 
     </Container>
-
-
   );
 }
