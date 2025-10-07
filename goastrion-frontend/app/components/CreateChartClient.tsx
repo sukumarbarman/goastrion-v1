@@ -142,6 +142,23 @@ function localizeSvgPlanets(svg: string, t: (k: string) => string) {
   });
 }
 
+/** Force the incoming SVG to scale on mobile */
+function makeSvgResponsive(svg: string) {
+  if (!svg) return svg;
+  // remove width/height on the <svg> tag
+  let out = svg.replace(/<svg([^>]*?)\s(width|height)="[^"]*"/gi, "<svg$1");
+  // ensure viewBox (fallback only if missing)
+  if (!/viewBox=/.test(out)) {
+    out = out.replace(/<svg([^>]*)>/i, '<svg$1 viewBox="0 0 600 600">');
+  }
+  // ensure scalable styling + aspect ratio
+  out = out.replace(
+    /<svg([^>]*)>/i,
+    '<svg$1 style="max-width:100%;height:auto;display:block" preserveAspectRatio="xMidYMid meet">'
+  );
+  return out;
+}
+
 /* English baselines for value-localization */
 const EN_ZODIAC = [
   "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
@@ -292,8 +309,10 @@ export default function CreateChartClient() {
       const data: ApiResp = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
 
-      // Localize SVG planet names
-      const localizedSvg = data.svg ? localizeSvgPlanets(data.svg, t) : "";
+      // Localize SVG planet names + make responsive
+      const localizedSvg = data.svg
+        ? makeSvgResponsive(localizeSvgPlanets(data.svg, t))
+        : "";
 
       // Localize summary labels & values
       const rawSummary = data.summary || null;
@@ -589,24 +608,24 @@ export default function CreateChartClient() {
         </div>
 
         {/* Actions */}
-        <div className="mt-4 flex gap-3 flex-wrap items-center">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <button
             onClick={onGenerate}
             disabled={loading}
-            className="rounded-full bg-cyan-500 px-5 py-2.5 text-slate-950 font-semibold hover:bg-cyan-400 disabled:opacity-60"
+            className="rounded-full bg-cyan-500 px-5 py-2.5 text-slate-950 font-semibold hover:bg-cyan-400 disabled:opacity-60 shrink-0"
           >
             {loading ? t("create.generating") : t("create.generate")}
           </button>
           <button
             onClick={onReset}
-            className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20"
+            className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
           >
             {t("create.reset")}
           </button>
           <button
             type="button"
             onClick={loadLastSaved}
-            className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20"
+            className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
             title="Load last saved chart & inputs"
           >
             Load last saved
@@ -614,14 +633,14 @@ export default function CreateChartClient() {
           <button
             type="button"
             onClick={clearSavedChartOnly}
-            className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20"
+            className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
             title="Remove saved chart (keep inputs)"
           >
             Clear saved chart
           </button>
 
           {savedAt && (
-            <span className="text-xs text-slate-400 ml-auto">
+            <span className="basis-full text-xs text-slate-400">
               Last saved: {new Date(savedAt).toLocaleString()}
             </span>
           )}
@@ -639,7 +658,9 @@ export default function CreateChartClient() {
           <>
             <div className="grid md:grid-cols-2 gap-6 mt-6">
               <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
-                <div className="w-full overflow-auto" dangerouslySetInnerHTML={{ __html: svg || "" }} />
+                <div className="mx-auto w-full max-w-[min(92vw,520px)]">
+                  <div className="w-full" dangerouslySetInnerHTML={{ __html: svg || "" }} />
+                </div>
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200">
@@ -647,15 +668,17 @@ export default function CreateChartClient() {
                 <ul className="space-y-1">
                   {summary &&
                     Object.entries(summary).map(([label, val]) => (
-                      <li key={label} className="flex items-center justify-between border-b border-white/5 py-1">
-                        <span className="text-slate-400">{label}</span>
-                        <span className="text-slate-200">{val}</span>
+                      <li
+                        key={label}
+                        className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-white/5 py-1"
+                      >
+                        <span className="text-slate-400 break-words">{label}</span>
+                        <span className="text-slate-200 text-right break-words">{val}</span>
                       </li>
                     ))}
                 </ul>
               </div>
             </div>
-
 
             {/* >>> ShubhDin BETWEEN Summary and Dasha <<< */}
             {dob && tob && lat && lon && (
@@ -665,7 +688,7 @@ export default function CreateChartClient() {
                   lat={parseFloat(lat)}
                   lon={parseFloat(lon)}
                   tzId={tzId}                       // ⬅️ pass tzId; component sends tz_offset_hours
-                  horizonMonths={24}
+                  horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
                 />
               </div>
             )}
@@ -680,52 +703,36 @@ export default function CreateChartClient() {
         )}
       </div>
 
+      {/* ---- Post-Results Deep Links ---- */}
+      <div className="mt-8 rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-cyan-500/10 via-emerald-400/5 to-transparent">
+        <div className="flex flex-col md:flex-row md:items-center md:flex-nowrap flex-wrap gap-4 md:gap-6">
+          <div className="flex-1">
+            <p className="mt-1 text-slate-300 text-sm md:text-base">
+              Curious about your <strong>undiscovered</strong> Skills & Career path? Don’t wait—just click{" "}
+              <span className="inline-block animate-bounce" role="img" aria-label="hand">👉</span>
+            </p>
+          </div>
 
-{/* ---- Post-Results Deep Links ---- */}
-<div className="mt-8 rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-cyan-500/10 via-emerald-400/5 to-transparent">
-  <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6">
-    <div className="flex-1">
+          <div className="flex items-center gap-3 flex-wrap">
+            <Link
+              href="/domains"
+              className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+              aria-label="Explore your Life Wheel"
+            >
+              ✨ Life Wheel
+            </Link>
 
-<p className="mt-1 text-slate-300 text-sm md:text-base">
-  Curious about your <strong>undiscovered</strong> Skills & Career path? Don’t wait—just click{" "}
-  <span className="inline-block animate-bounce" role="img" aria-label="hand">👉</span>
-</p>
-
-
-    </div>
-
-    <div className="flex items-center gap-3">
-      <Link
-        href="/domains"
-        className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
-        aria-label="Explore your Life Wheel"
-      >
-        ✨ Life Wheel
-      </Link>
-
-      <Link
-        href="/skills"
-        className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-        aria-label="See your top Skills"
-      >
-        🚀 Skills
-      </Link>
-
-
-
-
-
-
-    </div>
-  </div>
-</div>
-{/* ---- /Post-Results Deep Links ---- */}
-
-
-
-
-
-
+            <Link
+              href="/skills"
+              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+              aria-label="See your top Skills"
+            >
+              🚀 Skills
+            </Link>
+          </div>
+        </div>
+      </div>
+      {/* ---- /Post-Results Deep Links ---- */}
     </Container>
   );
 }
