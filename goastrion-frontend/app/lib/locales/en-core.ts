@@ -79,9 +79,9 @@ const enCore = {
       },
 
   hero: {
-    headline: "Find Your True Strengths.",
-    subline: "Your chart reveals the path where you can shine brightest.",
-    support: "Study smarter, grow faster, and choose the right path with confidence.",
+    headline: "Find your best dates with Vedic precision",
+    subline: "Free Vedic timing: Saturn phases + ShubhDin (auspicious-day) windows for career, finance, marriage & health.",
+    support: "Clear windows, station days & cautions—so you can act with confidence.",
     createBtn: "Create Your Chart",
     sampleBtn: "See Sample Report",
     badgeSecure: "Secure",

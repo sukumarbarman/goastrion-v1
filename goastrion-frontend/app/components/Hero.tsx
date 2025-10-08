@@ -11,20 +11,10 @@ export default function Hero() {
     <section className="relative overflow-hidden">
       {/* background glow */}
       <div className="absolute inset-0 pointer-events-none" aria-hidden>
-        <div
-          className="absolute -top-20 -left-40 h-96 w-96 rounded-full blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(0,194,255,0.25), transparent)",
-          }}
-        />
-        <div
-          className="absolute -bottom-20 -right-40 h-96 w-96 rounded-full blur-3xl"
-          style={{
-            background:
-              "radial-gradient(circle, rgba(255,200,87,0.15), transparent)",
-          }}
-        />
+        <div className="absolute -top-20 -left-40 h-96 w-96 rounded-full blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(0,194,255,0.25), transparent)" }} />
+        <div className="absolute -bottom-20 -right-40 h-96 w-96 rounded-full blur-3xl"
+          style={{ background: "radial-gradient(circle, rgba(255,200,87,0.15), transparent)" }} />
       </div>
 
       <Container>
@@ -35,7 +25,7 @@ export default function Hero() {
               {t("hero.headline")}
             </h1>
 
-            {/* Subline */}
+            {/* Subline (SEO-friendly, mirrors meta description) */}
             <p className="mt-4 text-lg md:text-xl text-slate-300 max-w-xl">
               {t("hero.subline")}
             </p>
@@ -47,16 +37,10 @@ export default function Hero() {
 
             {/* Buttons */}
             <div className="mt-6 flex gap-3">
-              <Link
-                href="/create"
-                className="rounded-full bg-cyan-500 px-5 py-2.5 text-slate-950 font-semibold hover:bg-cyan-400"
-              >
+              <Link href="/create" className="rounded-full bg-cyan-500 px-5 py-2.5 text-slate-950 font-semibold hover:bg-cyan-400">
                 {t("hero.createBtn")}
               </Link>
-              <Link
-                href="/results"
-                className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20"
-              >
+              <Link href="/results" className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20">
                 {t("hero.sampleBtn")}
               </Link>
             </div>
@@ -88,17 +72,9 @@ function HeroGraphic() {
       <div className="relative h-56 w-56 rounded-full border border-cyan-400/30" />
       <div className="absolute h-40 w-40 rounded-full border border-white/10" />
       <div className="absolute h-28 w-28 rounded-full border border-white/10" />
-      <div
-        className="absolute h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_20px_4px_rgba(0,194,255,0.5)]"
-        style={{ top: "30%", left: "25%" }}
-      />
-      <div
-        className="absolute h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_16px_4px_rgba(255,200,87,0.45)]"
-        style={{ top: "60%", left: "65%" }}
-      />
-      <div className="absolute bottom-5 right-5 text-xs text-slate-400">
-        SVG preview
-      </div>
+      <div className="absolute h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_20px_4px_rgba(0,194,255,0.5)]" style={{ top: "30%", left: "25%" }} />
+      <div className="absolute h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_16px_4px_rgba(255,200,87,0.45)]" style={{ top: "60%", left: "65%" }} />
+      <div className="absolute bottom-5 right-5 text-xs text-slate-400">SVG preview</div>
     </div>
   );
 }

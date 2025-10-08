@@ -9,13 +9,58 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
 
+/** ——— Site constants ——— */
+const SITE_URL = "https://goastrion.com";
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
+
+/** ——— Metadata (SEO + share cards) ——— */
 export const metadata: Metadata = {
-  title: "GoAstrion",
-  description: "Astrology-driven guidance",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "GoAstrion — Astrology-driven Career & Life Guidance",
+    template: "%s · GoAstrion",
+  },
+  description:
+    "Free Vedic timing: Saturn phases + ShubhDin (auspicious-day) windows for career, finance, marriage & health.",
+  alternates: {
+    canonical: "/",
+    languages: {
+      en: "/",
+      hi: "/hi",
+      bn: "/bn",
+    },
+  },
+  openGraph: {
+    type: "website",
+    url: SITE_URL + "/",
+    siteName: "GoAstrion",
+    title: "Find Your Best Dates & Skills (Vedic) · GoAstrion",
+    description:
+      "Free Vedic timing: Saturn phases + ShubhDin (auspicious-day) windows for career, finance, marriage & health.",
+    images: [
+      {
+        url: "/og/og-default.png", // 1200×630, <200 KB recommended
+        width: 1200,
+        height: 630,
+        alt: "GoAstrion — Astrology-driven Career & Life Guidance",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GoAstrion — Astrology-driven Career & Life Guidance",
+    description:
+      "Free Vedic timing: Saturn phases + ShubhDin (auspicious-day) windows for career, finance, marriage & health.",
+    images: ["/og/og-default.jpg"],
+    site: "@goastrion", // change if you have a handle
+  },
+  icons: {
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
-const SITE_URL = "https://goastrion.com";
-
+/** ——— JSON-LD ——— */
 const ORG = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -37,8 +82,6 @@ const WEBSITE = {
   },
 };
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
@@ -55,7 +98,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
 
-                // (Optional) If you don't have a consent banner, grant analytics now
                 gtag('consent','default', {
                   ad_storage: 'denied',
                   analytics_storage: 'granted',
@@ -64,7 +106,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 });
 
                 gtag('js', new Date());
-                // IMPORTANT: turn off auto page_view to avoid double-counting
                 gtag('config', '${GA_ID}', { send_page_view: false, transport_type: 'beacon' });
               `}
             </Script>
@@ -72,13 +113,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
 
         {/* JSON-LD: Organization & WebSite */}
-        <Script id="ld-org" type="application/ld+json" strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG) }} />
-        <Script id="ld-website" type="application/ld+json" strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }} />
+        <Script
+          id="ld-org"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG) }}
+        />
+        <Script
+          id="ld-website"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
+        />
 
         <I18nProvider>
-          {/* Anything using useSearchParams must be inside Suspense */}
           <Suspense fallback={null}>
             <GATracker />
           </Suspense>
