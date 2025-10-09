@@ -460,7 +460,7 @@ export default function SaturnPage() {
 
       {/* Ad: end-of-page placement */}
       <div className="mt-6">
-        <AdSlot slot="SATURN_END_SLOT" minHeight={280} />
+        <AdSlot slot="7610743428" minHeight={280} />
       </div>
 
       {/* Footnotes */}
