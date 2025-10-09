@@ -1,5 +1,5 @@
 // app/(public)/articles/[slug]/page.tsx
-import AdSlot from "@/components/AdSlot";
+import AdSlot from "../../../components/AdSlot";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 

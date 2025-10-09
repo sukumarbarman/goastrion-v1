@@ -1,14 +1,16 @@
+// app/saturn/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import Container from "../components/Container";
+import AdSlot from "../components/AdSlot";
 
 /** ---------- Load saved Create state ---------- */
 type TzId = "IST" | "UTC";
 type SavedState = {
-  dob?: string;   // "YYYY-MM-DD"
-  tob?: string;   // "HH:MM"
-  tzId?: TzId;    // "IST" | "UTC"
+  dob?: string; // "YYYY-MM-DD"
+  tob?: string; // "HH:MM"
+  tzId?: TzId;  // "IST" | "UTC"
   lat?: string;
   lon?: string;
 };
@@ -21,7 +23,8 @@ function localCivilToUtcIso(dob: string, tob: string, tzId: TzId) {
   const [Y, M, D] = dob.split("-").map(Number);
   const [h, m] = tob.split(":").map(Number);
   const tzHours = TZ_HOURS[tzId] ?? 0;
-  const ms = Date.UTC(Y, (M ?? 1) - 1, D ?? 1, (h ?? 0), (m ?? 0)) - tzHours * 3600_000;
+  const ms =
+    Date.UTC(Y, (M ?? 1) - 1, D ?? 1, h ?? 0, m ?? 0) - tzHours * 3_600_000;
   const iso = new Date(ms).toISOString();
   if (!iso || Number.isNaN(ms)) throw new Error("Bad datetime");
   return { dtIsoUtc: iso, tz: tzId === "IST" ? "Asia/Kolkata" : "UTC" };
@@ -39,7 +42,7 @@ function daysDiffInclusive(aISO: string, bISO: string) {
   if (!aISO || !bISO) return 0;
   const a = new Date(aISO + "T00:00:00Z").getTime();
   const b = new Date(bISO + "T00:00:00Z").getTime();
-  return Math.floor((b - a) / 86400000) + 1;
+  return Math.floor((b - a) / 86_400_000) + 1;
 }
 
 /** ---------- Backend types ---------- */
@@ -66,7 +69,10 @@ function Chip({ tone, children, title }: { tone: ChipTone; children: React.React
     red:   "bg-rose-500/15 text-rose-300 border-rose-500/30",
   };
   return (
-    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border ${styles[tone]}`} title={title}>
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs border ${styles[tone]}`}
+      title={title}
+    >
       {children}
     </span>
   );
@@ -91,12 +97,15 @@ function StationsCell({ dates }: { dates: string[] }) {
         type="button"
         className="underline decoration-dotted underline-offset-2 hover:text-slate-100"
         title="Station day(s): momentum is unstable. Avoid brand-new commitments; review and finalize ongoing work; double-check paperwork."
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
       >
         {all.slice(0, 2).join(", ")}, +{more} more
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-max max-w-[420px] rounded-lg border border-white/15 bg-black/90 p-3 text-xs text-slate-200 shadow-lg backdrop-blur" role="dialog">
+        <div
+          className="absolute z-20 mt-1 w-max max-w-[420px] rounded-lg border border-white/15 bg-black/90 p-3 text-xs text-slate-200 shadow-lg backdrop-blur"
+          role="dialog"
+        >
           <div className="mb-1 font-medium text-slate-100">All station dates</div>
           <div className="space-y-1">{all.map((d, i) => <div key={i} className="whitespace-nowrap">{d}</div>)}</div>
           <div className="mt-2 text-[11px] text-slate-400">Tip: Avoid brand-new commitments; finalize ongoing work; double-check paperwork.</div>
@@ -108,7 +117,7 @@ function StationsCell({ dates }: { dates: string[] }) {
 function RetroCell({ spans }: { spans: RetroSpan[] }) {
   const [open, setOpen] = useState(false);
   if (!spans || spans.length === 0) return <span>—</span>;
-  const all = spans.map(s => `${fmtDate(s.start)} – ${fmtDate(s.end)}`);
+  const all = spans.map((s) => `${fmtDate(s.start)} – ${fmtDate(s.end)}`);
   const tip = "Retrograde span: great for reviews, fixes, and renegotiations. Expect rework—add buffer to timelines.";
   if (spans.length <= 2) return <span title={tip}>{all.join(", ")}</span>;
   const more = spans.length - 2;
@@ -118,12 +127,15 @@ function RetroCell({ spans }: { spans: RetroSpan[] }) {
         type="button"
         className="underline decoration-dotted underline-offset-2 hover:text-slate-100"
         title={tip}
-        onClick={() => setOpen(v => !v)}
+        onClick={() => setOpen((v) => !v)}
       >
         {all.slice(0, 2).join(", ")}, +{more} more
       </button>
       {open && (
-        <div className="absolute z-20 mt-1 w-max max-w-[520px] rounded-lg border border-white/15 bg-black/90 p-3 text-xs text-slate-200 shadow-lg backdrop-blur" role="dialog">
+        <div
+          className="absolute z-20 mt-1 w-max max-w-[520px] rounded-lg border border-white/15 bg-black/90 p-3 text-xs text-slate-200 shadow-lg backdrop-blur"
+          role="dialog"
+        >
           <div className="mb-1 font-medium text-slate-100">All retro overlaps</div>
           <div className="space-y-1">{all.map((t, i) => <div key={i} className="whitespace-nowrap">{t}</div>)}</div>
           <div className="mt-2 text-[11px] text-slate-400">Tip: Best for reviews, fixes, and renegotiations. Expect rework—add buffer to timelines.</div>
@@ -145,15 +157,8 @@ export default function SaturnPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resp, setResp] = useState<SaturnOverviewResp | null>(null);
- // const [snapshot, setSnapshot] = useState<SaturnOverviewResp | null>(null);
-
-  // Which dataset are we showing?
-  // "preview" = 20 yrs from today (fast), "full" = 100 yrs from birth.
   const [mode, setMode] = useState<"preview" | "full">("preview");
 
-
-
-  // Helpers
   async function fetchSaturn(params: { horizonYears: number; anchor: "today" | "birth" }) {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) throw new Error("Please create your birth chart first (Create tab).");
@@ -176,7 +181,7 @@ export default function SaturnPage() {
           lat: Number(st.lat),
           lon: Number(st.lon),
           tz,
-          anchor: params.anchor,           // "today" or "birth"
+          anchor: params.anchor,
           horizon_years: params.horizonYears,
           include: { sade_sati: true, stations: true, retro: true },
           max_windows: 12,
@@ -222,21 +227,23 @@ export default function SaturnPage() {
     }
   }
 
-  // CSV export (keeps Note even if not shown)
-  function toCsvRow(vals: (string|number)[]) {
-    return vals.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",");
+  // CSV export
+  function toCsvRow(vals: (string | number)[]) {
+    return vals.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",");
   }
   function downloadCsv() {
-    const wins = (resp?.sade_sati?.windows ?? []).sort((a,b)=>a.start<b.start?-1:1);
+    const wins = (resp?.sade_sati?.windows ?? []).sort((a, b) => (a.start < b.start ? -1 : 1));
     const rows = [
       toCsvRow(["Phase","Start","End","Duration(d)","Moon Sign","Saturn Sign","Stations","Retro overlaps","Note"]),
-      ...wins.map(w => toCsvRow([
-        w.phase, w.start, w.end, w.duration_days ?? "",
-        w.moon_sign ?? "", w.saturn_sign ?? "",
-        (w.stations ?? []).join(" | "),
-        (w.retro_overlaps ?? []).map(s=>`${s.start}–${s.end}`).join(" | "),
-        w.note ?? ""
-      ])),
+      ...wins.map((w) =>
+        toCsvRow([
+          w.phase, w.start, w.end, w.duration_days ?? "",
+          w.moon_sign ?? "", w.saturn_sign ?? "",
+          (w.stations ?? []).join(" | "),
+          (w.retro_overlaps ?? []).map((s) => `${s.start}–${s.end}`).join(" | "),
+          w.note ?? "",
+        ])
+      ),
     ].join("\n");
     const blob = new Blob([rows], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -247,19 +254,14 @@ export default function SaturnPage() {
 
   const rows = useMemo(() => {
     if (!resp?.sade_sati?.windows) return [];
-    const sorted = [...resp.sade_sati.windows].sort((a, b) =>
-      a.start < b.start ? -1 : a.start > b.start ? 1 : 0
-    );
+    const sorted = [...resp.sade_sati.windows].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0));
     return sorted.map((w) => {
-      const duration =
-        typeof w.duration_days === "number" ? `${w.duration_days}d` : `${daysDiffInclusive(w.start, w.end)}d`;
+      const duration = typeof w.duration_days === "number" ? `${w.duration_days}d` : `${daysDiffInclusive(w.start, w.end)}d`;
       const stations = w.stations ?? w.caution_days ?? [];
       const retros = w.retro_overlaps ?? [];
-      const derivedSeverity: ChipTone =
-        (stations?.length ?? 0) > 0 ? "red" : (retros?.length ?? 0) > 0 ? "amber" : "green";
+      const derivedSeverity: ChipTone = (stations?.length ?? 0) > 0 ? "red" : (retros?.length ?? 0) > 0 ? "amber" : "green";
       const severity: ChipTone = (w.severity as ChipTone) ?? derivedSeverity;
-      const chip = w.chip
-        ?? (severity === "green" ? "Clear flow" : severity === "amber" ? "Review/Revise" : "Caution day(s)");
+      const chip = w.chip ?? (severity === "green" ? "Clear flow" : severity === "amber" ? "Review/Revise" : "Caution day(s)");
       const hasStations = (stations?.length ?? 0) > 0;
       const hasRetros = (retros?.length ?? 0) > 0;
       const chipTitle =
@@ -302,7 +304,9 @@ export default function SaturnPage() {
         {Array.from({ length: 4 }).map((_, i) => (
           <tr key={i} className="border-t border-white/10 animate-pulse">
             {Array.from({ length: 8 }).map((__, j) => (
-              <td key={j} className="py-2 px-3"><div className="h-4 w-28 bg-white/10 rounded" /></td>
+              <td key={j} className="py-2 px-3">
+                <div className="h-4 w-28 bg-white/10 rounded" />
+              </td>
             ))}
           </tr>
         ))}
@@ -342,7 +346,9 @@ export default function SaturnPage() {
           }}
           className={[
             "rounded-full px-3 py-1 border",
-            mode === "preview" ? "border-white/40 bg-white/10 text-white" : "border-white/15 bg-white/5 text-slate-300 hover:border-white/25",
+            mode === "preview"
+              ? "border-white/40 bg-white/10 text-white"
+              : "border-white/15 bg-white/5 text-slate-300 hover:border-white/25",
           ].join(" ")}
           title="Show a quick 20-year preview starting today"
         >
@@ -353,7 +359,9 @@ export default function SaturnPage() {
           onClick={loadFull}
           className={[
             "rounded-full px-3 py-1 border",
-            mode === "full" ? "border-white/40 bg-white/10 text-white" : "border-white/15 bg-white/5 text-slate-300 hover:border-white/25",
+            mode === "full"
+              ? "border-white/40 bg-white/10 text-white"
+              : "border-white/15 bg-white/5 text-slate-300 hover:border-white/25",
           ].join(" ")}
           title="Compute full 100-year range from birth (slower)"
         >
@@ -367,6 +375,11 @@ export default function SaturnPage() {
         >
           Export CSV
         </button>
+      </div>
+
+      {/* Ad: below the main controls (good viewability) */}
+      <div className="mb-6">
+        <AdSlot slot="6781603832" minHeight={300} />
       </div>
 
       {resp && (
@@ -411,38 +424,43 @@ export default function SaturnPage() {
             </tr>
           </thead>
 
-        {loading && !resp ? (
-          <SkeletonRows />
-        ) : rows.length === 0 ? (
-          <tbody>
-            <tr>
-              <td colSpan={8} className="py-6 px-3 text-center text-slate-400">
-                No Sade Sati windows in the selected horizon.
-              </td>
-            </tr>
-          </tbody>
-        ) : (
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.key} className="border-t border-white/10">
-                <td className="py-2 px-3 whitespace-nowrap">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-100">{r.phaseLabel}</span>
-                    <Chip tone={r.severity} title={r.chipTitle}>{r.chip}</Chip>
-                  </div>
+          {loading && !resp ? (
+            <SkeletonRows />
+          ) : rows.length === 0 ? (
+            <tbody>
+              <tr>
+                <td colSpan={8} className="py-6 px-3 text-center text-slate-400">
+                  No Sade Sati windows in the selected horizon.
                 </td>
-                <td className="py-2 px-3">{r.start}</td>
-                <td className="py-2 px-3">{r.end}</td>
-                <td className="py-2 px-3">{r.duration}</td>
-                <td className="py-2 px-3">{r.moonSign}</td>
-                <td className="py-2 px-3">{r.saturnSign}</td>
-                <td className="py-2 px-3"><StationsCell dates={r.stations} /></td>
-                <td className="py-2 px-3"><RetroCell spans={r.retros} /></td>
               </tr>
-            ))}
-          </tbody>
-        )}
+            </tbody>
+          ) : (
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.key} className="border-t border-white/10">
+                  <td className="py-2 px-3 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-slate-100">{r.phaseLabel}</span>
+                      <Chip tone={r.severity} title={r.chipTitle}>{r.chip}</Chip>
+                    </div>
+                  </td>
+                  <td className="py-2 px-3">{r.start}</td>
+                  <td className="py-2 px-3">{r.end}</td>
+                  <td className="py-2 px-3">{r.duration}</td>
+                  <td className="py-2 px-3">{r.moonSign}</td>
+                  <td className="py-2 px-3">{r.saturnSign}</td>
+                  <td className="py-2 px-3"><StationsCell dates={r.stations} /></td>
+                  <td className="py-2 px-3"><RetroCell spans={r.retros} /></td>
+                </tr>
+              ))}
+            </tbody>
+          )}
         </table>
+      </div>
+
+      {/* Ad: end-of-page placement */}
+      <div className="mt-6">
+        <AdSlot slot="SATURN_END_SLOT" minHeight={280} />
       </div>
 
       {/* Footnotes */}

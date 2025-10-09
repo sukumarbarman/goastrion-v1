@@ -8,6 +8,7 @@ import GATracker from "./gtm-tracker";
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
+import ConsentBanner from "./components/ConsentBanner";
 
 /** ——— Site constants ——— */
 const SITE_URL = "https://goastrion.com";
@@ -77,7 +78,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
         />
-
+        <ConsentBanner />
         <I18nProvider>
           <Suspense fallback={null}>
             <GATracker />
