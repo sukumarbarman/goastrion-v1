@@ -17,7 +17,10 @@ const ADS_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT; // ca-pub-xxxx
 const ENABLE_ADS = process.env.NEXT_PUBLIC_ENABLE_ADS === "true";
 
 /** ——— Metadata (unchanged) ——— */
-export const metadata: Metadata = { /* ... keep your existing metadata ... */ };
+export const metadata: Metadata = {
+  // ...your existing metadata...
+  other: { "google-adsense-account": "ca-pub-4635077618810431" },
+};;
 
 const ORG = { /* ... unchanged ... */ };
 const WEBSITE = { /* ... unchanged ... */ };
@@ -59,7 +62,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {ENABLE_ADS && ADS_CLIENT && (
           <Script
             id="adsense-init"
-            strategy="afterInteractive"
+            strategy="beforeInteractive"
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS_CLIENT}`}
             crossOrigin="anonymous"
           />
