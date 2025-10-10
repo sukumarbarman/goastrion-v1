@@ -6,9 +6,8 @@ import Container from "./Container";
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
 import Link from "next/link";
-import ShubhDinInline from "./shubhdin/ShubhDinInline"; // ⬅️ NEW
+import ShubhDinInline from "./shubhdin/ShubhDinInline"; // ⬅️ ShubhDin
 import AdSlot from "./AdSlot";
-
 
 // ---- locale dictionary helper types (for strict typing, no `any`) ----
 type Dictionaries = typeof dictionaries;
@@ -179,6 +178,8 @@ const DEFAULT_SHUBHDIN_GOAL = "general";
 
 export default function CreateChartClient() {
   const { t, locale } = useI18n();
+  // small “translate with fallback” helper
+  const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k));
 
   /* form state */
   const [dob, setDob] = useState("");
@@ -354,7 +355,7 @@ export default function CreateChartClient() {
           })()
         : null;
 
-      setSvg(localizedSvg);
+      setSvg(localizedSummary ? localizedSvg : localizedSvg);
       setSummary(localizedSummary);
 
       const maybe = (data.meta?.["vimshottari"] ?? null) as DashaTimeline | null;
@@ -682,10 +683,12 @@ export default function CreateChartClient() {
                 </ul>
               </div>
             </div>
-                {/* Ad: results mid-placement (good viewability) */}
+
+            {/* Ad: results mid-placement (good viewability) */}
             <div className="mt-6">
               <AdSlot slot="4741871653" minHeight={300} />
             </div>
+
             {/* >>> ShubhDin BETWEEN Summary and Dasha <<< */}
             {dob && tob && lat && lon && (
               <div className="mt-6">
@@ -693,11 +696,38 @@ export default function CreateChartClient() {
                   datetime={nowUtcIso}              // ⬅️ use NOW for ShubhDin
                   lat={parseFloat(lat)}
                   lon={parseFloat(lon)}
-                  tzId={tzId}                       // ⬅️ pass tzId; component sends tz_offset_hours
+                  tzId={tzId}                       // ⬅️ component sends tz_offset_hours
                   horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
                 />
               </div>
             )}
+
+            {/* 🔵 Saturn teaser — placed right AFTER ShubhDin */}
+            <div className="mt-6">
+              <Link
+                href="/saturn"
+                className="block rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
+                aria-label={tf("cta.saturn.btn", "Open Saturn")}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-2xl md:text-3xl">🪐</div>
+                  <div>
+                    <div className="text-white text-lg md:text-xl font-semibold">
+                      {tf("cta.saturn.title", "Saturn Phases (Sade Sati & More)")}
+                    </div>
+                    <p className="mt-1 text-slate-300 text-sm md:text-base">
+                      {tf(
+                        "cta.saturn.desc",
+                        "See your Sade Sati windows, Saturn transits, station days and caution periods—personalized from your birth details."
+                      )}
+                    </p>
+                    <div className="mt-3 inline-flex items-center gap-2 text-indigo-200 font-medium">
+                      {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </div>
 
             {vimshottari && (
               <div className="mt-6">
@@ -705,41 +735,80 @@ export default function CreateChartClient() {
                 {renderDashaSection()}
               </div>
             )}
+
             {/* Ad: end-of-page */}
-        <div className="mt-6">
-          <AdSlot slot="4741871653" minHeight={280} />
-        </div>
-              </>
+            <div className="mt-6">
+              <AdSlot slot="4741871653" minHeight={280} />
+            </div>
+          </>
         )}
       </div>
 
-      {/* ---- Post-Results Deep Links ---- */}
-      <div className="mt-8 rounded-2xl p-6 border border-white/10 bg-gradient-to-br from-cyan-500/10 via-emerald-400/5 to-transparent">
-        <div className="flex flex-col md:flex-row md:items-center md:flex-nowrap flex-wrap gap-4 md:gap-6">
-          <div className="flex-1">
-            <p className="mt-1 text-slate-300 text-sm md:text-base">
-              Curious about your <strong>undiscovered</strong> Skills & Career path? Don’t wait—just click{" "}
-              <span className="inline-block animate-bounce" role="img" aria-label="hand">👉</span>
+      {/* ---- Post-Results Deep Links (revamped to 3-card layout) ---- */}
+      <div className="mt-8">
+        <div className="grid md:grid-cols-3 gap-6">
+          {/* Life Wheel /domains */}
+          <Link
+            href="/domains"
+            className="group rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-cyan-500/20 via-emerald-500/10 to-transparent p-5 hover:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
+            aria-label={tf("cta.domains.btn", "Open Life Wheel")}
+          >
+            <div className="text-2xl">✨</div>
+            <div className="mt-2 text-white font-semibold text-lg">
+              {tf("cta.domains.title", "Life Wheel (Domains)")}
+            </div>
+            <p className="mt-1 text-slate-300 text-sm">
+              {tf(
+                "cta.domains.desc",
+                "See strengths across Career, Finance, Health, Relationships and more—at a glance."
+              )}
             </p>
-          </div>
+            <div className="mt-3 inline-flex items-center gap-2 text-cyan-100 font-medium">
+              {tf("cta.domains.btn", "Open Life Wheel")} <span className="animate-pulse">↗</span>
+            </div>
+          </Link>
 
-          <div className="flex items-center gap-3 flex-wrap">
-            <Link
-              href="/domains"
-              className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
-              aria-label="Explore your Life Wheel"
-            >
-              ✨ Life Wheel
-            </Link>
+          {/* Skills /skills */}
+          <Link
+            href="/skills"
+            className="group rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent p-5 hover:border-emerald-300/60 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
+            aria-label={tf("cta.skills.btn", "See Skills")}
+          >
+            <div className="text-2xl">🚀</div>
+            <div className="mt-2 text-white font-semibold text-lg">
+              {tf("cta.skills.title", "Top Skills")}
+            </div>
+            <p className="mt-1 text-slate-300 text-sm">
+              {tf(
+                "cta.skills.desc",
+                "Discover your standout abilities and how to use them for jobs, business or growth."
+              )}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 text-emerald-100 font-medium">
+              {tf("cta.skills.btn", "See Skills")} <span className="animate-pulse">↗</span>
+            </div>
+          </Link>
 
-            <Link
-              href="/skills"
-              className="inline-flex items-center gap-2 rounded-full border border-emerald-400/60 bg-emerald-500/15 px-4 py-2 text-sm font-medium text-emerald-100 hover:bg-emerald-500/25 focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
-              aria-label="See your top Skills"
-            >
-              🚀 Skills
-            </Link>
-          </div>
+          {/* Saturn /saturn */}
+          <Link
+            href="/saturn"
+            className="group rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
+            aria-label={tf("cta.saturn.btn", "Open Saturn")}
+          >
+            <div className="text-2xl">🪐</div>
+            <div className="mt-2 text-white font-semibold text-lg">
+              {tf("cta.saturn.title", "Saturn Phases")}
+            </div>
+            <p className="mt-1 text-slate-300 text-sm">
+              {tf(
+                "cta.saturn.desc.short",
+                "Track Sade Sati, transits and caution days to plan moves wisely."
+              )}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 text-indigo-100 font-medium">
+              {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
+            </div>
+          </Link>
         </div>
       </div>
       {/* ---- /Post-Results Deep Links ---- */}

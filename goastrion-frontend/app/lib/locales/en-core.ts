@@ -141,6 +141,26 @@ const enCore = {
     locationFound: "Location found.",
   },
 
+    cta: {
+        "domains": {
+          "title": "Life Wheel (Domains)",
+          "desc": "See strengths across Career, Finance, Health, Relationships and more—at a glance.",
+          "btn": "Open Life Wheel"
+        },
+        "skills": {
+          "title": "Top Skills",
+          "desc": "Discover your standout abilities and how to use them for jobs, business or growth.",
+          "btn": "See Skills"
+        },
+        "saturn": {
+          "title": "Saturn Phases (Sade Sati & More)",
+          "desc": "See your Sade Sati windows, Saturn transits, station days and caution periods—personalized from your birth details.",
+          "desc.short": "Track Sade Sati, transits and caution days to plan moves wisely.",
+          "btn": "Open Saturn"
+        }
+  },
+
+
   timezones: { ist: "IST (UTC+05:30)", utc: "UTC (UTC+00:00)" },
 
   results: {

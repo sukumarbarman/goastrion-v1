@@ -1,115 +1,174 @@
 "use client";
-
 import React, { useEffect, useMemo, useState } from "react";
+import { useI18n } from "../../lib/i18n";
 
-/* ---------- Backend shapes ---------- */
+/* ---------- Types: backend shape ---------- */
 type BackendWindow = { start: string; end: string; duration_days?: number };
-type BackendDate = { date: string; score?: number; tags?: string[] };
+type BackendDate = {
+  date: string;
+  score?: number;
+  tags?: string[];
+  // new: localized tag payload
+  tags_t?: Array<{ key: string; args?: Record<string, unknown> }>;
+};
 
 type BackendResult = {
-  goal: string;                 // e.g., "job_change"
-  headline?: string;            // e.g., "Best windows: ..."
-  confidence?: string;          // e.g., "medium"
-  windows?: BackendWindow[];    // spans
-  dates?: BackendDate[];        // for tag highlights
-  explain?: string[];           // "Why this matters"
-  cautions?: string[];          // textual cautions
-  caution_days?: string[];      // YYYY-MM-DD
+  goal: string;
+  headline?: string;
+  // new: localized headline payload
+  headline_t?: { key: string; args?: Record<string, unknown> };
+  score?: number;
+  confidence?: string;
+  dates?: BackendDate[];
+  windows?: BackendWindow[];
+  explain?: string[];
+  // new: localized explain payload
+  explain_t?: Array<{ key: string; args?: Record<string, unknown> }>;
+  cautions?: string[];
+  // new: localized cautions payload
+  cautions_t?: Array<{ key: string; args?: Record<string, unknown> }>;
+  caution_days?: string[];
 };
 
 type BackendResponse = {
   query_id: string;
-  generated_at: string;         // UTC ISO
+  generated_at: string;   // UTC ISO
   tz?: string;
   horizon_months?: number;
-  confidence_overall?: string;  // overall confidence
+  confidence_overall?: string;
   results?: BackendResult[];
 };
 
-/* ---------- Props ---------- */
 type TzId = "IST" | "UTC";
-type DisplayMode = "all" | "single";
-type Variant = "smart" | "cards";
 
 type Props = {
+  /** Anchor moment in UTC ISO (use NOW) */
   datetime: string;
   lat: number;
   lon: number;
-  tzId?: TzId;
-  horizonMonths?: number;
-  goal?: string;
-  displayMode?: DisplayMode;
-  variant?: Variant;
+  tzId?: TzId;                 // default IST
+  horizonMonths?: number;      // default 24
+  /** If provided, backend may tailor scoring, but we still render ALL goals */
+  goal?: string;               // optional hint for backend
+  // ====== optional props you had in caller; keep for compatibility ======
+  variant?: "smart";
+  displayMode?: "all" | "single";
 };
 
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0 };
 
-/* ---------- Utils ---------- */
-function fmtDate(d: string) {
-  try {
-    return new Date(d).toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-    });
-  } catch {
-    return d;
+/* ---------- Helpers ---------- */
+function ensureDate(d: string) {
+  try { return new Date(d); } catch { return null as unknown as Date; }
+}
+function fmtLocalDate(d: string, locale?: string) {
+  const dt = ensureDate(d);
+  if (!dt) return d;
+  return dt.toLocaleDateString(locale, { year: "numeric", month: "short", day: "2-digit" });
+}
+
+/** Render server i18n items (array of {key,args}) via t(); fallback to nothing if key missing */
+function renderItemsT(
+  t: (k: string, v?: Record<string, unknown>) => string,
+  items?: Array<{ key: string; args?: Record<string, unknown> }>
+): string[] {
+  if (!items || !Array.isArray(items)) return [];
+  return items.map(({ key, args }) => t(key, args));
+}
+
+/** Render tags_t (each item) using t(); if a key isn’t found, fallback by composing known patterns */
+function renderTagsT(
+  t: (k: string, v?: Record<string, unknown>) => string,
+  tags_t?: BackendDate["tags_t"]
+): string[] {
+  if (!tags_t || !Array.isArray(tags_t)) return [];
+  return tags_t.map(({ key, args }) => {
+    const out = t(key, args);
+    // if t returned the key name (missing), try known patterns:
+    if (out === key && args) {
+      // known patterns we emit from backend:
+      // sd.aspect.tag => "{p1} {name} -> {p2}"
+      // sd.dasha.md   => "MD:{lord}"
+      // sd.dasha.ad   => "AD:{lord}"
+      if (key === "sd.aspect.tag") {
+        return t("sd.aspect.tag", args); // will still be the key if missing, but keeps consistency
+      }
+      if (key === "sd.dasha.md") {
+        return t("sd.dasha.md", args);
+      }
+      if (key === "sd.dasha.ad") {
+        return t("sd.dasha.ad", args);
+      }
+    }
+    return out;
+  });
+}
+
+/** Headline: prefer headline_t; if absent, use headline string */
+function renderHeadline(
+  t: (k: string, v?: Record<string, unknown>) => string,
+  r: BackendResult,
+  locale?: string
+): string | undefined {
+  if (r.headline_t?.key === "sd.headline.best_windows") {
+    const spans = (r.headline_t.args?.spans as Array<{start:string;end:string;days:number}>) || [];
+    const parts = spans.map(s =>
+      t("sd.headline.span", {
+        start: fmtLocalDate(s.start, locale),
+        end: fmtLocalDate(s.end, locale),
+        days: s.days,
+      })
+    );
+    // prefix is localized too
+    return t("sd.headline.prefix") + parts.join(t("sd.join.comma"));
   }
+  // fallback: raw headline
+  return r.headline;
 }
 
-function toTitleCase(s: string) {
-  return s.replace(/\w\S*/g, (w) => w[0].toUpperCase() + w.slice(1));
-}
-
-function prettyGoalRaw(g?: string) {
-  return (g ?? "").replace(/_/g, " ").trim();
-}
-
-function prettyGoal(g?: string) {
-  const raw = prettyGoalRaw(g).toLowerCase();
-  const map: Record<string, string> = {
-    "job change": "Job Change",
-    promotion: "Promotion",
-    "business start": "Business Start",
-    "business expand": "Business Expand",
-    startup: "Startup",
-    property: "Property / Home",
-    marriage: "Marriage",
-    "new relationship": "New Relationship",
-  };
-  return map[raw] || toTitleCase(prettyGoalRaw(g));
-}
-
-/* ---------- Simple card (variant="cards") ---------- */
+/* ---------- UI: GoalCard ---------- */
 function GoalCard({ r }: { r: BackendResult }) {
+  const { t, locale } = useI18n(); // we exposed locale in context earlier
   const windows = r.windows ?? [];
-  const cautions = r.cautions ?? [];
   const cautionDays = r.caution_days ?? [];
-  const explain = r.explain ?? [];
 
-  const dupHeadline =
-    typeof r.headline === "string" && /^best windows:/i.test(r.headline.trim());
-  const showHeadline = !!r.headline && !dupHeadline && windows.length === 0;
+  // Prefer localized explain/cautions if present
+  const explain = r.explain_t ? renderItemsT(t, r.explain_t) : (r.explain ?? []);
+  const cautions = r.cautions_t ? renderItemsT(t, r.cautions_t) : (r.cautions ?? []);
+
+  // Headline
+  const headline = renderHeadline(t, r, locale);
+
+  // Dates (top date row) – render tags_t if present
+  const dates = (r.dates ?? []).map(d => ({
+    ...d,
+    tags: d.tags_t ? renderTagsT(t, d.tags_t) : (d.tags ?? []),
+  }));
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
       <div className="mb-1 flex items-center justify-between">
-        <div className="text-white font-semibold">{prettyGoal(r.goal)}</div>
+        <div className="text-white font-semibold capitalize">
+          {t(`sd.goals.${r.goal}`) !== `sd.goals.${r.goal}` ? t(`sd.goals.${r.goal}`) : r.goal.replace(/_/g, " ")}
+        </div>
+
       </div>
 
-      {showHeadline && <div className="text-slate-300 text-sm mb-2">{r.headline}</div>}
+      {headline && <div className="text-slate-300 text-sm mb-2">{headline}</div>}
 
       {windows.length > 0 && (
         <div className="mb-3">
-          <div className="mb-1 text-sm font-medium text-emerald-300">Best windows</div>
+          <div className="mb-1 text-sm font-medium text-emerald-300">{t("sd.windows.title")}</div>
           <ul className="space-y-1">
             {windows.map((w, i) => (
               <li
                 key={`w-${i}`}
                 className="rounded-lg border border-emerald-400/20 bg-emerald-400/5 px-3 py-2 text-sm text-emerald-100"
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{fmtDate(w.start)} → {fmtDate(w.end)}</span>
+                <div className="flex flex-wrap items-center gap-x-2">
+                  <span className="font-medium">
+                    {fmtLocalDate(w.start, locale)} → {fmtLocalDate(w.end, locale)}
+                  </span>
                   {typeof w.duration_days === "number" && (
                     <span className="text-emerald-300/80">({w.duration_days}d)</span>
                   )}
@@ -120,150 +179,69 @@ function GoalCard({ r }: { r: BackendResult }) {
         </div>
       )}
 
+      {dates.length > 0 && (
+        <div className="mb-3">
+          <div className="mb-1 text-sm font-medium text-sky-300">{t("sd.topday.title")}</div>
+          <ul className="space-y-1 text-sm text-sky-100">
+            {dates.map((d, i) => (
+              <li key={`d-${i}`}>
+                <span className="font-medium">{fmtLocalDate(d.date, locale)}</span>
+
+                {d.tags && d.tags.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {d.tags.slice(0, 6).map((tag, j) => (
+                      <span key={`tag-${j}`} className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/80">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {(cautions.length > 0 || cautionDays.length > 0) && (
         <div className="mb-3">
-          <div className="mb-1 text-sm font-medium text-amber-300">Caution</div>
+          <div className="mb-1 text-sm font-medium text-amber-300">{t("sd.caution.title")}</div>
           <ul className="list-disc pl-5 space-y-1 text-sm text-amber-100">
             {cautions.map((c, i) => <li key={`c-${i}`}>{c}</li>)}
-            {cautionDays.length > 0 && <li key="cdays">Caution day(s): {cautionDays.join(", ")}</li>}
+            {cautionDays.length > 0 && (
+              <li key="cdays">
+                {t("sd.caution.days")}: {cautionDays.map(d => fmtLocalDate(d, locale)).join(", ")}
+              </li>
+            )}
           </ul>
         </div>
       )}
 
       {explain.length > 0 && (
         <div>
-          <div className="mb-1 text-sm font-medium text-slate-300">Why these days?</div>
+          <div className="mb-1 text-sm font-medium text-slate-300">{t("sd.why.title")}</div>
           <ul className="list-disc pl-5 space-y-1 text-sm text-slate-200">
             {explain.map((s, i) => <li key={`e-${i}`}>{s}</li>)}
           </ul>
         </div>
       )}
 
-      {windows.length === 0 && cautions.length === 0 && explain.length === 0 && !r.headline && (
-        <div className="text-sm text-white/70">No notable windows for this goal.</div>
+      {windows.length === 0 && cautions.length === 0 && explain.length === 0 && dates.length === 0 && (
+        <div className="text-sm text-white/70">{/* Keep a localized generic fallback if you add one */}</div>
       )}
     </div>
   );
 }
 
-/* ---------- Smart Windows block (variant="smart") ---------- */
-function SmartGoalBlock({ r }: { r: BackendResult }) {
-  const windows = r.windows ?? [];
-  const tags = (r.dates?.[0]?.tags ?? []).slice(0, 6);
-  const cautions = r.cautions ?? [];
-  const cautionDays = r.caution_days ?? [];
-  const explain = r.explain ?? [];
-
-  // Hide the headline if it's just repeating the windows summary
-  const headlineLooksLikeWindows =
-    typeof r.headline === "string" && /^best windows:/i.test(r.headline.trim());
-  const showHeadline = !!r.headline && !headlineLooksLikeWindows && windows.length === 0;
-
-  // Collapse long caution date lists
-  const MAX_CAUTION_DAYS = 10;
-  const extraDays = Math.max(0, cautionDays.length - MAX_CAUTION_DAYS);
-  const shownCautionDays = extraDays > 0 ? cautionDays.slice(0, MAX_CAUTION_DAYS) : cautionDays;
-
-  return (
-    <div className="rounded-2xl border border-white/10 bg-black/10 p-5">
-      {/* Header row */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <div className="text-white text-base md:text-lg font-semibold">
-            {prettyGoal(r.goal)}
-          </div>
-          {r.confidence && (
-            <span className="text-xs rounded-full border border-white/15 bg-white/5 px-2 py-0.5 text-slate-200">
-              {r.confidence}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Headline (only if not duplicate) */}
-      {showHeadline && (
-        <div className="text-slate-300 text-sm mt-1">{r.headline}</div>
-      )}
-
-      {/* Windows */}
-      {windows.length > 0 && (
-        <div className="mt-3">
-          <div className="text-sm font-medium text-emerald-300 mb-1">Best windows</div>
-          <div className="grid gap-2 md:grid-cols-2">
-            {windows.map((w, i) => (
-              <div
-                key={`w-${i}`}
-                className="rounded-xl border border-emerald-400/20 bg-emerald-400/5 px-3 py-2"
-              >
-                <div className="flex flex-wrap items-center gap-2 text-sm text-emerald-100">
-                  <span className="font-medium">{fmtDate(w.start)}</span>
-                  {typeof w.duration_days === "number" && (
-                    <span className="px-2 py-0.5 rounded bg-emerald-400/10 border border-emerald-400/20">
-                      {w.duration_days}d
-                    </span>
-                  )}
-                  <span className="font-medium">{fmtDate(w.end)}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Tags */}
-      {tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {tags.map((t, i) => (
-            <span
-              key={`tag-${i}`}
-              className="text-xs rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-200"
-            >
-              {t}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Why this matters */}
-      {explain.length > 0 && (
-        <div className="mt-4">
-          <div className="text-sm font-medium text-slate-300">Why this matters</div>
-          <ul className="list-disc pl-5 space-y-1 text-sm text-slate-200 mt-1">
-            {explain.map((s, i) => <li key={`e-${i}`}>{s}</li>)}
-          </ul>
-        </div>
-      )}
-
-      {/* Cautions */}
-      {(cautions.length > 0 || shownCautionDays.length > 0) && (
-        <div className="mt-3">
-          <div className="text-sm font-medium text-amber-300">Cautions</div>
-          <ul className="list-disc pl-5 space-y-1 text-sm text-amber-100 mt-1">
-            {cautions.map((c, i) => <li key={`c-${i}`}>{c}</li>)}
-            {shownCautionDays.length > 0 && (
-              <li key="cdays">
-                Caution dates: {shownCautionDays.join(", ")}
-                {extraDays > 0 && <span> (+{extraDays} more)</span>}
-              </li>
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ---------- Component ---------- */
+/* ---------- Main component ---------- */
 export default function ShubhDinInline({
   datetime,
   lat,
   lon,
   tzId = "IST",
   horizonMonths = 24,
-  goal,
-  displayMode = "all",
-  variant = "cards",
+  goal, // optional hint to backend
 }: Props) {
+  const { t, locale } = useI18n();
   const [resp, setResp] = useState<BackendResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -271,28 +249,23 @@ export default function ShubhDinInline({
 
   useEffect(() => {
     let abort = false;
-
     async function run() {
       if (!datetime || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
       try {
         setLoading(true);
         setErr(null);
 
-        const payload: Record<string, unknown> = {
-          datetime,
-          lat,
-          lon,
-          tz_offset_hours: tzOffsetHours,
-          horizon_months: horizonMonths,
-        };
-        if (displayMode === "single" && goal) {
-          payload.goal = goal;
-        }
-
         const res = await fetch("/api/shubhdin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            datetime,
+            lat,
+            lon,
+            tz_offset_hours: tzOffsetHours,
+            horizon_months: horizonMonths,
+            goal, // backend may tailor scores but will still return multiple goals
+          }),
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -304,59 +277,45 @@ export default function ShubhDinInline({
         if (!abort) setLoading(false);
       }
     }
-
     run();
     return () => { abort = true; };
-  }, [datetime, lat, lon, tzOffsetHours, horizonMonths, displayMode, goal]);
+  }, [datetime, lat, lon, tzOffsetHours, horizonMonths, goal]);
 
-  const allResults = useMemo(() => resp?.results ?? [], [resp]);
-
-  const results =
-    displayMode === "single"
-      ? (goal ? allResults.filter(r => r.goal === goal) : allResults.slice(0, 1))
-      : allResults;
-
-  const headerTitle =
-    variant === "smart"
-      ? "ShubhDin — Smart Windows"
-      : displayMode === "single"
-      ? `ShubhDin (Good Days) — ${prettyGoal(goal) || "selected"}`
-      : "ShubhDin (Good Days)";
+  const results = useMemo(() => resp?.results ?? [], [resp]);
 
   return (
     <section className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
-      <div className="mb-2">
-        <h2 className="text-lg md:text-xl font-semibold text-white">{headerTitle}</h2>
-        {variant === "smart" && (
-          <div className="text-xs md:text-sm text-slate-300 mt-1">
-            Horizon: {resp?.horizon_months ?? horizonMonths} months · Overall confidence: {resp?.confidence_overall ?? "—"}
-          </div>
-        )}
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-white">{t("sd.title")}</h2>
+        {loading && <span className="text-xs text-white/60">loading…</span>}
       </div>
 
-      {loading && <div className="text-xs text-white/60 mb-2">loading…</div>}
       {err && <div className="text-sm text-red-300">Error: {err}</div>}
 
       {!err && resp && (
-        <>
+        <div className="space-y-4">
           {results.length > 0 ? (
-            variant === "smart" ? (
-              <div className="space-y-4">
-                {results.map((r) => <SmartGoalBlock key={r.goal} r={r} />)}
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 gap-4">
-                {results.map((r) => <GoalCard key={r.goal} r={r} />)}
-              </div>
-            )
+            <div className="grid md:grid-cols-2 gap-4">
+              {results.map((r) => (
+                <GoalCard key={r.goal} r={r} />
+              ))}
+            </div>
           ) : (
-            <div className="text-sm text-white/80">No notable windows found for the chosen horizon.</div>
+            <div className="text-sm text-white/80">
+              {/* Optional: t("sd.no_windows") if you add it */}
+            </div>
           )}
 
-          <div className="pt-3 text-xs text-white/50">
-            Generated {resp.generated_at ? new Date(resp.generated_at).toLocaleString() : new Date().toLocaleString()} • TZ: {tzId}
+          <div className="pt-2 text-xs text-white/50">
+            {/* “Generated … TZ …” could be localized later if desired */}
+            {t("sd.generated_at", {
+              // If you add this key, you can localize the line.
+              // Example: "Generated {dt} • TZ: {tz}"
+              dt: resp.generated_at ? new Date(resp.generated_at).toLocaleString(locale) : new Date().toLocaleString(locale),
+              tz: tzId,
+            }) || `${new Date(resp.generated_at || Date.now()).toLocaleString(locale)} • TZ: ${tzId}`}
           </div>
-        </>
+        </div>
       )}
     </section>
   );
