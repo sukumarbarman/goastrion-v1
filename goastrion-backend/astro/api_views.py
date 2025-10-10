@@ -862,6 +862,14 @@ class ShubhDinRunView(APIView):
 
             # ========== SATURN CONTEXT (goal-agnostic) ==========
             H_MAX = max(H_PROMO, H_JOB, H_PROP, H_STARTUP, H_EXPAND, H_REL, H_MARR)
+
+            try:
+                sat_cap_days = int(data.get("saturn_cap_days", 365))  # default 12 months
+            except Exception:
+                sat_cap_days = 365
+
+            SATURN_RANGE_DAYS = min(H_MAX, max(30, sat_cap_days))  # clamp to ≥30 d
+
             try:
                 sat_ctx = saturn_overview(
                     today_local=today_local,

@@ -1,3 +1,4 @@
+//app/components/shubhdin/ShubhDinInline.tsx
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../lib/i18n";
@@ -41,7 +42,7 @@ type BackendResponse = {
 
 type TzId = "IST" | "UTC";
 
-/* ---------- Local i18n arg type (matches your t’s KeyArgs) ---------- */
+/* ---------- Local i18n arg type ---------- */
 type KeyArgs = Record<string, string | number>;
 
 /* ---------- Helpers ---------- */
@@ -58,7 +59,6 @@ function fmtLocalDate(d: string, locale?: string) {
   return dt.toLocaleDateString(locale, { year: "numeric", month: "short", day: "2-digit" });
 }
 
-/** Render server i18n items (array of {key,args}) via t(); fallback to nothing if key missing */
 function renderItemsT(
   t: (k: string, v?: KeyArgs) => string,
   items?: Array<{ key: string; args?: Record<string, unknown> }>
@@ -67,7 +67,6 @@ function renderItemsT(
   return items.map(({ key, args }) => t(key, args as KeyArgs | undefined));
 }
 
-/** Render tags_t (each item) using t(); if a key isn’t found, fallback by composing known patterns */
 function renderTagsT(
   t: (k: string, v?: KeyArgs) => string,
   tags_t?: BackendDate["tags_t"]
@@ -75,23 +74,15 @@ function renderTagsT(
   if (!tags_t || !Array.isArray(tags_t)) return [];
   return tags_t.map(({ key, args }) => {
     const out = t(key, args as KeyArgs | undefined);
-    // if t returned the key name (missing), try known patterns:
     if (out === key && args) {
-      if (key === "sd.aspect.tag") {
-        return t("sd.aspect.tag", args as KeyArgs);
-      }
-      if (key === "sd.dasha.md") {
-        return t("sd.dasha.md", args as KeyArgs);
-      }
-      if (key === "sd.dasha.ad") {
-        return t("sd.dasha.ad", args as KeyArgs);
-      }
+      if (key === "sd.aspect.tag") return t("sd.aspect.tag", args as KeyArgs);
+      if (key === "sd.dasha.md") return t("sd.dasha.md", args as KeyArgs);
+      if (key === "sd.dasha.ad") return t("sd.dasha.ad", args as KeyArgs);
     }
     return out;
   });
 }
 
-/** Headline: prefer headline_t; if absent, use headline string */
 function renderHeadline(
   t: (k: string, v?: KeyArgs) => string,
   r: BackendResult,
@@ -107,27 +98,22 @@ function renderHeadline(
         days: s.days,
       } as KeyArgs)
     );
-    // prefix is localized too
     return t("sd.headline.prefix") + parts.join(t("sd.join.comma"));
   }
-  // fallback: raw headline
   return r.headline;
 }
 
 /* ---------- UI: GoalCard ---------- */
 function GoalCard({ r }: { r: BackendResult }) {
-  const { t, locale } = useI18n(); // t: (key: string, vars?: KeyArgs) => string
+  const { t, locale } = useI18n();
   const windows = r.windows ?? [];
   const cautionDays = r.caution_days ?? [];
 
-  // Prefer localized explain/cautions if present
   const explain = r.explain_t ? renderItemsT(t, r.explain_t) : r.explain ?? [];
   const cautions = r.cautions_t ? renderItemsT(t, r.cautions_t) : r.cautions ?? [];
 
-  // Headline
   const headline = renderHeadline(t, r, locale);
 
-  // Dates (top date row) – render tags_t if present
   const dates = (r.dates ?? []).map((d) => ({
     ...d,
     tags: d.tags_t ? renderTagsT(t, d.tags_t) : d.tags ?? [],
@@ -173,7 +159,6 @@ function GoalCard({ r }: { r: BackendResult }) {
             {dates.map((d, i) => (
               <li key={`d-${i}`}>
                 <span className="font-medium">{fmtLocalDate(d.date, locale)}</span>
-
                 {d.tags && d.tags.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {d.tags.slice(0, 6).map((tag, j) => (
@@ -229,13 +214,19 @@ type Props = {
   datetime: string;
   lat: number;
   lon: number;
-  tzId?: TzId; // default IST
-  horizonMonths?: number; // default 24
+  tzId?: TzId;                 // default IST
+  horizonMonths?: number;      // default 24
   /** If provided, backend may tailor scoring, but we still render ALL goals */
-  goal?: string; // optional hint for backend
+  goal?: string;               // optional hint for backend
+
   // ====== optional props you had in caller; keep for compatibility ======
   variant?: "smart";
   displayMode?: "all" | "single";
+
+  // ⬇️ NEW optional props passed to backend
+  saturnCapDays?: number;      // trims Saturn horizon on backend (e.g., 365)
+  goals?: string[];            // override the evaluated goals set
+  businessType?: string;       // for business_start copy/context
 };
 
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0 };
@@ -247,6 +238,9 @@ export default function ShubhDinInline({
   tzId = "IST",
   horizonMonths = 24,
   goal,
+  saturnCapDays,
+  goals,
+  businessType,
 }: Props) {
   const { t, locale } = useI18n();
   const [resp, setResp] = useState<BackendResponse | null>(null);
@@ -262,17 +256,29 @@ export default function ShubhDinInline({
         setLoading(true);
         setErr(null);
 
+        // Build payload with optional fields only when present
+        const payload: Record<string, unknown> = {
+          datetime,
+          lat,
+          lon,
+          tz_offset_hours: tzOffsetHours,
+          horizon_months: horizonMonths,
+        };
+        if (goal) payload.goal = goal;
+        if (typeof saturnCapDays === "number" && saturnCapDays > 0) {
+          payload.saturn_cap_days = Math.floor(saturnCapDays);
+        }
+        if (Array.isArray(goals) && goals.length > 0) {
+          payload.goals = goals;
+        }
+        if (typeof businessType === "string" && businessType.trim()) {
+          payload.business = { type: businessType.trim().toLowerCase() };
+        }
+
         const res = await fetch("/api/shubhdin", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            datetime,
-            lat,
-            lon,
-            tz_offset_hours: tzOffsetHours,
-            horizon_months: horizonMonths,
-            goal, // backend may tailor scores but will still return multiple goals
-          }),
+          body: JSON.stringify(payload),
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -288,7 +294,7 @@ export default function ShubhDinInline({
     return () => {
       abort = true;
     };
-  }, [datetime, lat, lon, tzOffsetHours, horizonMonths, goal]);
+  }, [datetime, lat, lon, tzOffsetHours, horizonMonths, goal, saturnCapDays, goals, businessType]);
 
   const results = useMemo(() => resp?.results ?? [], [resp]);
 

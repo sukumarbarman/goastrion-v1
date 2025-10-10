@@ -1,26 +1,26 @@
-//component/CreateChartClient.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Container from "./Container";
-import { useI18n } from "../lib/i18n";
-import { dictionaries } from "../lib/locales/dictionaries";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import ShubhDinInline from "./shubhdin/ShubhDinInline"; // ⬅️ ShubhDin
+
+import Container from "./Container";
+import ShubhDinInline from "./shubhdin/ShubhDinInline";
 import AdSlot from "./AdSlot";
 
-// ---- locale dictionary helper types (for strict typing, no `any`) ----
+import { useI18n } from "../lib/i18n";
+import { dictionaries } from "../lib/locales/dictionaries";
+import type { DashaTimeline } from "./dasha/types"; // ⬅️ types only
+
+// Lazy-load the heavy Dasha tables/summary
+const DashaSection = dynamic(() => import("./dasha/DashaSection"), { ssr: false });
+
+/* -------------------- Types used locally -------------------- */
 type Dictionaries = typeof dictionaries;
-type LocaleKey = keyof Dictionaries; // "en" | "hi" | "bn" | ...
+type LocaleKey = keyof Dictionaries;
 type LocaleDict = Dictionaries[LocaleKey] & {
   zodiac?: string[];
   nakshatras?: string[];
-};
-
-type Period = { lord: string; start: string; end: string; years: number };
-type DashaTimeline = {
-  mahadashas: Period[];
-  antardashas: Record<string, Period[]>;
 };
 
 type ApiResp = {
@@ -30,10 +30,6 @@ type ApiResp = {
   error?: string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
-
-/* -------------------- Persistence -------------------- */
-const STORAGE_KEY = "ga_create_state_v1";
 type TzId = "IST" | "UTC";
 type PersistedState = {
   dob: string;
@@ -47,6 +43,12 @@ type PersistedState = {
   vimshottari: DashaTimeline | null;
   savedAt?: string; // ISO
 };
+
+/* -------------------- Config -------------------- */
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+
+/* -------------------- Persistence -------------------- */
+const STORAGE_KEY = "ga_create_state_v1";
 
 function safeLoad(): PersistedState | null {
   try {
@@ -72,36 +74,6 @@ function fmtDate(iso: string) {
   if (typeof iso === "string" && iso.length >= 10) return iso.slice(0, 10);
   return iso;
 }
-function fmtYearsAsYM(y: number) {
-  const totalMonths = Math.round(y * 12);
-  const yy = Math.floor(totalMonths / 12);
-  const mm = totalMonths % 12;
-  const parts: string[] = [];
-  if (yy > 0) parts.push(`${yy} y`);
-  if (mm > 0 || yy === 0) parts.push(`${mm} m`);
-  return parts.join(" ");
-}
-function keyFor(md: Period) {
-  return `${md.lord}@${md.start}`;
-}
-function findCurrentPrevNextMD(mds: Period[], refDate = new Date()) {
-  const now = refDate.getTime();
-  let cur = -1;
-  for (let i = 0; i < mds.length; i++) {
-    const s = new Date(mds[i].start).getTime();
-    const e = new Date(mds[i].end).getTime();
-    if (now >= s && now < e) {
-      cur = i;
-      break;
-    }
-  }
-  const prev = cur > 0 ? cur - 1 : -1;
-  const next = cur >= 0 && cur + 1 < mds.length ? cur + 1 : -1;
-  return { prev, cur, next };
-}
-
-/* Timezone helpers */
-const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
 function tzHoursToOffset(h: number) {
   const sign = h >= 0 ? "+" : "-";
   const abs = Math.abs(h);
@@ -110,6 +82,7 @@ function tzHoursToOffset(h: number) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${sign}${pad(hh)}:${pad(mm)}`;
 }
+const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
 function localCivilToUtcIso(dob: string, tob: string, tzId: TzId): { dtIsoUtc: string; tzHours: number } {
   const tzHours = TZ_HOURS[tzId];
   const offset = tzHoursToOffset(tzHours);
@@ -118,29 +91,36 @@ function localCivilToUtcIso(dob: string, tob: string, tzId: TzId): { dtIsoUtc: s
   return { dtIsoUtc, tzHours };
 }
 
-/* i18n helpers */
-function planetLabel(eng: string, t: (k: string) => string) {
-  const key = eng.toLowerCase();
-  const map: Record<string, string> = {
-    sun: t("planets.sun"),
-    moon: t("planets.moon"),
-    mars: t("planets.mars"),
-    mercury: t("planets.mercury"),
-    jupiter: t("planets.jupiter"),
-    venus: t("planets.venus"),
-    saturn: t("planets.saturn"),
-    rahu: t("planets.rahu"),
-    ketu: t("planets.ketu"),
-  };
-  return map[key] || eng;
-}
+/* English baselines for value-localization */
+const EN_ZODIAC = [
+  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
+];
+const EN_NAKS = [
+  "Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha",
+  "Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha",
+  "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"
+];
+
+/** Replace planet names inside the incoming SVG with localized labels */
 function localizeSvgPlanets(svg: string, t: (k: string) => string) {
+  if (!svg) return svg;
   const names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
   const pattern = new RegExp(`>(?:${names.join("|")})<`, "g");
+  const map: Record<string, string> = {
+    Sun: t("planets.sun"),
+    Moon: t("planets.moon"),
+    Mars: t("planets.mars"),
+    Mercury: t("planets.mercury"),
+    Jupiter: t("planets.jupiter"),
+    Venus: t("planets.venus"),
+    Saturn: t("planets.saturn"),
+    Rahu: t("planets.rahu"),
+    Ketu: t("planets.ketu"),
+  };
   return svg.replace(pattern, (m) => {
-    const raw = m.slice(1, -1);
-    const localized = planetLabel(raw, t);
-    return `>${localized}<`;
+    const raw = m.slice(1, -1); // remove '>' and '<'
+    return `>${map[raw] || raw}<`;
   });
 }
 
@@ -161,24 +141,11 @@ function makeSvgResponsive(svg: string) {
   return out;
 }
 
-/* English baselines for value-localization */
-const EN_ZODIAC = [
-  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
-  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
-];
-const EN_NAKS = [
-  "Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha",
-  "Magha","Purva Phalguni","Uttara Phalguni","Hasta","Chitra","Swati","Vishakha","Anuradha","Jyeshtha",
-  "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"
-];
-
-/* ---- Shared defaults so tab & results never drift ---- */
+/* ---- Shared defaults ---- */
 const DEFAULT_SHUBHDIN_HORIZON = 24;   // months
-const DEFAULT_SHUBHDIN_GOAL = "general";
 
 export default function CreateChartClient() {
   const { t, locale } = useI18n();
-  // small “translate with fallback” helper
   const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k));
 
   /* form state */
@@ -320,7 +287,7 @@ export default function CreateChartClient() {
 
       // Localize summary labels & values
       const rawSummary = data.summary || null;
-      const dict = dictionaries[locale] as LocaleDict;
+      const dict = dictionaries[locale as LocaleKey] as LocaleDict;
       const locZodiac = dict.zodiac;
       const locNaks = dict.nakshatras;
 
@@ -355,16 +322,17 @@ export default function CreateChartClient() {
           })()
         : null;
 
-      setSvg(localizedSummary ? localizedSvg : localizedSvg);
+      setSvg(localizedSvg);
       setSummary(localizedSummary);
 
       const maybe = (data.meta?.["vimshottari"] ?? null) as DashaTimeline | null;
-      setVimshottari(maybe && Array.isArray(maybe.mahadashas) && maybe.mahadashas.length > 0 ? maybe : null);
+      const vDash = maybe && Array.isArray(maybe.mahadashas) && maybe.mahadashas.length > 0 ? maybe : null;
+      setVimshottari(vDash);
 
       // Immediate save right after successful fetch
       const payload: PersistedState = {
         dob, tob, tzId, place, lat, lon,
-        svg: localizedSvg, summary: localizedSummary, vimshottari: maybe || null,
+        svg: localizedSvg, summary: localizedSummary, vimshottari: vDash,
         savedAt: new Date().toISOString(),
       };
       if (safeSave(payload)) setSavedAt(payload.savedAt!);
@@ -421,97 +389,7 @@ export default function CreateChartClient() {
     setVimshottari(null);
   }
 
-  /* -------- Dasha Rendering -------- */
-  function renderMahadashasSection(v: DashaTimeline) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-        <div className="text-white font-semibold mb-3">{t("dasha.titleFullTimeline")}</div>
-        <div className="overflow-auto">
-          <table className="min-w-full text-sm">
-            <thead>
-              <tr className="text-slate-400 border-b border-white/10">
-                <th className="text-left py-1 pr-3">{t("dasha.colLord")}</th>
-                <th className="text-left py-1 pr-3">{t("dasha.colStart")}</th>
-                <th className="text-left py-1 pr-3">{t("dasha.colEnd")}</th>
-                <th className="text-left py-1 pr-3">{t("dasha.colDuration")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {v.mahadashas.map((md, i) => (
-                <tr key={`${md.lord}-${i}`} className="border-b border-white/5">
-                  <td className="py-1 pr-3 text-slate-200">{planetLabel(md.lord, t)}</td>
-                  <td className="py-1 pr-3 text-slate-300">{fmtDate(md.start)}</td>
-                  <td className="py-1 pr-3 text-slate-300">{fmtDate(md.end)}</td>
-                  <td className="py-1 pr-3 text-slate-400">{fmtYearsAsYM(md.years)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  }
-
-  function renderADBlock(title: string, md: Period | null, v: DashaTimeline) {
-    if (!md) return null;
-    const k = keyFor(md);
-    const ads = v.antardashas?.[k] || [];
-    return (
-      <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
-        <div className="text-white font-semibold mb-2">
-          {title}: {planetLabel(md.lord, t)} ({fmtDate(md.start)} → {fmtDate(md.end)})
-        </div>
-        {ads.length === 0 ? (
-          <div className="text-slate-400 text-sm">{t("dasha.noAntardasha")}</div>
-        ) : (
-          <div className="overflow-auto">
-            <table className="min-w-full text-sm">
-              <thead>
-                <tr className="text-slate-400 border-b border-white/10">
-                  <th className="text-left py-1 pr-3">{t("dasha.colADLord")}</th>
-                  <th className="text-left py-1 pr-3">{t("dasha.colStart")}</th>
-                  <th className="text-left py-1 pr-3">{t("dasha.colEnd")}</th>
-                  <th className="text-left py-1 pr-3">{t("dasha.colDuration")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {ads.map((ad, i) => (
-                  <tr key={`${ad.lord}-${i}`} className="border-b border-white/5">
-                    <td className="py-1 pr-3 text-slate-200">{planetLabel(ad.lord, t)}</td>
-                    <td className="py-1 pr-3 text-slate-300">{fmtDate(ad.start)}</td>
-                    <td className="py-1 pr-3 text-slate-300">{fmtDate(ad.end)}</td>
-                    <td className="py-1 pr-3 text-slate-400">{fmtYearsAsYM(ad.years)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function renderDashaSection() {
-    if (!vimshottari) return null;
-    const { prev, cur, next } = findCurrentPrevNextMD(vimshottari.mahadashas, new Date());
-    const mdPrev = prev >= 0 ? vimshottari.mahadashas[prev] : null;
-    const mdCur = cur >= 0 ? vimshottari.mahadashas[cur] : null;
-    const mdNext = next >= 0 ? vimshottari.mahadashas[next] : null;
-
-    return (
-      <div className="mt-6 space-y-6">
-        {renderMahadashasSection(vimshottari)}
-        <div className="grid md:grid-cols-3 gap-6">
-          {renderADBlock(t("dasha.prevADTitle"), mdPrev, vimshottari)}
-          {renderADBlock(t("dasha.curADTitle"), mdCur, vimshottari)}
-          {renderADBlock(t("dasha.nextADTitle"), mdNext, vimshottari)}
-        </div>
-      </div>
-    );
-  }
-
   /* -------------------- UI -------------------- */
-  // Derive birth UTC for ShubhDin (safe even if fields are empty; guarded before render)
   const birthUtcIso = (dob && tob) ? localCivilToUtcIso(dob, tob, tzId).dtIsoUtc : "";
 
   return (
@@ -684,25 +562,25 @@ export default function CreateChartClient() {
               </div>
             </div>
 
-            {/* Ad: results mid-placement (good viewability) */}
+            {/* Ad: results mid-placement */}
             <div className="mt-6">
               <AdSlot slot="4741871653" minHeight={300} />
             </div>
 
-            {/* >>> ShubhDin BETWEEN Summary and Dasha <<< */}
+            {/* ShubhDin block (uses NOW as anchor) */}
             {dob && tob && lat && lon && (
               <div className="mt-6">
                 <ShubhDinInline
-                  datetime={nowUtcIso}              // ⬅️ use NOW for ShubhDin
+                  datetime={nowUtcIso}
                   lat={parseFloat(lat)}
                   lon={parseFloat(lon)}
-                  tzId={tzId}                       // ⬅️ component sends tz_offset_hours
+                  tzId={tzId}
                   horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
                 />
               </div>
             )}
 
-            {/* 🔵 Saturn teaser — placed right AFTER ShubhDin */}
+            {/* Saturn teaser */}
             <div className="mt-6">
               <Link
                 href="/saturn"
@@ -729,10 +607,11 @@ export default function CreateChartClient() {
               </Link>
             </div>
 
+            {/* Vimshottari (lazy-loaded) */}
             {vimshottari && (
               <div className="mt-6">
                 <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
-                {renderDashaSection()}
+                <DashaSection v={vimshottari} />
               </div>
             )}
 
@@ -744,10 +623,10 @@ export default function CreateChartClient() {
         )}
       </div>
 
-      {/* ---- Post-Results Deep Links (revamped to 3-card layout) ---- */}
+      {/* Deep Links */}
       <div className="mt-8">
         <div className="grid md:grid-cols-3 gap-6">
-          {/* Life Wheel /domains */}
+          {/* Life Wheel */}
           <Link
             href="/domains"
             className="group rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-cyan-500/20 via-emerald-500/10 to-transparent p-5 hover:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
@@ -768,7 +647,7 @@ export default function CreateChartClient() {
             </div>
           </Link>
 
-          {/* Skills /skills */}
+          {/* Skills */}
           <Link
             href="/skills"
             className="group rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent p-5 hover:border-emerald-300/60 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
@@ -789,7 +668,7 @@ export default function CreateChartClient() {
             </div>
           </Link>
 
-          {/* Saturn /saturn */}
+          {/* Saturn */}
           <Link
             href="/saturn"
             className="group rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
@@ -800,10 +679,7 @@ export default function CreateChartClient() {
               {tf("cta.saturn.title", "Saturn Phases")}
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              {tf(
-                "cta.saturn.desc.short",
-                "Track Sade Sati, transits and caution days to plan moves wisely."
-              )}
+              {tf("cta.saturn.desc.short", "Track Sade Sati, transits and caution days to plan moves wisely.")}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-indigo-100 font-medium">
               {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
@@ -811,7 +687,6 @@ export default function CreateChartClient() {
           </Link>
         </div>
       </div>
-      {/* ---- /Post-Results Deep Links ---- */}
     </Container>
   );
 }

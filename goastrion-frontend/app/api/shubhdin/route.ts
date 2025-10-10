@@ -1,4 +1,3 @@
-// app/api/shubhdin/route.ts
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -12,27 +11,27 @@ type Incoming = {
   lat: number | string;
   lon: number | string;
   tz_offset_hours?: number;
-  tz?: "IST" | "UTC"; // legacy support
+  tz?: "IST" | "UTC";                // legacy support (we still map to tz_offset_hours)
   horizon_months?: number;
   goal?: string;
+
+  // ⬇️ NEW passthroughs
+  saturn_cap_days?: number;          // Option A: backend trims Saturn horizon
+  goals?: string[];                  // optional: override goal set
+  business?: { type?: string };      // optional: for business_start copy, etc.
 };
 
 function getTimeoutMs(url: string): number {
-  // 1) query param wins (?timeout_ms=45000)
   const q = new URL(url).searchParams.get("timeout_ms");
   if (q && /^\d+$/.test(q)) return Math.max(1000, parseInt(q, 10));
-  // 2) env var
   if (process.env.SHUBHDIN_TIMEOUT_MS && /^\d+$/.test(process.env.SHUBHDIN_TIMEOUT_MS)) {
     return Math.max(1000, parseInt(process.env.SHUBHDIN_TIMEOUT_MS, 10));
   }
-  // 3) default
-  return 45_000; // dev-friendly default
+  return 45_000;
 }
 
 function getErrorName(e: unknown): string | null {
-  if (e instanceof Error && typeof (e as Error).name === "string") {
-    return e.name;
-  }
+  if (e instanceof Error && typeof (e as Error).name === "string") return e.name;
   if (typeof e === "object" && e !== null && "name" in e) {
     const n = (e as { name?: unknown }).name;
     return typeof n === "string" ? n : null;
@@ -69,7 +68,7 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
 
-    // Map tz → tz_offset_hours if needed
+    // Map tz → tz_offset_hours if needed (backend also supports tz string; we keep offset for now)
     const tzHours =
       typeof b.tz_offset_hours === "number"
         ? b.tz_offset_hours
@@ -79,14 +78,29 @@ export async function POST(req: Request): Promise<Response> {
         ? 0
         : undefined;
 
-    const payload = {
-      datetime: b.datetime, // UTC ISO
+    // Build payload with safe defaults + NEW passthroughs
+    const payload: Record<string, unknown> = {
+      datetime: b.datetime,                   // UTC ISO
       lat,
       lon,
-      tz_offset_hours: tzHours, // optional
+      tz_offset_hours: tzHours,               // optional
       horizon_months: typeof b.horizon_months === "number" ? b.horizon_months : 24,
       goal: typeof b.goal === "string" ? b.goal : "general",
     };
+
+    // ⬇️ Add optional fields only if present/valid
+    if (typeof b.saturn_cap_days === "number" && b.saturn_cap_days > 0) {
+      payload.saturn_cap_days = Math.floor(b.saturn_cap_days);
+    }
+    if (Array.isArray(b.goals) && b.goals.every(g => typeof g === "string")) {
+      payload.goals = b.goals;
+    }
+    if (b.business && typeof b.business === "object") {
+      const type = (b.business as Incoming["business"])?.type;
+      if (typeof type === "string" && type.trim()) {
+        payload.business = { type: type.trim().toLowerCase() };
+      }
+    }
 
     if (debug) {
       console.log("[/api/shubhdin] upstream URL:", url);
@@ -140,8 +154,10 @@ export async function GET(): Promise<Response> {
   return new Response(
     JSON.stringify({
       ok: true,
-      hint: "POST JSON { datetime(UTC), lat, lon, tz_offset_hours?, horizon_months?, goal? }",
+      hint:
+        "POST JSON { datetime(UTC), lat, lon, tz_offset_hours?, horizon_months?, goal?, saturn_cap_days?, goals?, business? }",
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
 }
+
