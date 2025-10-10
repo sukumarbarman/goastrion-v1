@@ -36,20 +36,11 @@ const enCore = {
   },
 
     steps: {
-      heading: "How it works",
-      stepLabel: "Step {num}",
-      "1": {
-        title: "Enter birth details",
-        desc: "Date, time, and location. India: choose IST (UTC+05:30). Outside India: convert to UTC and choose UTC."
-      },
-      "2": {
-        title: "We compute your chart",
-        desc: "Fast, private calculations—no signup needed. We also check Saturn · Sade Sati context."
-      },
-      "3": {
-        title: "Get skills, guidance & ShubhDin",
-        desc: "See clear strengths and next steps, plus upcoming ShubhDin (good-day) windows for study, interviews, launches, or travel."
-      }
+      "heading": "How it works",
+        "stepLabel": "Step {{num}}",
+        "1": {"title": "Enter birth details", "desc": "Date, time, and place (IST‑safe)"},
+        "2": {"title": "Get chart & insights", "desc": "North‑Indian chart + Saturn & skills"},
+        "3": {"title": "See ShubhDin windows", "desc": "Job change, marriage, property and more"}
     },
       shubhdin: {
         badge: "ShubhDin · Good Day",
@@ -79,29 +70,53 @@ const enCore = {
       },
 
   hero: {
-    headline: "Find your best dates with Vedic precision",
-    subline: "Free Vedic timing: Saturn phases + ShubhDin (auspicious-day) windows for career, finance, marriage & health.",
-    support: "Clear windows, station days & cautions—so you can act with confidence.",
-    createBtn: "Create Your Chart",
-    sampleBtn: "See Sample Report",
-    badgeSecure: "Secure",
-    badgePrivate: "Private",
-    badgeFast: "Fast",
+      "headline": "Find ShubhDin (Auspicious Dates) & Free Vedic Birth Chart — Saturn & Sade Sati insights",
+    "subline": "Plan job change, marriage or property with data‑backed windows from your natal chart. Fast, private, IST‑optimized.",
+    "support": {"before": "Start with a free", "chart": "birth chart", "shubhdin": "ShubhDin (good dates)", "saturn": "Saturn/Sade Sati"},
+    "createBtn": "Create Your Chart",
+    "sampleBtn": "See Sample Report",
+    "badgeSecure": "Secure", "badgePrivate": "Private", "badgeFast": "Fast"
   },
 
   skills: {
-    title: "Skill spotlight",
-    note: 'Hover to preview. Click <span class="text-slate-200">“See Sample Report”</span> for full details.',
-    sampleReport: "See Sample Report →",
-    list: {
-      analytical: { name: "Analytical Ability", blurb: "Strong pattern recognition and logical breakdown—great for STEM & data tasks." },
-      communication: { name: "Communication", blurb: "Clear articulation; benefits from more public practice." },
-      leadership: { name: "Leadership", blurb: "Emerging leadership; improve by owning small team tasks." },
-      creativity: { name: "Creativity", blurb: "Good idea flow; schedule unstructured brainstorming time." },
-      focus: { name: "Focus", blurb: "Solid focus windows; try 25–30 min deep-work sprints." },
-      entrepreneurial: { name: "Entrepreneurial Drive", blurb: "Initiative & risk tolerance; ship mini-projects often." },
+        "title": "Skill Spotlight",
+        "note": "<span class='text-slate-300'>Top abilities from natal placements — see where to double‑down.</span>",
+        "sampleReport": "See sample report",
+        "list": {
+        "analytical": {"name": "Analytical", "blurb": "Pattern‑finding & logic."},
+        "communication": {"name": "Communication", "blurb": "Clear writing & speaking."},
+        "leadership": {"name": "Leadership", "blurb": "Direct, organize, inspire."},
+        "creativity": {"name": "Creativity", "blurb": "Ideas & aesthetics."},
+        "focus": {"name": "Focus", "blurb": "Deep work stamina."},
+        "entrepreneurial": {"name": "Entrepreneurial", "blurb": "Build & ship."}
     },
   },
+
+  "home": {
+    "domains": {
+        "badge": "Life Wheel",
+        "title": "See where to focus first",
+        "sub": "Your Life Wheel highlights Career, Finance, Marriage, and Health from house strengths and planetary aspects—so you know where small efforts pay off big.",
+        "career": "Career", "careerSub": "strengths & learning path",
+        "finance": "Finance", "financeSub": "habits & money decisions",
+        "marriage": "Marriage", "marriageSub": "compatibility patterns",
+        "health": "Health", "healthSub": "sustainable routines",
+        "cta": "Explore Life Wheel"
+        },
+         "shubhdin": {
+            "badge": "ShubhDin · Good Day",
+              "title": "Find your Shubh Din — feel the timing click",
+              "sub": "Get auspicious date windows (ShubhDin) from your Vedic birth chart — optimized for job change, interviews, study, launches, travel and calmer days.",
+              "pt1": "Smart windows from your birth details (IST/UTC handled)",
+              "pt2": "Saturn/Moon context with gentle, actionable timing notes",
+              "pt3": "Optional Vimshottari MD/AD for longer trends",
+              "cta": "Check my ShubhDin",
+              "learn": "Learn more",
+              "how": "How it works",
+              "tz": "India: choose IST (UTC+05:30). Outside India: convert your birth time to UTC and choose UTC.",
+              "alt": "Smiling young woman checking a calendar on her phone, hopeful about a good day"
+            }
+    },
 
   create: {
     title: "Generate Chart",

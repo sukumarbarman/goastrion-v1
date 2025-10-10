@@ -1,6 +1,7 @@
-// app/components/DomainsTeaser.tsx
+// =========================
+// app/components/DomainsTeaser.tsx — minor SEO tweaks (h2 copy)
+// =========================
 "use client";
-
 import Link from "next/link";
 import Container from "./Container";
 import { useI18n } from "../lib/i18n";
@@ -10,14 +11,14 @@ export default function DomainsTeaser() {
   const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k));
 
   return (
-    <section className="py-10">
+    <section className="py-10" aria-labelledby="domains-title">
       <Container>
         <div className="rounded-2xl border border-white/10 bg-[#11162A] p-6">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full bg-white/10 text-slate-200 px-3 py-1 text-xs font-medium">
               {tf("home.domains.badge", "Life Wheel")}
             </span>
-            <h2 className="text-2xl md:text-3xl font-semibold text-white">
+            <h2 id="domains-title" className="text-2xl md:text-3xl font-semibold text-white">
               {tf("home.domains.title", "See where to focus first")}
             </h2>
           </div>

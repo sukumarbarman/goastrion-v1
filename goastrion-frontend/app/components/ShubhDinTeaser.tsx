@@ -1,4 +1,3 @@
-// app/components/ShubhDinTeaser.tsx
 "use client";
 
 import Image from "next/image";
@@ -11,7 +10,7 @@ export default function ShubhDinTeaser() {
   const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k));
 
   return (
-    <section className="mt-8">
+    <section className="mt-8" aria-labelledby="shubhdin-title">
       <Container>
         <div className="grid md:grid-cols-2 gap-8 items-center rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500/10 via-emerald-500/5 to-transparent p-6">
           {/* Copy */}
@@ -20,33 +19,43 @@ export default function ShubhDinTeaser() {
               {tf("home.shubhdin.badge", "ShubhDin · Good Day")}
             </div>
 
-            <h2 className="mt-2 text-2xl md:text-3xl font-semibold text-white">
+            <h2 id="shubhdin-title" className="mt-2 text-2xl md:text-3xl font-semibold text-white">
               {tf("home.shubhdin.title", "Find your Shubh Din — feel the timing click")}
             </h2>
 
             <p className="mt-2 text-slate-300">
               {tf(
                 "home.shubhdin.sub",
-                "We read your chart and Saturn/Moon context to suggest windows that feel lighter and supportive — for study, interviews, launches, travel, or a calmer day."
+                "Get auspicious date windows (ShubhDin) from your Vedic birth chart — optimized for job change, interviews, study, launches, travel and calmer days."
               )}
             </p>
 
             <ul className="mt-3 text-sm text-slate-300 space-y-1">
               <li>• {tf("home.shubhdin.pt1", "Smart windows from your birth details (IST/UTC handled)")}</li>
-              <li>• {tf("home.shubhdin.pt2", "Gentle timing notes — action over anxiety")}</li>
-              <li>• {tf("home.shubhdin.pt3", "Optional MD/AD context for longer trends")}</li>
+              <li>• {tf("home.shubhdin.pt2", "Saturn/Moon context with gentle, actionable timing notes")}</li>
+              <li>• {tf("home.shubhdin.pt3", "Optional Vimshottari MD/AD for longer trends")}</li>
             </ul>
 
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="/create"
                 className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+                aria-label={tf("home.shubhdin.cta", "Check my ShubhDin")}
+                prefetch
               >
                 ✨ {tf("home.shubhdin.cta", "Check my ShubhDin")}
               </Link>
               <Link
+                href="/shubhdin"
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 hover:border-white/20"
+                aria-label={tf("home.shubhdin.learn", "Learn more")}
+              >
+                {tf("home.shubhdin.learn", "Learn more")}
+              </Link>
+              <Link
                 href="/faq"
                 className="inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 hover:border-white/20"
+                aria-label={tf("home.shubhdin.how", "How it works")}
               >
                 {tf("home.shubhdin.how", "How it works")}
               </Link>
@@ -60,8 +69,8 @@ export default function ShubhDinTeaser() {
             </p>
           </div>
 
-          {/* Image */}
-          <div className="order-first md:order-none">
+          {/* Image (decorative, with descriptive alt for SEO) */}
+          <div className="order-first md:order-none" aria-hidden="true">
             <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/20">
               <Image
                 src="/images/goodday.png"

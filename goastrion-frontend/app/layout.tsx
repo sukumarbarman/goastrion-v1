@@ -1,4 +1,3 @@
-// app/layout.tsx
 import "./globals.css";
 import ClientShell from "./ClientShell";
 import { I18nProvider } from "./lib/i18n";
@@ -11,54 +10,105 @@ import { Suspense } from "react";
 import ConsentBanner from "./components/ConsentBanner";
 
 /** ——— Site constants ——— */
-const SITE_URL = "https://goastrion.com";
+const SITE_URL = "https://goastrion.com" as const;
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const ADS_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT; // ca-pub-xxxx
 const ENABLE_ADS = process.env.NEXT_PUBLIC_ENABLE_ADS === "true";
 
-/** ——— Metadata (unchanged) ——— */
-export const metadata: Metadata = {
-  // ...your existing metadata...
-  other: { "google-adsense-account": "ca-pub-4635077618810431" },
-};;
+/** ——— Metadata (enhanced for SEO + i18n) ——— */
+const defaultDescription =
+  "Find auspicious dates (ShubhDin) for job change, marriage, property & more. Create a free Vedic birth chart and get Saturn/Sade Sati insights in seconds.";
 
-const ORG = { /* ... unchanged ... */ };
-const WEBSITE = { /* ... unchanged ... */ };
+export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "GoAstrion — ShubhDin, Saturn & Free Vedic Birth Chart",
+    template: "%s | GoAstrion",
+  },
+  description: defaultDescription,
+  alternates: {
+    canonical: SITE_URL,
+    languages: {
+      en: SITE_URL + "/",
+      hi: SITE_URL + "/hi",
+      bn: SITE_URL + "/bn",
+    },
+  },
+  openGraph: {
+    type: "website",
+    url: SITE_URL,
+    title: "GoAstrion — ShubhDin, Saturn & Free Vedic Birth Chart",
+    description: defaultDescription,
+    siteName: "GoAstrion",
+    images: [
+      {
+        url: "/og/og-home.jpg",
+        width: 1200,
+        height: 630,
+        alt: "GoAstrion — ShubhDin & Saturn insights",
+      },
+    ],
+    locale: "en_IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GoAstrion — ShubhDin, Saturn & Free Vedic Birth Chart",
+    description: defaultDescription,
+    images: ["/og/og-home.jpg"],
+  },
+  robots: { index: true, follow: true },
+  other: { "google-adsense-account": "ca-pub-4635077618810431" },
+};
+
+// If you prefer JSON-LD via <Script />, keep your existing ORG/WEBSITE objects here
+const ORG = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "GoAstrion",
+  url: SITE_URL,
+  logo: SITE_URL + "/logo.png",
+};
+
+const WEBSITE = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "GoAstrion",
+  url: SITE_URL,
+  potentialAction: {
+    "@type": "SearchAction",
+    target: SITE_URL + "/search?q={query}",
+    query: "required",
+  },
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-[#0B1020] text-slate-200 flex flex-col">
-
-        {/* GA4 (kept as-is) */}
+        {/* GA4 */}
         {GA_ID && (
           <>
             <Script
               strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
             />
-            <Script id="ga4-init" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-
-                // Consent Mode v2 defaults (safe)
-                gtag('consent','default', {
-                  ad_storage: 'denied',
-                  analytics_storage: 'granted',
-                  ad_user_data: 'denied',
-                  ad_personalization: 'denied'
-                });
-
-                gtag('js', new Date());
-                gtag('config', '${GA_ID}', { send_page_view: false, transport_type: 'beacon' });
-              `}
-            </Script>
+            <Script id="ga4-init" strategy="afterInteractive">{`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              // Consent Mode v2 defaults (safe)
+              gtag('consent','default', {
+                ad_storage: 'denied',
+                analytics_storage: 'granted',
+                ad_user_data: 'denied',
+                ad_personalization: 'denied'
+              });
+              gtag('js', new Date());
+              gtag('config', '${GA_ID}', { send_page_view: false, transport_type: 'beacon' });
+            `}</Script>
           </>
         )}
 
-        {/* AdSense loader (Auto ads enabled in AdSense UI).
-            Loads only in prod when ENABLE_ADS=true and client is set. */}
+        {/* AdSense loader (Auto ads toggled in AdSense UI). */}
         {ENABLE_ADS && ADS_CLIENT && (
           <Script
             id="adsense-init"
@@ -81,6 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
         />
+
         <ConsentBanner />
         <I18nProvider>
           <Suspense fallback={null}>
