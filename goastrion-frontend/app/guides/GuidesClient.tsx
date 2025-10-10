@@ -1,7 +1,9 @@
+// app/guides/GuidesClient.tsx
 "use client";
 
 import Link from "next/link";
 import { useI18n } from "../lib/i18n";
+import AdSlot from "../components/AdSlot"; // ⬅️ NEW
 
 export default function GuidesClient() {
   const { t } = useI18n();
@@ -82,6 +84,12 @@ export default function GuidesClient() {
             href="/domains/health"
           />
         </div>
+
+        {/* Ad: mid placement (after topics) */}
+        <div className="mt-6">
+          {/* Replace GUIDES_MID_SLOT_ID with your numeric slot id */}
+          <AdSlot slot="2330813816" minHeight={300} />
+        </div>
       </section>
 
       {/* Quick Q&A */}
@@ -91,6 +99,14 @@ export default function GuidesClient() {
           <QA q={t("guides.qa.q2.q")} a={t("guides.qa.q2.a")} />
           <QA q={t("guides.qa.q3.q")} a={t("guides.qa.q3.a")} />
           <QA q={t("guides.qa.q4.q")} a={t("guides.qa.q4.a")} />
+        </div>
+      </section>
+
+      {/* Ad: end-of-page (above CTA) */}
+      <section className="max-w-6xl mx-auto px-4">
+        <div className="mt-2">
+          {/* Replace GUIDES_END_SLOT_ID with your numeric slot id */}
+          <AdSlot slot="9391563109" minHeight={280} />
         </div>
       </section>
 

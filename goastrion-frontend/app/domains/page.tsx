@@ -7,10 +7,10 @@ import ChartWithHighlights from "../components/ChartWithHighlights";
 import {
   loadCreateState,
   fetchInsights,
-  // type InsightsResponse as InsightsResponseClient, // removed: unused
   type DomainItem as DomainItemClient,
 } from "../lib/insightsClient";
 import { useHighlight } from "../hooks/useSkillHighlight";
+import AdSlot from "../components/AdSlot"; // ⬅️ NEW
 
 /* ---------- Safari-safe datetime helper (same as Create page) ---------- */
 type TzId = "IST" | "UTC";
@@ -42,8 +42,6 @@ const HOUSE_GLOSS_FALLBACK: Record<number, string> = {
   11: "Gains, networks",
   12: "Retreat, expenses",
 };
-
-
 
 const ASPECT_TONE_FALLBACK: Record<string, string> = {
   Trine: "harmonious",
@@ -135,9 +133,7 @@ export default function DomainsPage() {
 
   // i18n accessors with fallbacks
   const houseGloss = (h: number) => tf(`insights.housesGloss.${h}`, HOUSE_GLOSS_FALLBACK[h] ?? "");
-  // const houseShort = (h: number) => houseGloss(h).split(",")[0] || t("insights.ui.house"); // removed: unused
   const houseOrdinal = (h: number) => tf(`insights.housesOrdinal.${h}`, `${h}th`);
-  // const planetGloss = (p: string) => tf(`insights.planetsGloss.${p}`, PLANET_GLOSS_FALLBACK[p] ?? ""); // removed: unused
   const aspectTone = (name: string) => tf(`insights.aspectTone.${name}`, ASPECT_TONE_FALLBACK[name] ?? "");
 
   const [domains, setDomains] = useState<DomainItemClient[]>([]);
@@ -317,18 +313,26 @@ export default function DomainsPage() {
               )}
             </div>
           </div>
+
+          {/* Sidebar ad (desktop only) */}
+          <div className="mt-4 hidden lg:block">
+            <AdSlot slot="8600708697" minHeight={600} />
+          </div>
         </aside>
 
         {/* RIGHT: domain cards */}
         <section className="lg:col-span-7 grid md:grid-cols-2 gap-6">
-          {(domains ?? []).map((d) => {
+          {(domains ?? []).map((d, idx) => {
             const houses = d.highlights?.houses ?? [];
             const planets = d.highlights?.planets ?? [];
             const aspects = d.highlights?.aspects ?? [];
 
-            const houseOccupants = uniqStr(houses.flatMap((h) => occupantsForHouse(h)));
-            const aspectPlanets = uniqStr(aspects.flatMap((a) => [a.p1, a.p2]));
-            const allForDomainRaw = uniqStr([...houseOccupants, ...planets, ...aspectPlanets]);
+            const occupantsForHouseLocal = (h: number): string[] => ctxHouses[String(h)] ?? [];
+            const uniqStrLocal = (arr: string[]) => Array.from(new Set(arr)).filter(Boolean);
+
+            const houseOccupants = uniqStrLocal(houses.flatMap((h) => occupantsForHouseLocal(h)));
+            const aspectPlanets = uniqStrLocal(aspects.flatMap((a) => [a.p1, a.p2]));
+            const allForDomainRaw = uniqStrLocal([...houseOccupants, ...planets, ...aspectPlanets]);
 
             // Convert every list we send to the highlighter to *visible localized* names
             const allForDomainVisible = toVisiblePlanets(allForDomainRaw);
@@ -336,7 +340,7 @@ export default function DomainsPage() {
             const parts = buildOption2Parts(d);
             const tierKey = d.tier ? `insights.tiers.${d.tier}` : undefined;
 
-            // Build handlers with *localized* names (typed, not any)
+            // Build handlers with *localized* names
             const housesHandlers: HandlerProps | null = parts.housesLine
               ? makeInteractiveHandlers(toVisiblePlanets(parts.housesLine.planets), setPreviewPlanets, lockReplace)
               : null;
@@ -371,14 +375,9 @@ export default function DomainsPage() {
 
                 {/* Localized sentences (interactive) */}
                 <div className="mt-3 text-sm text-slate-300 leading-6 space-y-1.5">
+                  {parts.housesLine && <div {...housesHandlers!}>{parts.housesLine.text}</div>}
 
-                  {parts.housesLine && (
-                    <div {...housesHandlers!}>{parts.housesLine.text}</div>
-                  )}
-
-                  {parts.planetsLine && (
-                    <div {...planetsHandlers!}>{parts.planetsLine.text}</div>
-                  )}
+                  {parts.planetsLine && <div {...planetsHandlers!}>{parts.planetsLine.text}</div>}
 
                   {parts.aspectsItems.length > 0 && (
                     <div>
@@ -386,14 +385,14 @@ export default function DomainsPage() {
                         {parts.aspectsHeader}
                       </div>
                       <ul className="mt-1 list-disc list-inside space-y-1">
-                        {parts.aspectsItems.map((it, idx) => {
+                        {parts.aspectsItems.map((it, i) => {
                           const liHandlers = makeInteractiveHandlers(
                             toVisiblePlanets(it.planets),
                             setPreviewPlanets,
                             lockReplace
                           );
                           return (
-                            <li key={idx}>
+                            <li key={i}>
                               <span {...liHandlers}>{it.text}</span>
                             </li>
                           );
@@ -415,10 +414,22 @@ export default function DomainsPage() {
                     </button>
                   )}
                 </div>
+
+                {/* Mid-feed ad after 3rd card (index 2) */}
+                {idx === 2 && (
+                  <div className="mt-4 md:col-span-2">
+                    <AdSlot slot="2470931531" minHeight={300} />
+                  </div>
+                )}
               </div>
             );
           })}
         </section>
+      </div>
+
+      {/* End-of-page ad */}
+      <div className="mt-6">
+        <AdSlot slot="3156810322" minHeight={280} />
       </div>
     </Container>
   );

@@ -1,3 +1,4 @@
+//component/CreateChartClient.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -6,6 +7,8 @@ import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
 import Link from "next/link";
 import ShubhDinInline from "./shubhdin/ShubhDinInline"; // ⬅️ NEW
+import AdSlot from "./AdSlot";
+
 
 // ---- locale dictionary helper types (for strict typing, no `any`) ----
 type Dictionaries = typeof dictionaries;
@@ -679,7 +682,10 @@ export default function CreateChartClient() {
                 </ul>
               </div>
             </div>
-
+                {/* Ad: results mid-placement (good viewability) */}
+            <div className="mt-6">
+              <AdSlot slot="4741871653" minHeight={300} />
+            </div>
             {/* >>> ShubhDin BETWEEN Summary and Dasha <<< */}
             {dob && tob && lat && lon && (
               <div className="mt-6">
@@ -699,7 +705,11 @@ export default function CreateChartClient() {
                 {renderDashaSection()}
               </div>
             )}
-          </>
+            {/* Ad: end-of-page */}
+        <div className="mt-6">
+          <AdSlot slot="4741871653" minHeight={280} />
+        </div>
+              </>
         )}
       </div>
 

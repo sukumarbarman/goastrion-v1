@@ -4,6 +4,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useI18n } from "../lib/i18n"; // adjust if your path differs
+import AdSlot from "./AdSlot";        // ⬅️ NEW
 
 export default function AboutPage() {
   const { t } = useI18n();
@@ -93,6 +94,12 @@ export default function AboutPage() {
             </p>
           </div>
         </div>
+
+        {/* Ad: mid placement (under spotlight card) */}
+        <div className="mt-6">
+          {/* Replace ABOUT_MID_SLOT_ID with your numeric slot id, e.g., 6781603832 */}
+          <AdSlot slot="8474793602" minHeight={300} />
+        </div>
       </section>
 
       {/* ── Main body (tightened copy) ─────────────────────────────────── */}
@@ -141,6 +148,14 @@ export default function AboutPage() {
             fill
             className="object-cover"
           />
+        </div>
+      </section>
+
+      {/* Ad: end-of-page placement (before mission) */}
+      <section className="max-w-6xl mx-auto px-4">
+        <div className="mt-2">
+          {/* Replace ABOUT_END_SLOT_ID with your numeric slot id */}
+          <AdSlot slot="1676207691" minHeight={280} />
         </div>
       </section>
 

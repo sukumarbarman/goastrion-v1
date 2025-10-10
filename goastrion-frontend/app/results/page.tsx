@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Container from "../components/Container";
 import PrintButton from "../components/PrintButton";
+import AdSlot from "../components/AdSlot"; // ⬅️ NEW
 
 export const metadata = {
   title: "Sample Report · GoAstrion",
@@ -120,6 +121,11 @@ export default function SampleResultsPage() {
               </div>
             ))}
           </div>
+
+          {/* Ad: mid placement after Life Wheel (good viewability) */}
+          <div className="mt-6">
+            <AdSlot slot="6319403551" minHeight={300} />
+          </div>
         </section>
 
         {/* Skills */}
@@ -200,6 +206,11 @@ export default function SampleResultsPage() {
             matters. Pair ShubhDin windows with small, repeatable actions—sleep, study blocks, budgeting—to exit stronger.
           </p>
         </section>
+
+        {/* Ad: end-of-page */}
+        <div className="mt-8">
+          <AdSlot slot="8653196509" minHeight={280} />
+        </div>
 
         {/* Footer CTA */}
         <div className="mt-10 flex flex-wrap gap-3">
