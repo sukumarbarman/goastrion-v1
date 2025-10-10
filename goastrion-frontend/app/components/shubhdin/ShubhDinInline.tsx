@@ -32,7 +32,7 @@ type BackendResult = {
 
 type BackendResponse = {
   query_id: string;
-  generated_at: string;   // UTC ISO
+  generated_at: string; // UTC ISO
   tz?: string;
   horizon_months?: number;
   confidence_overall?: string;
@@ -41,25 +41,16 @@ type BackendResponse = {
 
 type TzId = "IST" | "UTC";
 
-type Props = {
-  /** Anchor moment in UTC ISO (use NOW) */
-  datetime: string;
-  lat: number;
-  lon: number;
-  tzId?: TzId;                 // default IST
-  horizonMonths?: number;      // default 24
-  /** If provided, backend may tailor scoring, but we still render ALL goals */
-  goal?: string;               // optional hint for backend
-  // ====== optional props you had in caller; keep for compatibility ======
-  variant?: "smart";
-  displayMode?: "all" | "single";
-};
-
-const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0 };
+/* ---------- Local i18n arg type (matches your t’s KeyArgs) ---------- */
+type KeyArgs = Record<string, string | number>;
 
 /* ---------- Helpers ---------- */
 function ensureDate(d: string) {
-  try { return new Date(d); } catch { return null as unknown as Date; }
+  try {
+    return new Date(d);
+  } catch {
+    return null as unknown as Date;
+  }
 }
 function fmtLocalDate(d: string, locale?: string) {
   const dt = ensureDate(d);
@@ -69,35 +60,31 @@ function fmtLocalDate(d: string, locale?: string) {
 
 /** Render server i18n items (array of {key,args}) via t(); fallback to nothing if key missing */
 function renderItemsT(
-  t: (k: string, v?: Record<string, unknown>) => string,
+  t: (k: string, v?: KeyArgs) => string,
   items?: Array<{ key: string; args?: Record<string, unknown> }>
 ): string[] {
   if (!items || !Array.isArray(items)) return [];
-  return items.map(({ key, args }) => t(key, args));
+  return items.map(({ key, args }) => t(key, args as KeyArgs | undefined));
 }
 
 /** Render tags_t (each item) using t(); if a key isn’t found, fallback by composing known patterns */
 function renderTagsT(
-  t: (k: string, v?: Record<string, unknown>) => string,
+  t: (k: string, v?: KeyArgs) => string,
   tags_t?: BackendDate["tags_t"]
 ): string[] {
   if (!tags_t || !Array.isArray(tags_t)) return [];
   return tags_t.map(({ key, args }) => {
-    const out = t(key, args);
+    const out = t(key, args as KeyArgs | undefined);
     // if t returned the key name (missing), try known patterns:
     if (out === key && args) {
-      // known patterns we emit from backend:
-      // sd.aspect.tag => "{p1} {name} -> {p2}"
-      // sd.dasha.md   => "MD:{lord}"
-      // sd.dasha.ad   => "AD:{lord}"
       if (key === "sd.aspect.tag") {
-        return t("sd.aspect.tag", args); // will still be the key if missing, but keeps consistency
+        return t("sd.aspect.tag", args as KeyArgs);
       }
       if (key === "sd.dasha.md") {
-        return t("sd.dasha.md", args);
+        return t("sd.dasha.md", args as KeyArgs);
       }
       if (key === "sd.dasha.ad") {
-        return t("sd.dasha.ad", args);
+        return t("sd.dasha.ad", args as KeyArgs);
       }
     }
     return out;
@@ -106,18 +93,19 @@ function renderTagsT(
 
 /** Headline: prefer headline_t; if absent, use headline string */
 function renderHeadline(
-  t: (k: string, v?: Record<string, unknown>) => string,
+  t: (k: string, v?: KeyArgs) => string,
   r: BackendResult,
   locale?: string
 ): string | undefined {
   if (r.headline_t?.key === "sd.headline.best_windows") {
-    const spans = (r.headline_t.args?.spans as Array<{start:string;end:string;days:number}>) || [];
-    const parts = spans.map(s =>
+    const spans =
+      (r.headline_t.args?.["spans"] as Array<{ start: string; end: string; days: number }>) || [];
+    const parts = spans.map((s) =>
       t("sd.headline.span", {
         start: fmtLocalDate(s.start, locale),
         end: fmtLocalDate(s.end, locale),
         days: s.days,
-      })
+      } as KeyArgs)
     );
     // prefix is localized too
     return t("sd.headline.prefix") + parts.join(t("sd.join.comma"));
@@ -128,21 +116,21 @@ function renderHeadline(
 
 /* ---------- UI: GoalCard ---------- */
 function GoalCard({ r }: { r: BackendResult }) {
-  const { t, locale } = useI18n(); // we exposed locale in context earlier
+  const { t, locale } = useI18n(); // t: (key: string, vars?: KeyArgs) => string
   const windows = r.windows ?? [];
   const cautionDays = r.caution_days ?? [];
 
   // Prefer localized explain/cautions if present
-  const explain = r.explain_t ? renderItemsT(t, r.explain_t) : (r.explain ?? []);
-  const cautions = r.cautions_t ? renderItemsT(t, r.cautions_t) : (r.cautions ?? []);
+  const explain = r.explain_t ? renderItemsT(t, r.explain_t) : r.explain ?? [];
+  const cautions = r.cautions_t ? renderItemsT(t, r.cautions_t) : r.cautions ?? [];
 
   // Headline
   const headline = renderHeadline(t, r, locale);
 
   // Dates (top date row) – render tags_t if present
-  const dates = (r.dates ?? []).map(d => ({
+  const dates = (r.dates ?? []).map((d) => ({
     ...d,
-    tags: d.tags_t ? renderTagsT(t, d.tags_t) : (d.tags ?? []),
+    tags: d.tags_t ? renderTagsT(t, d.tags_t) : d.tags ?? [],
   }));
 
   return (
@@ -151,7 +139,6 @@ function GoalCard({ r }: { r: BackendResult }) {
         <div className="text-white font-semibold capitalize">
           {t(`sd.goals.${r.goal}`) !== `sd.goals.${r.goal}` ? t(`sd.goals.${r.goal}`) : r.goal.replace(/_/g, " ")}
         </div>
-
       </div>
 
       {headline && <div className="text-slate-300 text-sm mb-2">{headline}</div>}
@@ -206,10 +193,12 @@ function GoalCard({ r }: { r: BackendResult }) {
         <div className="mb-3">
           <div className="mb-1 text-sm font-medium text-amber-300">{t("sd.caution.title")}</div>
           <ul className="list-disc pl-5 space-y-1 text-sm text-amber-100">
-            {cautions.map((c, i) => <li key={`c-${i}`}>{c}</li>)}
+            {cautions.map((c, i) => (
+              <li key={`c-${i}`}>{c}</li>
+            ))}
             {cautionDays.length > 0 && (
               <li key="cdays">
-                {t("sd.caution.days")}: {cautionDays.map(d => fmtLocalDate(d, locale)).join(", ")}
+                {t("sd.caution.days")}: {cautionDays.map((d) => fmtLocalDate(d, locale)).join(", ")}
               </li>
             )}
           </ul>
@@ -220,26 +209,44 @@ function GoalCard({ r }: { r: BackendResult }) {
         <div>
           <div className="mb-1 text-sm font-medium text-slate-300">{t("sd.why.title")}</div>
           <ul className="list-disc pl-5 space-y-1 text-sm text-slate-200">
-            {explain.map((s, i) => <li key={`e-${i}`}>{s}</li>)}
+            {explain.map((s, i) => (
+              <li key={`e-${i}`}>{s}</li>
+            ))}
           </ul>
         </div>
       )}
 
       {windows.length === 0 && cautions.length === 0 && explain.length === 0 && dates.length === 0 && (
-        <div className="text-sm text-white/70">{/* Keep a localized generic fallback if you add one */}</div>
+        <div className="text-sm text-white/70">{/* Optional: localized generic fallback */}</div>
       )}
     </div>
   );
 }
 
 /* ---------- Main component ---------- */
+type Props = {
+  /** Anchor moment in UTC ISO (use NOW) */
+  datetime: string;
+  lat: number;
+  lon: number;
+  tzId?: TzId; // default IST
+  horizonMonths?: number; // default 24
+  /** If provided, backend may tailor scoring, but we still render ALL goals */
+  goal?: string; // optional hint for backend
+  // ====== optional props you had in caller; keep for compatibility ======
+  variant?: "smart";
+  displayMode?: "all" | "single";
+};
+
+const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0 };
+
 export default function ShubhDinInline({
   datetime,
   lat,
   lon,
   tzId = "IST",
   horizonMonths = 24,
-  goal, // optional hint to backend
+  goal,
 }: Props) {
   const { t, locale } = useI18n();
   const [resp, setResp] = useState<BackendResponse | null>(null);
@@ -278,7 +285,9 @@ export default function ShubhDinInline({
       }
     }
     run();
-    return () => { abort = true; };
+    return () => {
+      abort = true;
+    };
   }, [datetime, lat, lon, tzOffsetHours, horizonMonths, goal]);
 
   const results = useMemo(() => resp?.results ?? [], [resp]);
@@ -301,19 +310,17 @@ export default function ShubhDinInline({
               ))}
             </div>
           ) : (
-            <div className="text-sm text-white/80">
-              {/* Optional: t("sd.no_windows") if you add it */}
-            </div>
+            <div className="text-sm text-white/80">{/* Optional: t("sd.no_windows") */}</div>
           )}
 
           <div className="pt-2 text-xs text-white/50">
-            {/* “Generated … TZ …” could be localized later if desired */}
             {t("sd.generated_at", {
-              // If you add this key, you can localize the line.
-              // Example: "Generated {dt} • TZ: {tz}"
-              dt: resp.generated_at ? new Date(resp.generated_at).toLocaleString(locale) : new Date().toLocaleString(locale),
+              dt: resp.generated_at
+                ? new Date(resp.generated_at).toLocaleString(locale)
+                : new Date().toLocaleString(locale),
               tz: tzId,
-            }) || `${new Date(resp.generated_at || Date.now()).toLocaleString(locale)} • TZ: ${tzId}`}
+            } as KeyArgs) ||
+              `${new Date(resp.generated_at || Date.now()).toLocaleString(locale)} • TZ: ${tzId}`}
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
-import { useI18n } from "../../lib/i18n";
+import { useI18n } from "../lib/i18n";
 
 /* ---------- Types: backend shape (extended to include *_t) ---------- */
 type BackendSpan = { start: string; end: string; days?: number };
