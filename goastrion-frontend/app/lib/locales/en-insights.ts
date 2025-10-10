@@ -1,5 +1,3 @@
-// app/lib/locales/en-insights.ts
-
 const enInsights = {
   insights: {
     copy: {
@@ -47,21 +45,10 @@ const enInsights = {
     },
 
     housesOrdinal: {
-      1: "1st",
-      2: "2nd",
-      3: "3rd",
-      4: "4th",
-      5: "5th",
-      6: "6th",
-      7: "7th",
-      8: "8th",
-      9: "9th",
-      10: "10th",
-      11: "11th",
-      12: "12th",
+      1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th",
+      7: "7th", 8: "8th", 9: "9th", 10: "10th", 11: "11th", 12: "12th",
     },
 
-    // chip tone used by UI & copy
     aspectTone: {
       Conjunction: "intense",
       Opposition: "polarizing",
@@ -123,7 +110,6 @@ const enInsights = {
       house: "House",
     },
 
-    // labels for the aspects list
     aspect: {
       Conjunction: "Conjunction",
       Opposition: "Opposition",
@@ -132,7 +118,6 @@ const enInsights = {
       Sextile: "Sextile",
     },
 
-    // used by any tier badge
     tiers: {
       weak: "Weak",
       moderate: "Moderate",
@@ -142,47 +127,31 @@ const enInsights = {
 
     actions: { highlightAllDomain: "Highlight all for this domain" },
 
-    // Domain cards + per-domain housePresence for insights-i18n fallback
     domains: {
-      career: {
-        title: "Career",
-        chip10th: "10th House",
-        chip6th: "6th House",
-        chip11th: "11th House",
-        housePresence: "Planets in Career Houses",
-      },
-      finance: {
-        title: "Finance",
-        chip2nd: "2nd House",
-        chip11th: "11th House",
-        housePresence: "Planets in Wealth Houses",
-      },
-      health: {
-        title: "Health",
-        chipAsc: "Ascendant",
-        chip6th: "6th House",
-        housePresence: "Planets in Health Houses",
-      },
-      marriage: {
-        title: "Marriage",
-        chip7th: "7th House",
-        housePresence: "Planets in Marriage House",
-      },
-      education: {
-        title: "Education",
-        chip5th: "5th House",
-        housePresence: "Planets in Education Houses",
-      },
+      career:   { title: "Career",   chip10th: "10th House", chip6th: "6th House", chip11th: "11th House", housePresence: "Planets in Career Houses" },
+      finance:  { title: "Finance",  chip2nd: "2nd House", chip11th: "11th House", housePresence: "Planets in Wealth Houses" },
+      health:   { title: "Health",   chipAsc: "Ascendant", chip6th: "6th House", housePresence: "Planets in Health Houses" },
+      marriage: { title: "Marriage", chip7th: "7th House", housePresence: "Planets in Marriage House" },
+      education:{ title: "Education",chip5th: "5th House", housePresence: "Planets in Education Houses" },
+      property: { title: "Property", housePresence: "Property-related houses" },
+      relationships: { title: "Relationships" },
+      business: { title: "Business" },
+      outreach: { title: "Outreach" },
+      home: { title: "Home" },
+      research: { title: "Research" },
+      "inner-work": { title: "Inner work" },
+      "long-term-plans": { title: "Long-term plans" },
+      "hard-negotiations": { title: "Hard negotiations" },
+      "quick-wins": { title: "Quick wins" },
+      "steady-routines": { title: "Steady routines" },
     },
 
-    // Backend flat-key aliases (kept for compatibility)
-    career: { chip10th: "10th House", chip6th: "6th House", chip11th: "11th House" },
-    finance: { chip2nd: "2nd House", chip11th: "11th House" },
-    health: { chipAsc: "Ascendant", chip6th: "6th House" },
+    career:   { chip10th: "10th House", chip6th: "6th House", chip11th: "11th House" },
+    finance:  { chip2nd: "2nd House", chip11th: "11th House" },
+    health:   { chipAsc: "Ascendant", chip6th: "6th House" },
     marriage: { chip7th: "7th House" },
-    education: { chip5th: "5th House" },
+    education:{ chip5th: "5th House" },
 
-    // centralized chip labels
     chip: {
       house_presence: {
         career: "Planets in Career Houses",
@@ -201,8 +170,6 @@ const enInsights = {
       },
       aspectClass: { benefic: "Benefic influence" },
       house: "House",
-
-      // skills chips
       skill: {
         mercury: "Mercury strength",
         venus: "Venus strength",
@@ -224,7 +191,6 @@ const enInsights = {
       },
     },
 
-    // skill card titles (+ alias so insights-i18n can map)
     skills: {
       Analytical: "Analytical Ability",
       Communication: "Communication",
@@ -232,7 +198,6 @@ const enInsights = {
       Creativity: "Creativity",
       Focus: "Focus & Discipline",
       Entrepreneurial: "Entrepreneurial Drive",
-      // fallbacks
       mercury: "Mercury strength",
       venus: "Venus strength",
       sun: "Sun strength",
@@ -242,11 +207,9 @@ const enInsights = {
       rahu10or11: "Rahu in 10th/11th (with support)",
     },
 
-    // for insights-i18n fallback `t('insights.aspectClass.*')`
     aspectClass: { benefic: "Benefic influence" },
   },
 
-  // ----- Root-level aliases so existing calls like t("chip.skill.mercury") still work
   chip: {
     house_presence: {
       career: "Planets in Career Houses",
@@ -285,84 +248,123 @@ const enInsights = {
     },
   },
 
-  // ----- Concise one-liners for goal tooltips/help
-  goalHelp: {
-    job_change: "Target interview/offer windows; polish résumé and schedule calls.",
-    promotion: "Propose raises or new responsibilities; performance reviews land better.",
-    business_start: "Green lights to register, launch, or sign the first paying clients.",
-    business_expand: "Windows to hire, open a branch, add products, or scale capacity.",
-    startup: "Good moments to prototype, pitch investors, or apply to incubators/grants.",
-    property: "Better days for site visits, booking, loan processing, or registration.",
-    marriage: "Supportive dates for engagement, wedding plans, and family discussions.",
-    new_relationship: "Warm social openings for meeting, dating, and commitment talks.",
-  },
-
-  /**
-   * ----- ShubhDin (SD) keys — used across client + server
-   * These cover: titles, goal labels, card headings, dynamic strings, and
-   * all server-emitted *_t keys (sd.headline.*, sd.aspect.tag, sd.dasha.*,
-   * sd.caution.*, sd.explain.*).
-   */
   sd: {
-  title: "ShubhDin — Smart Windows",
-  join: { comma: ", " },
-  view: { label: "View", aria: "Select view mode", all: "All goals", single: "Single goal" },
-  goal: { aria: "Select goal" },
-  goals: {
-    job_change: "Job change",
-    promotion: "Promotion",
-    business_start: "Business start",
-    business_expand: "Business expand",
-    startup: "Startup",
-    property: "Property / Home",
-    marriage: "Marriage",
-    new_relationship: "New relationship",
+    title: "ShubhDin — Smart Windows",
+    join: { comma: ", " },
+    view: { label: "View", aria: "Select view mode", all: "All goals", single: "Single goal" },
+    goal: { aria: "Select goal" },
+    goals: {
+      job_change: "Job change",
+      promotion: "Promotion",
+      business_start: "Business start",
+      business_expand: "Business expand",
+      startup: "Startup",
+      property: "Property / Home",
+      marriage: "Marriage",
+      new_relationship: "New relationship",
+    },
+    prompt_fill_create: "Please fill the Create tab first so we can read your lat/lon/tz from the saved state.",
+    windows: { title: "Best windows" },
+    topday: { title: "Top day" },
+    why: { title: "Why these days?" },
+    caution: {
+      title: "Caution",
+      days: "Caution day(s)",
+      rahukaal: "Avoid {start}-{end} (Rahu Kaal)",
+      watch_combust: "Watch Mercury combust days for clarity",
+      skip_rahukaal_gulika: "Skip Rahu/Gulika windows",
+      no_big_txn: "Please don't finalize deals or make large transactions on: {dates}{more}.",
+    },
+    score: { label: "Score {score}" },
+    headline: { prefix: "Best windows: ", span: "{start} - {end} ({days}d)", best_windows: "{spans}" },
+    aspect: { tag: "{p1} {name} -> {p2}" },
+    generated_at: "Generated {dt} • TZ: {tz}",
+    empty: { goal: "No notable windows for this goal." },
+    explain: {
+      career_houses: "Transit + dasha support career houses (10th/6th).",
+      leverage_date: "Leverage appraisal talks near {date}.",
+      jobchange_core: "Mercury + Jupiter favor offers/interviews; Mars gives momentum (with supportive MD/AD).",
+      startup_green: "Jupiter trine to your natal Sun/Asc with supportive dasha signals green light.",
+      incop_near: "Incorporate near {date} (strong Moon/Nakshatra).",
+      property_core: "Venus + Moon auspicious; Saturn steady for paperwork (dasha-boosted where applicable).",
+      marriage_core: "Venus/Moon strengthened; benefic aspect to 7th lord (dasha-aligned).",
+      particularly_good: "{date} is particularly good.",
+      expand_core: "Jupiter (growth) + Mercury (sales/ops) supportive; Venus aids customer appeal.",
+      use_spans_launches: "Use these spans for launches, partnerships, and opening new locations (dasha-aligned).",
+      start_core_typed: "{type}: Jupiter (expansion) + Mercury (ops/legal) supportive; Venus aids brand/UX (dasha-aligned).",
+      incop_commence_near: "Incorporate/commence near {date} for a strong lunar/nakshatra tone.",
+      relationship_core: "Venus/Moon benefic patterns boost connection and openness (dasha-aligned).",
+      use_spans_social: "Use these spans for first meets, dates, and social events.",
+    },
   },
-  prompt_fill_create: "Please fill the Create tab first so we can read your lat/lon/tz from the saved state.",
-  windows: { title: "Best windows" },
-  topday: { title: "Top day" },
-  why: { title: "Why these days?" },
 
-  // ✅ merged into ONE object
-  caution: {
-    title: "Caution",
-    days: "Caution day(s)",
-    rahukaal: "Avoid {start}-{end} (Rahu Kaal)",
-    watch_combust: "Watch Mercury combust days for clarity",
-    skip_rahukaal_gulika: "Skip Rahu/Gulika windows",
-    no_big_txn: "Please don't finalize deals or make large transactions on: {dates}{more}.",
-  },
+  dasha: {
+    sectionTitle: "Vimshottari — Timeline",
+    titleFullTimeline: "Vimshottari Mahadasha — Full Timeline",
+    colLord: "Lord",
+    colStart: "Start",
+    colEnd: "End",
+    colDuration: "Duration",
+    colADLord: "Antardasha Lord",
+    noAntardasha: "No antardasha data",
+    prevADTitle: "Previous AD",
+    curADTitle: "Current AD",
+    nextADTitle: "Next AD",
+    mdLabel: "MD",
+    adLabel: "AD",
+    noCurrentAD: "No current AD found",
+    nextADShort: "Next AD",
 
-  score: { label: "Score {score}" },
-  headline: {
-    prefix: "Best windows: ",
-    span: "{start} - {end} ({days}d)",
-    best_windows: "{spans}",
-  },
+    summary: {
+      // readable one-liners
+      readable: "You're in {md} Mahadasha, {ad} Antardasha.",
+      prevReadable: "Last AD in {md} Mahadasha: {ad}.",
+      nextReadable: "First AD in {md} Mahadasha will be: {ad}.",
 
-  aspect: { tag: "{p1} {name} -> {p2}" },
-  dasha: { md: "MD:{lord}", ad: "AD:{lord}" },
+      // labels
+      themesLabel: "Themes",
+      adviceLabel: "Advice",
+      goodFor: "Good for",
+      goSlow: "Go-slow in",
+      firstADLabel: "First AD",
+      lastADLabel: "Last AD",
 
-  generated_at: "Generated {ts} • TZ: {tz}",
-  empty: { goal: "No notable windows for this goal." },
+      planet: {
+        Sun:    { themes: "visibility, leadership, authority", advice: "own responsibilities; present confidently" },
+        Moon:   { themes: "nurture, rhythm, wellbeing",        advice: "prioritize rest and steady routines" },
+        Mars:   { themes: "drive, initiative, courage",         advice: "channel energy; act with focus" },
+        Mercury:{ themes: "study, writing, negotiation",        advice: "clarify details; document decisions" },
+        Jupiter:{ themes: "growth, teaching, guidance",         advice: "learn, mentor, and expand wisely" },
+        Venus:  { themes: "harmony, partnership, aesthetics",   advice: "invest in relationships and goodwill" },
+        Saturn: { themes: "structure, duty, perseverance",      advice: "show up consistently; build habits" },
+        Rahu:   { themes: "ambition, outreach, unconventional", advice: "aim high; manage risks and optics" },
+        Ketu:   { themes: "focus, detachment, insight",         advice: "simplify, reflect, and refine" }
+      },
 
-  // (optional) explanations used by explain_t
-  explain: {
-    career_houses: "Transit + dasha support career houses (10th/6th).",
-    leverage_date: "Leverage appraisal talks near {date}.",
-    jobchange_core: "Mercury + Jupiter favor offers/interviews; Mars gives momentum (with supportive MD/AD).",
-    startup_green: "Jupiter trine to your natal Sun/Asc with supportive dasha signals green light.",
-    incop_near: "Incorporate near {date} (strong Moon/Nakshatra).",
-    property_core: "Venus + Moon auspicious; Saturn steady for paperwork (dasha-boosted where applicable).",
-    marriage_core: "Venus/Moon strengthened; benefic aspect to 7th lord (dasha-aligned).",
-    particularly_good: "{date} is particularly good.",
-    expand_core: "Jupiter (growth) + Mercury (sales/ops) supportive; Venus aids customer appeal.",
-    use_spans_launches: "Use these spans for launches, partnerships, and opening new locations (dasha-aligned).",
-    start_core_typed: "{type}: Jupiter (expansion) + Mercury (ops/legal) supportive; Venus aids brand/UX (dasha-aligned).",
-    incop_commence_near: "Incorporate/commence near {date} for a strong lunar/nakshatra tone.",
-    relationship_core: "Venus/Moon benefic patterns boost connection and openness (dasha-aligned).",
-    use_spans_social: "Use these spans for first meets, dates, and social events.",
-  },
+      affinities: {
+        Sun:    { good: ["career", "leadership", "education"],          slow: ["relationships"] },
+        Moon:   { good: ["health", "relationships", "home"],            slow: ["career"] },
+        Mars:   { good: ["career", "business", "property"],             slow: ["relationships"] },
+        Mercury:{ good: ["career", "education", "business"],            slow: ["property"] },
+        Jupiter:{ good: ["education", "career", "finance"],             slow: [] },
+        Venus:  { good: ["relationships", "marriage", "property"],      slow: ["hard-negotiations"] },
+        Saturn: { good: ["career", "long-term-plans", "property"],      slow: ["quick-wins", "relationships"] },
+        Rahu:   { good: ["career", "business", "outreach"],             slow: ["steady-routines"] },
+        Ketu:   { good: ["research", "education", "inner-work"],        slow: ["flashy-launches"] },
+      },
+
+      affinitiesText: {
+        Sun:    { good: "Career, Leadership, Education",          slow: "Relationships" },
+        Moon:   { good: "Health, Relationships, Home",            slow: "Career" },
+        Mars:   { good: "Career, Business, Property",             slow: "Relationships" },
+        Mercury:{ good: "Career, Education, Business",            slow: "Property" },
+        Jupiter:{ good: "Education, Career, Finance",             slow: "" },
+        Venus:  { good: "Relationships, Marriage, Property",      slow: "Hard negotiations" },
+        Saturn: { good: "Career, Long-term plans, Property",      slow: "Quick wins, Relationships" },
+        Rahu:   { good: "Career, Business, Outreach",             slow: "Steady routines" },
+        Ketu:   { good: "Research, Education, Inner work",        slow: "Flashy launches" },
+      },
+    },
   },
 } as const;
 

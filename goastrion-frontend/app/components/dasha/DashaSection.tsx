@@ -17,8 +17,46 @@ function planetLabel(eng: string, t: (k: string)=>string) {
   };
   return map[k] || eng;
 }
+const lower = (s: string) => s?.toLowerCase?.() ?? s;
+const hasKey = (t: (k:string)=>string, k: string) => t(k) !== k;
 
-/* ---- Small blocks ---- */
+// Try array-based key first; fallback to comma text; finally []
+function listFromI18n(t: (k:string)=>string, planet: string, kind: "good"|"slow"): string[] {
+  const kArr = `dasha.summary.affinities.${planet}.${kind}`;
+  const kTxt = `dasha.summary.affinitiesText.${planet}.${kind}`;
+  if (hasKey(t, kArr)) {
+    try {
+      const v = (t as unknown as (k:string)=>unknown)(kArr);
+      if (Array.isArray(v)) return v as string[];
+    } catch {}
+  }
+  if (hasKey(t, kTxt)) {
+    const s = t(kTxt);
+    return String(s).split(",").map(x => x.trim()).filter(Boolean);
+  }
+  return [];
+}
+
+// Map custom domain keys to titles
+function titleForDomain(key: string, t: (k:string)=>string) {
+  const path = `insights.domains.${key}.title`;
+  const v = t(path);
+  if (v !== path) return v;
+  const fallback: Record<string,string> = {
+    business: "Business",
+    outreach: "Outreach",
+    "long-term-plans": "Long-term plans",
+    "hard-negotiations": "Hard negotiations",
+    "quick-wins": "Quick wins",
+    "steady-routines": "Steady routines",
+    research: "Research",
+    "inner-work": "Inner work",
+    home: "Home",
+  };
+  return fallback[key] || key.replace(/-/g, " ");
+}
+
+/* ---- Tables ---- */
 function MDTable({ v }: { v: DashaTimeline }) {
   const { t } = useI18n();
   return (
@@ -88,32 +126,124 @@ function ADTable({ title, md, v }: { title: string; md: Period; v: DashaTimeline
   );
 }
 
-/* ---- Tiny summaries for Current/Next AD ---- */
-function ADSummary({ label, md, adList }: { label: string; md: Period; adList: Period[] }) {
+/* ---- Summaries (cur/prev/next) ---- */
+function ADSummary({
+  label,
+  variant,
+  md,
+  adList,
+}: {
+  label: string;
+  variant: "cur" | "prev" | "next";
+  md: Period;
+  adList: Period[];
+}) {
   const { t } = useI18n();
-  // derive current AD within md:
   const now = Date.now();
-  const curAd = adList.find(a => now >= new Date(a.start).getTime() && now < new Date(a.end).getTime());
-  const nextAd = (() => {
-    if (!curAd) return adList[0];
-    const i = adList.findIndex(a => a.start === curAd.start && a.lord === curAd.lord);
-    return i >= 0 && i + 1 < adList.length ? adList[i + 1] : undefined;
-  })();
+
+  const curAd =
+    variant === "cur"
+      ? adList.find(a => now >= new Date(a.start).getTime() && now < new Date(a.end).getTime())
+      : undefined;
+
+  const firstAd = adList?.[0];
+  const lastAd  = adList?.[adList.length - 1];
+
+  const nextAd =
+    variant === "cur"
+      ? (() => {
+          if (!adList?.length) return undefined;
+          if (!curAd) return adList[0];
+          const i = adList.findIndex(a => a.start === curAd.start && a.lord === curAd.lord);
+          return i >= 0 && i + 1 < adList.length ? adList[i + 1] : undefined;
+        })()
+      : undefined;
+
+  // Determine which AD to present & the readable line
+  let showAd: Period | undefined;
+  let readable = "";
+  let whenLabel = "";
+
+  if (variant === "cur") {
+    showAd = curAd;
+    readable = showAd
+      ? t("dasha.summary.readable", { md: planetLabel(md.lord, t), ad: planetLabel(showAd.lord, t) })
+      : t("dasha.noCurrentAD");
+  } else if (variant === "prev") {
+    showAd = lastAd;
+    if (showAd) {
+      readable = t("dasha.summary.prevReadable", { md: planetLabel(md.lord, t), ad: planetLabel(showAd.lord, t) });
+      whenLabel = t("dasha.summary.lastADLabel");
+    } else {
+      readable = t("dasha.noAntardasha"); // no list for that MD
+    }
+  } else {
+    showAd = firstAd;
+    if (showAd) {
+      readable = t("dasha.summary.nextReadable", { md: planetLabel(md.lord, t), ad: planetLabel(showAd.lord, t) });
+      whenLabel = t("dasha.summary.firstADLabel");
+    } else {
+      readable = t("dasha.noAntardasha");
+    }
+  }
+
+  // Guidance (themes/advice + good/slow) only when we have an AD to name
+  const adLord = showAd?.lord;
+  const adKeyBase = adLord ? `dasha.summary.planet.${lower(adLord)}` : "";
+  const hasThemes = !!adLord && hasKey(t, `${adKeyBase}.themes`);
+  const hasAdvice = !!adLord && hasKey(t, `${adKeyBase}.advice`);
+  const goodList = adLord ? listFromI18n(t, adLord, "good") : [];
+  const slowList = adLord ? listFromI18n(t, adLord, "slow") : [];
 
   return (
     <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
       <div className="font-semibold text-white mb-1">{label}</div>
-      {curAd ? (
+
+      <div className="text-slate-200">{readable}</div>
+
+      {showAd && (
         <>
-          <div className="text-slate-200">
-            {t("dasha.mdLabel")} {planetLabel(md.lord, t)} · {t("dasha.adLabel")} {planetLabel(curAd.lord, t)}
+          <div className="text-slate-400">
+            {whenLabel ? `${whenLabel}: ` : ""}{fmtDate(showAd.start)} → {fmtDate(showAd.end)}
           </div>
-          <div className="text-slate-400">{fmtDate(curAd.start)} → {fmtDate(curAd.end)}</div>
+
+          {(hasThemes || hasAdvice) && (
+            <div className="mt-2 space-y-1 text-xs">
+              {hasThemes && (
+                <div className="text-slate-300">
+                  <span className="font-medium">{t("dasha.summary.themesLabel")}:</span>{" "}
+                  {t(`${adKeyBase}.themes`)}
+                </div>
+              )}
+              {hasAdvice && (
+                <div className="text-slate-300">
+                  <span className="font-medium">{t("dasha.summary.adviceLabel")}:</span>{" "}
+                  {t(`${adKeyBase}.advice`)}
+                </div>
+              )}
+            </div>
+          )}
+
+          {(goodList.length > 0 || slowList.length > 0) && (
+            <div className="mt-2 text-xs space-y-1">
+              {goodList.length > 0 && (
+                <div className="text-emerald-200">
+                  <span className="font-medium">{t("dasha.summary.goodFor")}:</span>{" "}
+                  {goodList.map((k) => titleForDomain(k, t)).join(", ")}
+                </div>
+              )}
+              {slowList.length > 0 && (
+                <div className="text-amber-200">
+                  <span className="font-medium">{t("dasha.summary.goSlow")}:</span>{" "}
+                  {slowList.map((k) => titleForDomain(k, t)).join(", ")}
+                </div>
+              )}
+            </div>
+          )}
         </>
-      ) : (
-        <div className="text-slate-400">{t("dasha.noCurrentAD")}</div>
       )}
-      {nextAd && (
+
+      {variant === "cur" && nextAd && (
         <div className="mt-2 text-slate-300">
           {t("dasha.nextADShort")}: {planetLabel(nextAd.lord, t)} ({fmtDate(nextAd.start)} → {fmtDate(nextAd.end)})
         </div>
@@ -133,32 +263,35 @@ export default function DashaSection({ v }: { v: DashaTimeline }) {
     <div className="mt-6 space-y-6">
       <MDTable v={v} />
 
-      {/* Summary row */}
-      {mdCur && (
+      {(mdPrev || mdCur || mdNext) && (
         <div className="grid md:grid-cols-3 gap-4">
-          <ADSummary
-            label={t("dasha.curADTitle")}
-            md={mdCur}
-            adList={v.antardashas[keyFor(mdCur)] || []}
-          />
+          {mdCur && (
+            <ADSummary
+              label={t("dasha.curADTitle")}
+              variant="cur"
+              md={mdCur}
+              adList={v.antardashas?.[keyFor(mdCur)] || []}
+            />
+          )}
           {mdPrev && (
             <ADSummary
               label={t("dasha.prevADTitle")}
+              variant="prev"
               md={mdPrev}
-              adList={v.antardashas[keyFor(mdPrev)] || []}
+              adList={v.antardashas?.[keyFor(mdPrev)] || []}
             />
           )}
           {mdNext && (
             <ADSummary
               label={t("dasha.nextADTitle")}
+              variant="next"
               md={mdNext}
-              adList={v.antardashas[keyFor(mdNext)] || []}
+              adList={v.antardashas?.[keyFor(mdNext)] || []}
             />
           )}
         </div>
       )}
 
-      {/* Full AD tables */}
       <div className="grid md:grid-cols-3 gap-6">
         {mdPrev && <ADTable title={t("dasha.prevADTitle")} md={mdPrev} v={v} />}
         {mdCur  && <ADTable title={t("dasha.curADTitle")}  md={mdCur}  v={v} />}
