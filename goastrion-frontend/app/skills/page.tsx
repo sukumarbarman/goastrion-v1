@@ -10,6 +10,7 @@ import { loadCreateState, fetchInsights } from "../lib/insightsClient";
 import { CHIP_TO_PLANETS } from "../lib/skillsMapping";
 import { useSkillHighlight } from "../hooks/useSkillHighlight";
 import HighlightController from "../components/HighlightController";
+import AdSlot from "../components/AdSlot";
 
 // -----------------------------
 // Types
@@ -17,37 +18,20 @@ import HighlightController from "../components/HighlightController";
 type Skill = { key: string; score: number; chips?: string[] };
 type InsightsResponse = { context?: unknown; insights?: { skills?: Skill[] } };
 
-// --- Add this helper (exactly like your Create page logic) ---
+// --- Safari-safe timezone helper (consistent with other pages) ---
 type TzId = "IST" | "UTC";
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
-
 function localCivilToUtcIso(dob: string, tob: string, tzId: TzId) {
-  // Build a Date using UTC math to avoid Safari parsing quirks.
-  // dob: "YYYY-MM-DD", tob: "HH:MM"
   const [Y, M, D] = dob.split("-").map(Number);
   const [h, m] = tob.split(":").map(Number);
   const tzHours = TZ_HOURS[tzId] ?? 0;
-  // Local civil -> UTC by subtracting offset
   const millis = Date.UTC(Y, (M ?? 1) - 1, D ?? 1, (h ?? 0), (m ?? 0)) - tzHours * 3600_000;
   return { dtIsoUtc: new Date(millis).toISOString(), tzHours };
 }
 
-
 // -----------------------------
-// Small UI helpers
+// Tiers (internal only; not shown to user)
 // -----------------------------
-function scoreColor(score: number) {
-  if (score >= 80) return "text-emerald-300 border-emerald-500/30";
-  if (score >= 60) return "text-cyan-300 border-cyan-500/30";
-  if (score >= 40) return "text-amber-300 border-amber-500/30";
-  return "text-rose-300 border-rose-500/30";
-}
-function barBg(score: number) {
-  if (score >= 80) return "bg-emerald-500";
-  if (score >= 60) return "bg-cyan-500";
-  if (score >= 40) return "bg-amber-500";
-  return "bg-rose-500";
-}
 const TIERS = {
   excellent: { label: "Excellent", min: 80 },
   strong: { label: "Strong", min: 60 },
@@ -102,18 +86,6 @@ function PlanetAvatar({ glyph, title }: { glyph: string; title: string }) {
   );
 }
 
-function ScoreRing({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, value));
-  const circle = {
-    background: `conic-gradient(currentColor ${pct * 3.6}deg, rgba(255,255,255,.12) 0)`,
-  } as React.CSSProperties;
-  return (
-    <div className={`w-9 h-9 rounded-full grid place-items-center border ${scoreColor(value)} text-white/80`} style={circle}>
-      <span className="text-[10px] font-semibold">{value}</span>
-    </div>
-  );
-}
-
 function ChipPill({ label, onHover, onClick }: { label: string; onHover?: () => void; onClick?: () => void }) {
   return (
     <button
@@ -138,11 +110,6 @@ export default function SkillsPage() {
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<"score" | "alpha">("score");
-  const [topN, setTopN] = useState<number | "all">(10);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-
   const { highlightPlanets, lock, clear, setPreviewPlanets } = useSkillHighlight();
 
   const reload = useCallback(async () => {
@@ -152,7 +119,6 @@ export default function SkillsPage() {
       const st = loadCreateState();
       if (!st) { setErr(t("errors.genericGenerate")); return; }
       const { dtIsoUtc, tzHours } = localCivilToUtcIso(st.dob, st.tob, st.tzId as TzId);
-
 
       // 1) insights
       const json: InsightsResponse = await fetchInsights({
@@ -199,24 +165,14 @@ export default function SkillsPage() {
     return Array.from(set);
   }, []);
 
-  // Search + sort + topN slice (use localized skill names)
+  // Always show ALL skills, sorted by score (internal), but do not render any scores
   const visibleSkills = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    let list = (skills ?? []).filter(s => {
-      const name = t(`insights.skills.${s.key}`);
-      return q ? name.toLowerCase().includes(q) : true;
-    });
-
-    list.sort((a, b) => {
-      if (sort === "alpha") return t(`insights.skills.${a.key}`).localeCompare(t(`insights.skills.${b.key}`));
-      return b.score - a.score;
-    });
-
-    if (topN !== "all") list = list.slice(0, topN);
+    const list = [...(skills ?? [])];
+    list.sort((a, b) => b.score - a.score);
     return list;
-  }, [skills, query, sort, topN, t]);
+  }, [skills]);
 
-  // Group by tiers
+  // Group by tiers (internal only)
   const grouped = useMemo(() => {
     const g: Record<keyof typeof TIERS, Skill[]> = { excellent: [], strong: [], moderate: [], emerging: [] };
     for (const s of visibleSkills) g[tierOf(s.score)].push(s);
@@ -235,12 +191,17 @@ export default function SkillsPage() {
         <h1 className="text-2xl md:text-3xl font-semibold text-white flex items-center gap-3">
           {t("insights.pages.skillsTitle")} <span className="text-xs font-normal text-slate-400">(beta)</span>
         </h1>
-        <p className="text-slate-400">{t("insights.pages.skillsSubtitle")}</p>
+        <p className="text-slate-400 break-words">{t("insights.pages.skillsSubtitle")}</p>
+      </div>
+
+      {/* Ad: top of page */}
+      <div className="mb-6">
+        <AdSlot slot="1839859228" minHeight={280} />
       </div>
 
       {err && (
         <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-900/20 text-rose-200 p-3 flex items-center justify-between">
-          <span>{err}</span>
+          <span className="break-words">{err}</span>
           <button onClick={reload} className="px-3 py-1 rounded-md border border-white/15 bg-white/10 hover:bg-white/15 text-sm">
             {t("common.retry")}
           </button>
@@ -252,7 +213,7 @@ export default function SkillsPage() {
         <aside className="lg:col-span-5">
           <div className="rounded-2xl border border-white/10 bg-black/10 p-4 lg:sticky lg:top-4">
             <div className="text-sm font-medium text-slate-200 mb-2 flex items-center justify-between">
-              <span>{t("insights.pages.chartTitle")}</span>
+              <span className="break-words">{t("insights.pages.chartTitle")}</span>
               <HighlightController onClear={clear} activeCount={highlightPlanets.length} />
             </div>
             <div className="aspect-square w-full rounded-xl overflow-hidden border border-white/10 bg-black/40">
@@ -273,7 +234,7 @@ export default function SkillsPage() {
                 return (
                   <span key={p} className="inline-flex items-center gap-1">
                     <PlanetAvatar glyph={PLANET_EMOJI[p]} title={label} />
-                    <span>{label}</span>
+                    <span className="break-words">{label}</span>
                   </span>
                 );
               })}
@@ -281,62 +242,15 @@ export default function SkillsPage() {
           </div>
         </aside>
 
-        {/* RIGHT */}
+        {/* RIGHT: skills */}
         <section className="lg:col-span-7">
-          {/* Controls */}
-          <div className="mb-3 flex flex-col md:flex-row gap-3 md:items-center">
-            <div className="flex-1">
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("common.search") + "…"}
-                className="w-full px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-400">Sort</label>
-              <select
-                value={sort}
-                onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
-                  setSort(e.target.value as "score" | "alpha")
-                }
-                className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200"
-              >
-                <option value="score">Score (high → low)</option>
-                <option value="alpha">A → Z</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-slate-400">Show</label>
-              <select
-                value={String(topN)}
-                onChange={(e) => setTopN(e.target.value === "all" ? "all" : Number(e.target.value))}
-                className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200"
-              >
-                <option value="all">All</option>
-                <option value="3">Top 3</option>
-              </select>
-            </div>
-            <button
-              onClick={() => {
-                const count = topN === "all" ? 10 : topN;
-                const lines = visibleSkills.slice(0, count).map((s, i) => `${i + 1}. ${t(`insights.skills.${s.key}`)} — ${s.score}/100`);
-                navigator.clipboard?.writeText(["Top skills:", ...lines].join("\n"));
-              }}
-              className="px-3 py-2 rounded-xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
-            >
-              Copy summary
-            </button>
-          </div>
-
-          {/* Loading */}
+          {/* Loading skeletons */}
           {loading && (
             <div className="grid md:grid-cols-2 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="rounded-2xl border border-white/10 bg-white/[.04] p-4 animate-pulse">
-                  <div className="h-4 w-1/2 bg-white/10 rounded mb-2" />
-                  <div className="h-1.5 w-full bg-white/10 rounded" />
-                  <div className="mt-3 h-5 w-2/3 bg-white/10 rounded" />
+                  <div className="h-4 w-3/5 bg-white/10 rounded mb-2" />
+                  <div className="h-5 w-4/5 bg-white/10 rounded" />
                 </div>
               ))}
             </div>
@@ -344,14 +258,14 @@ export default function SkillsPage() {
 
           {!loading && visibleSkills.length === 0 && (
             <div className="rounded-2xl border border-white/10 bg-white/[.04] p-6 text-slate-300">
-              No skills to show. Try changing filters.
+              {t("common.notAvailable")}
             </div>
           )}
 
-          {/* Tiered groups */}
+          {/* Tiered groups (no score shown) */}
           {!loading && (
-            <div className="space-y-6">
-              {(Object.keys(TIERS) as Array<keyof typeof TIERS>).map((k) => {
+            <div className="space-y-8">
+              {(Object.keys(TIERS) as Array<keyof typeof TIERS>).map((k, groupIdx) => {
                 const list = grouped[k];
                 if (!list.length) return null;
                 const planets = unionPlanets(list);
@@ -359,7 +273,7 @@ export default function SkillsPage() {
                   <div key={k} className="rounded-2xl border border-white/10 bg-black/10">
                     <div className="px-4 pt-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-semibold text-white">{TIERS[k].label}</h2>
+                        <h2 className="text-lg font-semibold text-white break-words">{TIERS[k].label}</h2>
                         <span className="text-xs text-slate-400">{list.length} item(s)</span>
                       </div>
                       <div className="flex items-center gap-2">
@@ -376,92 +290,101 @@ export default function SkillsPage() {
                       </div>
                     </div>
 
-                    <div className="p-4 grid md:grid-cols-2 gap-4">
+                    <div className="p-4 grid sm:grid-cols-1 md:grid-cols-2 gap-4">
                       {list.map((s) => {
                         const planetList = planetsForSkill(s.chips);
-                        const isOpen = !!expanded[s.key];
-                        return (
-                          <div
-                            key={s.key}
-                            className="rounded-xl border border-white/10 bg-black/20 p-4 hover:border-cyan-500/40 transition"
-                            onMouseLeave={() => setPreviewPlanets([])}
-                          >
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <div className="text-white font-semibold truncate">
+
+                        function Card() {
+                          const [isOpen, setIsOpen] = useState(false);
+                          return (
+                            <div
+                              className="rounded-xl border border-white/10 bg-black/20 p-4 hover:border-cyan-500/40 transition"
+                              onMouseLeave={() => setPreviewPlanets([])}
+                            >
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="text-white font-semibold break-words">
                                     {t(`insights.skills.${s.key}`)}
                                   </div>
-                                  <ScoreRing value={s.score} />
                                 </div>
-                                <div className="mt-2 w-full h-1.5 rounded bg-white/10 overflow-hidden">
-                                  <div className={`h-full ${barBg(s.score)}`} style={{ width: `${s.score}%` }} />
-                                </div>
-                              </div>
 
-                              <div className="flex items-center gap-2">
-                                {!!planetList.length && (
+                                <div className="flex items-center gap-2">
+                                  {!!planetList.length && (
+                                    <button
+                                      type="button"
+                                      className="text-xs px-2 py-1 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 hover:bg-cyan-500/20"
+                                      onClick={() => lock(planetList)}
+                                    >
+                                      Highlight
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
-                                    className="text-xs px-2 py-1 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 hover:bg-cyan-500/20"
-                                    onClick={() => lock(planetList)}
+                                    aria-expanded={isOpen}
+                                    onClick={() => setIsOpen(v => !v)}
+                                    className="text-xs px-2 py-1 rounded-md border border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
                                   >
-                                    Highlight
+                                    {isOpen ? "Hide" : "Details"}
                                   </button>
-                                )}
-                                <button
-                                  type="button"
-                                  aria-expanded={isOpen}
-                                  onClick={() => setExpanded((m) => ({ ...m, [s.key]: !isOpen }))}
-                                  className="text-xs px-2 py-1 rounded-md border border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
-                                >
-                                  {isOpen ? "Hide" : "Details"}
-                                </button>
-                              </div>
-                            </div>
-
-                            {isOpen && (
-                              <div className="mt-3">
-                                {/* Planets row (localized labels) */}
-                                {!!planetList.length && (
-                                  <div className="mb-2 flex items-center gap-2 flex-wrap">
-                                    {planetList.map((p) => (
-                                      <span key={p} className="inline-flex items-center gap-1">
-                                        <PlanetAvatar glyph={PLANET_EMOJI[p] ?? p[0]} title={localizePlanetName(p, t)} />
-                                        <span className="text-slate-300 text-xs">{localizePlanetName(p, t)}</span>
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-
-                                {/* Chips (keys already exist in dict: root.chip.skill.* and insights.skills.chip.*) */}
-                                <div className="flex flex-wrap gap-2">
-                                  {(s.chips ?? []).map((key) => (
-                                    <ChipPill
-                                      key={key}
-                                      label={t(key)}
-                                      onHover={() => setPreviewPlanets(CHIP_TO_PLANETS[key] ?? [])}
-                                      onClick={() => {
-                                        const ps = CHIP_TO_PLANETS[key] ?? [];
-                                        if (ps.length) lock(ps);
-                                      }}
-                                    />
-                                  ))}
                                 </div>
                               </div>
-                            )}
-                          </div>
-                        );
+
+                              {isOpen && (
+                                <div className="mt-3">
+                                  {!!planetList.length && (
+                                    <div className="mb-2 flex items-center gap-2 flex-wrap">
+                                      {planetList.map((p) => (
+                                        <span key={p} className="inline-flex items-center gap-1">
+                                          <PlanetAvatar glyph={PLANET_EMOJI[p] ?? p[0]} title={localizePlanetName(p, t)} />
+                                          <span className="text-slate-300 text-xs break-words">
+                                            {localizePlanetName(p, t)}
+                                          </span>
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  <div className="flex flex-wrap gap-2">
+                                    {(s.chips ?? []).map((key) => (
+                                      <ChipPill
+                                        key={key}
+                                        label={t(key)}
+                                        onHover={() => setPreviewPlanets(CHIP_TO_PLANETS[key] ?? [])}
+                                        onClick={() => {
+                                          const ps = CHIP_TO_PLANETS[key] ?? [];
+                                          if (ps.length) lock(ps);
+                                        }}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
+                        return <Card key={s.key} />;
                       })}
                     </div>
+
+                    {/* Mid-page ad after first tier block */}
+                    {groupIdx === 0 && (
+                      <div className="px-4 pb-4">
+                        <AdSlot slot="2260739048" minHeight={300} />
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
+
+          {/* Ad: end-of-page */}
+          <div className="mt-8">
+            <AdSlot slot="4466022565" minHeight={280} />
+          </div>
         </section>
       </div>
-
     </Container>
   );
 }
