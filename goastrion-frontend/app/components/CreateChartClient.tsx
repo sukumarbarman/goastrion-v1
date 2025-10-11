@@ -538,18 +538,12 @@ export default function CreateChartClient() {
 
         {/* Results */}
 {/* Results */}
+{/* Results */}
 {(svg || summary) && (
   <>
     <div className="grid md:grid-cols-2 gap-6 mt-6 overflow-visible min-w-0">
-      {/* SVG card */}
-      <div className="rounded-2xl border border-white/10 bg-black/10 p-3 min-w-0 overflow-visible">
-        <div className="mx-auto w-full max-w-[min(92vw,520px)]">
-          <div className="w-full" dangerouslySetInnerHTML={{ __html: svg || "" }} />
-        </div>
-      </div>
-
-      {/* Summary card */}
-      <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200 min-w-0 overflow-visible">
+      {/* Summary card (1st on mobile, 2nd on desktop) */}
+      <div className="order-1 md:order-2 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200 min-w-0 overflow-visible">
         <div className="text-white font-semibold mb-2">{t("results.title")}</div>
         <ul className="space-y-1">
           {summary &&
@@ -563,6 +557,13 @@ export default function CreateChartClient() {
               </li>
             ))}
         </ul>
+      </div>
+
+      {/* SVG card (2nd on mobile, 1st on desktop) */}
+      <div className="order-2 md:order-1 rounded-2xl border border-white/10 bg-black/10 p-3 min-w-0 overflow-visible">
+        <div className="mx-auto w-full max-w-[min(92vw,520px)]">
+          <div className="w-full" dangerouslySetInnerHTML={{ __html: svg || "" }} />
+        </div>
       </div>
     </div>
 
@@ -585,46 +586,46 @@ export default function CreateChartClient() {
     )}
 
     {/* Saturn teaser */}
-            <div className="mt-6">
-              <Link
-                href="/saturn"
-                className="block rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
-                aria-label={tf("cta.saturn.btn", "Open Saturn")}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="text-2xl md:text-3xl">🪐</div>
-                  <div>
-                    <div className="text-white text-lg md:text-xl font-semibold">
-                      {tf("cta.saturn.title", "Saturn Phases (Sade Sati & More)")}
-                    </div>
-                    <p className="mt-1 text-slate-300 text-sm md:text-base">
-                      {tf(
-                        "cta.saturn.desc",
-                        "See your Sade Sati windows, Saturn transits, station days and caution periods—personalized from your birth details."
-                      )}
-                    </p>
-                    <div className="mt-3 inline-flex items-center gap-2 text-indigo-200 font-medium">
-                      {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
+    <div className="mt-6">
+      <Link
+        href="/saturn"
+        className="block rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
+        aria-label={tf("cta.saturn.btn", "Open Saturn")}
+      >
+        <div className="flex items-start gap-4">
+          <div className="text-2xl md:text-3xl">🪐</div>
+          <div>
+            <div className="text-white text-lg md:text-xl font-semibold">
+              {tf("cta.saturn.title", "Saturn Phases (Sade Sati & More)")}
             </div>
-
-            {/* Vimshottari (lazy-loaded) */}
-            {vimshottari && (
-              <div className="mt-6 overflow-visible">
-                <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
-                <DashaSection v={vimshottari} />
-              </div>
-            )}
-
-            {/* Ad: end-of-page */}
-            <div className="mt-6">
-              <AdSlot slot="4741871653" minHeight={280} />
+            <p className="mt-1 text-slate-300 text-sm md:text-base">
+              {tf(
+                "cta.saturn.desc",
+                "See your Sade Sati windows, Saturn transits, station days and caution periods—personalized from your birth details."
+              )}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 text-indigo-200 font-medium">
+              {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
             </div>
-          </>
-        )}
+          </div>
+        </div>
+      </Link>
+    </div>
+
+    {/* Vimshottari (lazy-loaded) */}
+    {vimshottari && (
+      <div className="mt-6 overflow-visible">
+        <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
+        <DashaSection v={vimshottari} />
+      </div>
+    )}
+
+    {/* Ad: end-of-page */}
+    <div className="mt-6">
+      <AdSlot slot="4741871653" minHeight={280} />
+    </div>
+  </>
+)}
 
 
       </div>
