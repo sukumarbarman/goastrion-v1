@@ -1,6 +1,7 @@
 // app/lib/locales/hi.ts
 import core from "./hi-core";
 import insights from "./hi-insights";
+import saturn from "./hi-saturn";
 
 type PlainObject = Record<string, unknown>;
 
@@ -27,5 +28,5 @@ function deepMerge<T extends PlainObject, U extends PlainObject>(a: T, b: U): T 
   return out as T & U;
 }
 
-const hi = deepMerge(core, insights) as typeof core & typeof insights;
+const hi = deepMerge(deepMerge(core, insights), saturn) as typeof core & typeof insights & typeof saturn;
 export default hi;

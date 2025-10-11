@@ -1,6 +1,7 @@
 // app/lib/locales/bn.ts
 import core from "./bn-core";
 import insights from "./bn-insights";
+import saturn from "./bn-saturn";
 
 type PlainObject = Record<string, unknown>;
 
@@ -24,5 +25,5 @@ function deepMerge<T extends PlainObject, U extends PlainObject>(a: T, b: U): T 
   return out as T & U;
 }
 
-const bn = deepMerge(core, insights) as typeof core & typeof insights;
+const bn = deepMerge(deepMerge(core, insights), saturn) as typeof core & typeof insights & typeof saturn;
 export default bn;
