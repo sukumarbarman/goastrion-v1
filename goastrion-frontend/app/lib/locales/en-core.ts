@@ -15,24 +15,64 @@ const enCore = {
     faq: "FAQ",
   },
 
-  about: {
-    title: "About GoAstrion",
-    tagline:
+about: {
+  title: "About GoAstrion",
+  subtitle: "Clarity for students and professionals—without the jargon",
+
+  badge: {
+    shubhdin: "ShubhDin · Good Day",
+    saturn: "Saturn · Sade Sati",
+  },
+
+  tagline: {
+    main:
       "GoAstrion helps students and professionals make smarter life choices with clear, practical guidance—powered by Vedic astrology.",
-    points: {
-      career: "Career: find your strengths & learning path",
-      finance: "Finance: plan habits and money decisions",
-      marriage: "Marriage: understand compatibility patterns",
-      health: "Health: build sustainable daily routines",
-      education: "Education: pick subjects & skills confidently",
+    spotlight:
+      "Find calmer, more supportive days—then act. GoAstrion reads your chart and Saturn/Moon context to surface ShubhDin windows for studies, interviews, launches, or simply a more focused day.",
+  },
+
+  list: {
+    why: {
+      title: "Why explore now?",
+      body: "Know your next 1–2 good windows and use them—no guesswork, no fear.",
     },
-    cta: { start: "Get Started", generate: "Generate My Chart" },
-    imageAlt: "A student exploring career options on GoAstrion",
-    mission: {
-      title: "Our Mission",
-      body:
-        "We translate complex astrological signals into simple, actionable steps—so you can choose subjects, careers, and habits with clarity, not confusion.",
+    saturn: {
+      title: "Saturn · Sade Sati",
+      body: "We frame it as structure, not scare: small, repeatable habits that compound.",
     },
+    practical: {
+      title: "Made practical",
+      body: "Clear language, Life Wheel focus, optional MD/AD timing—action over anxiety.",
+    },
+  },
+
+  points: {
+    career: "Career: find your strengths & learning path",
+    finance: "Finance: plan habits and money decisions",
+    marriage: "Marriage: understand compatibility patterns",
+    health: "Health: build sustainable daily routines",
+    education: "Education: pick subjects & skills confidently",
+  },
+
+  cta: {
+    start: "Get Started",
+    generate: "Generate My Chart",
+    checkShubhdin: "✨ Check my ShubhDin",
+    howItWorks: "How it works",
+  },
+
+  timezone: {
+    note:
+      "India: choose IST (UTC+05:30). Outside India: convert your birth time to UTC and choose UTC.",
+  },
+
+  imageAlt: "A student exploring career options on GoAstrion",
+
+  mission: {
+    title: "Our Mission",
+    body:
+      "We translate complex astrological signals into simple, actionable steps—so you can choose subjects, careers, and habits with clarity, not confusion.",
+  },
   },
 
     steps: {
@@ -267,7 +307,7 @@ const enCore = {
   },
 },
 // ⬇️ MOVE THIS BLOCK OUT OF `guides` (root-level sibling)
-  faqPage: {
+faqPage: {
     heading: "Frequently Asked Questions",
     introPrefix: "New to GoAstrion? Start on the",
     introMiddle: "page, then explore the",
@@ -275,20 +315,165 @@ const enCore = {
     linkCreate: "Create",
     linkLifeWheel: "Life Wheel",
     linkSkills: "Skills",
+    featured: [
+      {
+        q: "What is ShubhDin (auspicious day)?",
+        a: "ShubhDin is a supportive time window suggested from your birth details and current Saturn/Moon context. Use it for focused study, interviews, launches, travel planning, or simply a calmer day to move important tasks forward.",
+      },
+      {
+        q: "How does GoAstrion pick ShubhDin windows?",
+        a: "We compute your chart in UTC or IST, then scan for lighter lunar context and clean aspects within your chosen horizon. We avoid heavy station days and highlight windows where friction is lower so small efforts compound.",
+      },
+      {
+        q: "What is Saturn · Sade Sati and how should I use it?",
+        a: "We treat Sade Sati as structure, not scare: a period to prune distractions and build routines. Expect more review/discipline days. Pair ShubhDin windows with tiny repeatable actions—sleep, blocks of study, budgeting—to exit stronger.",
+      },
+      {
+        q: "What are ‘station’ or ‘retro overlap’ cautions in the app?",
+        a: "Station days = momentum unstable; avoid fresh, high-risk commitments and double-check paperwork. Retro overlaps = great for reviews, fixes, and renegotiations—just pad timelines for rework.",
+      },
+    ],
     items: [
-      { q: "Why should I use this?", a: "GoAstrion turns your birth details..." },
-      { q: "Is the chart free?", a: "You can generate a basic chart..." },
-      { q: "Do you use Vedic (sidereal) calculations and North Indian style?", a: "Yes. GoAstrion uses..." },
-      { q: "What details do I need to generate a chart?", a: "Date of birth, time of birth..." },
-      { q: "What is the Life Wheel?", a: "Life Wheel is our summary view..." },
-      { q: "What is Skill?", a: "Skills are tendencies inferred..." },
-      { q: "How does timezone work? Do I enter IST/UTC?", a: "Born in India: choose IST..." },
-      { q: "Which languages are supported (India & international)?", a: "We support English and..." },
-      { q: "Is latitude/longitude required?", a: "Not required. Selecting a city..." },
-      { q: "What are MD and AD?", a: "MD (Maha Dasha) and AD..." },
-      { q: "Where do I start?", a: "Go to the Create page..." },
+      { q: "Why should I use this?", a: "GoAstrion turns your birth details into clear, practical guidance—daily context, skill tendencies, and supportive windows—so you can focus efforts where they pay off." },
+      { q: "Is the chart free?", a: "Yes. You can generate a basic chart for free; some advanced timelines or pro insights may be offered later." },
+      { q: "Do you use Vedic (sidereal) calculations and North Indian style?", a: "Yes. GoAstrion uses sidereal calculations and renders charts in the North Indian style." },
+      { q: "What details do I need to generate a chart?", a: "Date of birth, time of birth, and birthplace (city). Latitude/longitude help but city is enough for most users." },
+      { q: "What is the Life Wheel?", a: "Life Wheel is our summary view of domains (Career, Finance, Health, etc.) with highlights to explore." },
+      { q: "What are Skills?", a: "Skills are tendencies inferred from your chart to help you lean into strengths (e.g., Analytical, Communication, Leadership)." },
+      { q: "How does timezone work? Do I enter IST/UTC?", a: "Born in India: choose IST. Otherwise pick UTC or your local time zone used at birth for best accuracy." },
+      { q: "Which languages are supported (India & international)?", a: "We currently support English, Hindi, and Bengali, with more coming soon." },
+      { q: "Is latitude/longitude required?", a: "Not required. Selecting your birthplace city is usually enough; you can add lat/lon for precision." },
+      { q: "What are MD and AD?", a: "MD (Maha Dasha) and AD (Antar Dasha) are Vedic planetary periods that color themes; we display current/next periods in timelines." },
+      { q: "Where do I start?", a: "Go to the Create page, generate your chart, then open Life Wheel and Skills for guided summaries." },
     ],
   },
+
+   resultsPage: {
+    title: "Sample Report",
+    hero: {
+      alt: "Smiling young woman checking ShubhDin on GoAstrion",
+    },
+    cta: {
+      generate: "Generate my chart",
+    },
+    labels: {
+      name: "Name",
+      dob: "DOB",
+      time: "Time",
+      place: "Place",
+    },
+    sample: {
+      nameValue: "Sample: Reene",
+      placeValue: "Kolkata, India",
+      tzValue: "IST (UTC+05:30)",
+    },
+
+    lifeWheel: {
+      heading: "Life Wheel",
+      badge: "focus first",
+      sub: "Where small efforts pay off big. Scores are illustrative.",
+    },
+    domains: {
+      career: {
+        title: "Career",
+        summary:
+          "Strong 1st/10th/6th houses. Good for analytical & structured roles.",
+      },
+      finance: {
+        title: "Finance",
+        summary:
+          "Steady habit potential; watch impulse spends during Venus AD.",
+      },
+      marriage: {
+        title: "Marriage",
+        summary: "Balanced 7th; communication routines improve harmony.",
+      },
+      health: {
+        title: "Health",
+        summary:
+          "Saturn supports discipline; sleep + walking compound gains.",
+      },
+    },
+    scoreAria: "Score {score} out of 100",
+
+    skills: {
+      heading: "Top Skills",
+      badge: "strengths",
+      analytical: {
+        name: "Analytical Thinking",
+        note: "Clear pattern recognition; enjoys breaking problems down.",
+      },
+      communication: {
+        name: "Communication",
+        note: "Crisp written summaries; benefit from weekly sharing cadence.",
+      },
+      focus: {
+        name: "Focus & Consistency",
+        note:
+          "Saturn-backed—small routines compound (50–60 min blocks).",
+      },
+      entrepreneurship: {
+        name: "Entrepreneurial Drive",
+        note:
+          "Good bias to action; add a monthly review for traction.",
+      },
+    },
+
+    shubhdin: {
+      heading: "ShubhDin · Good Days",
+      badge: "next 2 weeks",
+      tip:
+        "Tip: lock one keystone habit (e.g., focused study 50 min) into at least one ShubhDin window each week.",
+      row1: {
+        date: "2025-10-11 (Sat)",
+        window: "10:30–13:00",
+        focus: "Study / Interviews",
+        note: "Moon support + clean aspects",
+      },
+      row2: {
+        date: "2025-10-14 (Tue)",
+        window: "09:15–11:45",
+        focus: "Launch / Applications",
+        note: "Mercury backed window",
+      },
+      row3: {
+        date: "2025-10-18 (Sat)",
+        window: "08:40–12:10",
+        focus: "Travel / Planning",
+        note: "Light Saturn pressure, still fine",
+      },
+    },
+    table: {
+      date: "Date",
+      window: "Window",
+      bestFor: "Best for",
+      note: "Note",
+    },
+
+    dasha: {
+      heading: "Timing Context · MD / AD",
+      badge: "backdrop",
+      mdBackdrop: "MD (Backdrop)",
+      currentAd: "Current AD",
+      nextAd: "Next AD",
+      mdLord: "Saturn",
+      currentLord: "Venus",
+      nextLord: "Sun",
+    },
+
+    saturn: {
+      heading: "Saturn · Sade Sati (Sade Saati / Sadasathi)",
+      copy:
+        "We frame Sade Sati as structure, not scare: pruning distractions, building routines, and committing to what matters. Pair ShubhDin windows with small, repeatable actions—sleep, study blocks, budgeting—to exit stronger.",
+    },
+
+    footer: {
+      startFree: "Start free — generate my chart",
+      readFaqs: "Read FAQs",
+    },
+  },
+
+
 
 
 } as const;

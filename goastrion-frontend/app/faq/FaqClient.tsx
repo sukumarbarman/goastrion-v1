@@ -1,4 +1,3 @@
-// app/faq/FaqClient.tsx
 "use client";
 
 import Script from "next/script";
@@ -11,16 +10,22 @@ type FaqItem = { q: string; a: string };
 export default function FaqClient() {
   const { t, get } = useI18n();
 
-  const heading       = t("faqPage.heading");
-  const introPrefix   = t("faqPage.introPrefix");
-  const introMiddle   = t("faqPage.introMiddle");
-  const introAnd      = t("faqPage.introAnd");
-  const linkCreate    = t("faqPage.linkCreate");
-  const linkLifeWheel = t("faqPage.linkLifeWheel");
-  const linkSkills    = t("faqPage.linkSkills");
+  // tiny inline fallback helper
+  const tf = (k: string, fb: string) => {
+    const v = t(k);
+    return v === k ? fb : v;
+  };
 
-  // Featured FAQs (ShubhDin + Saturn) – shown first
-  const featured: FaqItem[] = [
+  const heading       = tf("faqPage.heading", "Frequently Asked Questions");
+  const introPrefix   = tf("faqPage.introPrefix", "New to GoAstrion? Start on the");
+  const introMiddle   = tf("faqPage.introMiddle", "page, then explore the");
+  const introAnd      = tf("faqPage.introAnd", "and");
+  const linkCreate    = tf("faqPage.linkCreate", "Create");
+  const linkLifeWheel = tf("faqPage.linkLifeWheel", "Life Wheel");
+  const linkSkills    = tf("faqPage.linkSkills", "Skills");
+
+  // ---- Featured (from i18n with English defaults) ----
+  const featuredFallback: FaqItem[] = [
     {
       q: "What is ShubhDin (auspicious day)?",
       a: "ShubhDin is a supportive time window suggested from your birth details and current Saturn/Moon context. Use it for focused study, interviews, launches, travel planning, or simply a calmer day to move important tasks forward.",
@@ -38,14 +43,17 @@ export default function FaqClient() {
       a: "Station days = momentum unstable; avoid fresh, high-risk commitments and double-check paperwork. Retro overlaps = great for reviews, fixes, and renegotiations—just pad timelines for rework.",
     },
   ];
+  const rawFeatured = get("faqPage.featured");
+  const featured: FaqItem[] = Array.isArray(rawFeatured)
+    ? (rawFeatured as FaqItem[])
+    : featuredFallback;
 
-  // i18n-driven FAQ items (kept after the featured ones)
+  // ---- Remaining items from i18n (optional) ----
   const rawItems = get("faqPage.items");
   const i18nItems: FaqItem[] = Array.isArray(rawItems) ? (rawItems as FaqItem[]) : [];
 
-  // All items (for JSON-LD)
+  // ---- JSON-LD (featured + i18n) ----
   const allItems: FaqItem[] = [...featured, ...i18nItems];
-
   const FAQ_LD = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
@@ -76,7 +84,7 @@ export default function FaqClient() {
         .
       </p>
 
-      {/* Featured (ShubhDin + Saturn) */}
+      {/* Featured block */}
       <div className="mt-8 space-y-4 text-slate-200/90">
         {featured.map((it, idx) => (
           <details key={`feat-${idx}`} className="rounded-xl bg-white/5 p-4">
@@ -86,9 +94,8 @@ export default function FaqClient() {
         ))}
       </div>
 
-      {/* Ad: mid placement (after featured block) */}
+      {/* Ad: mid placement */}
       <div className="mt-6">
-
         <AdSlot slot="9938358013" minHeight={300} />
       </div>
 
@@ -104,13 +111,12 @@ export default function FaqClient() {
         </div>
       )}
 
-      {/* Ad: end-of-page placement */}
+      {/* Ad: end-of-page */}
       <div className="mt-8">
-
         <AdSlot slot="1952056782" minHeight={280} />
       </div>
 
-      {/* JSON-LD for all questions */}
+      {/* JSON-LD */}
       <Script
         id="ld-faq"
         type="application/ld+json"

@@ -3,8 +3,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useI18n } from "../lib/i18n"; // adjust if your path differs
-import AdSlot from "./AdSlot";        // ⬅️ NEW
+import { useI18n } from "../lib/i18n";
+import AdSlot from "./AdSlot";
 
 export default function AboutPage() {
   const { t } = useI18n();
@@ -12,19 +12,16 @@ export default function AboutPage() {
 
   return (
     <main className="min-h-[70vh]">
-      {/* ── Top Hero Image with overlay title/badges ───────────────────── */}
+      {/* Top hero */}
       <section className="relative h-60 md:h-80 w-full overflow-hidden border-b border-white/10">
         <Image
-          src="/images/about.png" // swap to /images/hero-girl-shubhdin.jpg if you prefer
+          src="/images/about.png"
           alt={tf("about.imageAlt", "A student exploring career options on GoAstrion")}
           fill
           className="object-cover"
           priority
         />
-        {/* gradient for readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B1020] via-black/10 to-transparent" />
-
-        {/* overlay content */}
         <div className="absolute inset-x-0 bottom-4 md:bottom-6 px-4">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-wrap items-center gap-2 text-[10px] md:text-xs">
@@ -42,7 +39,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* ── Spotlight (concise value + CTAs) ───────────────────────────── */}
+      {/* Spotlight */}
       <section className="max-w-6xl mx-auto px-4 pt-8">
         <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500/10 via-indigo-500/10 to-transparent p-5 md:p-6">
           <p className="text-slate-300 max-w-3xl">
@@ -54,21 +51,30 @@ export default function AboutPage() {
 
           <ul className="mt-4 grid md:grid-cols-3 gap-3 text-sm text-slate-300">
             <li className="rounded-lg bg-black/20 border border-white/10 p-3">
-              <b>Why explore now?</b>
+              <b>{tf("about.list.why.title", "Why explore now?")}</b>
               <div className="mt-1 text-slate-400">
-                Know your next 1–2 good windows and use them—no guesswork, no fear.
+                {tf(
+                  "about.list.why.body",
+                  "Know your next 1–2 good windows and use them—no guesswork, no fear."
+                )}
               </div>
             </li>
             <li className="rounded-lg bg-black/20 border border-white/10 p-3">
-              <b>Saturn · Sade Sati</b>
+              <b>{tf("about.list.saturn.title", "Saturn · Sade Sati")}</b>
               <div className="mt-1 text-slate-400">
-                We frame it as structure, not scare: small, repeatable habits that compound.
+                {tf(
+                  "about.list.saturn.body",
+                  "We frame it as structure, not scare: small, repeatable habits that compound."
+                )}
               </div>
             </li>
             <li className="rounded-lg bg-black/20 border border-white/10 p-3">
-              <b>Made practical</b>
+              <b>{tf("about.list.practical.title", "Made practical")}</b>
               <div className="mt-1 text-slate-400">
-                Clear language, Life Wheel focus, optional MD/AD timing—action over anxiety.
+                {tf(
+                  "about.list.practical.body",
+                  "Clear language, Life Wheel focus, optional MD/AD timing—action over anxiety."
+                )}
               </div>
             </li>
           </ul>
@@ -95,14 +101,13 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Ad: mid placement (under spotlight card) */}
+        {/* Ad: mid placement */}
         <div className="mt-6">
-          {/* Replace ABOUT_MID_SLOT_ID with your numeric slot id, e.g., 6781603832 */}
           <AdSlot slot="8474793602" minHeight={300} />
         </div>
       </section>
 
-      {/* ── Main body (tightened copy) ─────────────────────────────────── */}
+      {/* Main body */}
       <section className="max-w-6xl mx-auto px-4 py-10 md:py-14 grid md:grid-cols-2 gap-10 items-start">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold text-white">
@@ -111,7 +116,7 @@ export default function AboutPage() {
 
           <p className="mt-3 text-slate-300">
             {tf(
-              "about.tagline",
+              "about.tagline.main",
               "GoAstrion helps students and professionals make smarter life choices with clear, practical guidance—powered by Vedic astrology."
             )}
           </p>
@@ -140,7 +145,7 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* optional supporting image block (kept for layout balance; can remove) */}
+        {/* Supporting image */}
         <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-white/10 bg-black/30">
           <Image
             src="/images/student.png"
@@ -151,15 +156,14 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Ad: end-of-page placement (before mission) */}
+      {/* Ad: end-of-page */}
       <section className="max-w-6xl mx-auto px-4">
         <div className="mt-2">
-          {/* Replace ABOUT_END_SLOT_ID with your numeric slot id */}
           <AdSlot slot="1676207691" minHeight={280} />
         </div>
       </section>
 
-      {/* ── Mission ───────────────────────────────────────────────────── */}
+      {/* Mission */}
       <section className="max-w-6xl mx-auto px-4 pb-16">
         <div className="rounded-2xl border border-white/10 bg-black/20 p-6 md:p-8">
           <h3 className="text-xl md:text-2xl font-semibold text-white">
