@@ -1,3 +1,4 @@
+// app/components/dasha/DashaSection.tsx
 "use client";
 import React from "react";
 import { useI18n } from "../../lib/i18n";
@@ -37,7 +38,6 @@ function listFromI18n(t: (k:string)=>string, planet: string, kind: "good"|"slow"
   return [];
 }
 
-// Map custom domain keys to titles
 function titleForDomain(key: string, t: (k:string)=>string) {
   const path = `insights.domains.${key}.title`;
   const v = t(path);
@@ -60,9 +60,10 @@ function titleForDomain(key: string, t: (k:string)=>string) {
 function MDTable({ v }: { v: DashaTimeline }) {
   const { t } = useI18n();
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+    <div className="rounded-2xl border border-white/10 bg-black/10 p-4 overflow-visible">
       <div className="text-white font-semibold mb-3">{t("dasha.titleFullTimeline")}</div>
-      <div className="overflow-auto">
+      {/* horizontal scroll only to avoid trapping vertical scroll on mobile */}
+      <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-slate-400 border-b border-white/10">
@@ -92,14 +93,14 @@ function ADTable({ title, md, v }: { title: string; md: Period; v: DashaTimeline
   const { t } = useI18n();
   const ads = v.antardashas?.[keyFor(md)] || [];
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/10 p-4">
+    <div className="rounded-2xl border border-white/10 bg-black/10 p-4 overflow-visible min-w-0">
       <div className="text-white font-semibold mb-2">
         {title}: {planetLabel(md.lord, t)} ({fmtDate(md.start)} → {fmtDate(md.end)})
       </div>
       {ads.length === 0 ? (
         <div className="text-slate-400 text-sm">{t("dasha.noAntardasha")}</div>
       ) : (
-        <div className="overflow-auto">
+        <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
               <tr className="text-slate-400 border-b border-white/10">
@@ -159,7 +160,6 @@ function ADSummary({
         })()
       : undefined;
 
-  // Determine which AD to present & the readable line
   let showAd: Period | undefined;
   let readable = "";
   let whenLabel = "";
@@ -175,7 +175,7 @@ function ADSummary({
       readable = t("dasha.summary.prevReadable", { md: planetLabel(md.lord, t), ad: planetLabel(showAd.lord, t) });
       whenLabel = t("dasha.summary.lastADLabel");
     } else {
-      readable = t("dasha.noAntardasha"); // no list for that MD
+      readable = t("dasha.noAntardasha");
     }
   } else {
     showAd = firstAd;
@@ -187,7 +187,6 @@ function ADSummary({
     }
   }
 
-  // Guidance (themes/advice + good/slow) only when we have an AD to name
   const adLord = showAd?.lord;
   const adKeyBase = adLord ? `dasha.summary.planet.${lower(adLord)}` : "";
   const hasThemes = !!adLord && hasKey(t, `${adKeyBase}.themes`);
@@ -196,7 +195,7 @@ function ADSummary({
   const slowList = adLord ? listFromI18n(t, adLord, "slow") : [];
 
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm">
+    <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-sm overflow-visible min-w-0">
       <div className="font-semibold text-white mb-1">{label}</div>
 
       <div className="text-slate-200">{readable}</div>
@@ -260,11 +259,11 @@ export default function DashaSection({ v }: { v: DashaTimeline }) {
   const mdNext = next >= 0 ? v.mahadashas[next] : undefined;
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="mt-6 space-y-6 overflow-visible pb-8">
       <MDTable v={v} />
 
       {(mdPrev || mdCur || mdNext) && (
-        <div className="grid md:grid-cols-3 gap-4">
+        <div className="grid md:grid-cols-3 gap-4 overflow-visible">
           {mdCur && (
             <ADSummary
               label={t("dasha.curADTitle")}
@@ -292,7 +291,7 @@ export default function DashaSection({ v }: { v: DashaTimeline }) {
         </div>
       )}
 
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-3 gap-6 overflow-visible">
         {mdPrev && <ADTable title={t("dasha.prevADTitle")} md={mdPrev} v={v} />}
         {mdCur  && <ADTable title={t("dasha.curADTitle")}  md={mdCur}  v={v} />}
         {mdNext && <ADTable title={t("dasha.nextADTitle")} md={mdNext} v={v} />}
