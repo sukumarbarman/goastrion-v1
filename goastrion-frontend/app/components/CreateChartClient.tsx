@@ -1,3 +1,4 @@
+//app/componenets/CreateChartClient.tsxt
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -403,7 +404,7 @@ export default function CreateChartClient() {
         </p>
       </div>
 
-      <div className="bg-[#141A2A] rounded-2xl p-6 border border-white/5">
+      <div className="bg-[#141A2A] rounded-2xl p-6 pb-8 border border-white/5 overflow-visible">
         {/* Form */}
         <div className="grid md:grid-cols-2 gap-4">
           <div>
@@ -536,51 +537,54 @@ export default function CreateChartClient() {
         )}
 
         {/* Results */}
-        {(svg || summary) && (
-          <>
-            <div className="grid md:grid-cols-2 gap-6 mt-6">
-              <div className="rounded-2xl border border-white/10 bg-black/10 p-3">
-                <div className="mx-auto w-full max-w-[min(92vw,520px)]">
-                  <div className="w-full" dangerouslySetInnerHTML={{ __html: svg || "" }} />
-                </div>
-              </div>
+{/* Results */}
+{(svg || summary) && (
+  <>
+    <div className="grid md:grid-cols-2 gap-6 mt-6 overflow-visible min-w-0">
+      {/* SVG card */}
+      <div className="rounded-2xl border border-white/10 bg-black/10 p-3 min-w-0 overflow-visible">
+        <div className="mx-auto w-full max-w-[min(92vw,520px)]">
+          <div className="w-full" dangerouslySetInnerHTML={{ __html: svg || "" }} />
+        </div>
+      </div>
 
-              <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200">
-                <div className="text-white font-semibold mb-2">{t("results.title")}</div>
-                <ul className="space-y-1">
-                  {summary &&
-                    Object.entries(summary).map(([label, val]) => (
-                      <li
-                        key={label}
-                        className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-white/5 py-1"
-                      >
-                        <span className="text-slate-400 break-words">{label}</span>
-                        <span className="text-slate-200 text-right break-words">{val}</span>
-                      </li>
-                    ))}
-                </ul>
-              </div>
-            </div>
+      {/* Summary card */}
+      <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200 min-w-0 overflow-visible">
+        <div className="text-white font-semibold mb-2">{t("results.title")}</div>
+        <ul className="space-y-1">
+          {summary &&
+            Object.entries(summary).map(([label, val]) => (
+              <li
+                key={label}
+                className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-white/5 py-1"
+              >
+                <span className="text-slate-400 break-words">{label}</span>
+                <span className="text-slate-200 text-right break-words">{val}</span>
+              </li>
+            ))}
+        </ul>
+      </div>
+    </div>
 
-            {/* Ad: results mid-placement */}
-            <div className="mt-6">
-              <AdSlot slot="4741871653" minHeight={300} />
-            </div>
+    {/* Ad: results mid-placement */}
+    <div className="mt-6">
+      <AdSlot slot="4741871653" minHeight={300} />
+    </div>
 
-            {/* ShubhDin block (uses NOW as anchor) */}
-            {dob && tob && lat && lon && (
-              <div className="mt-6">
-                <ShubhDinInline
-                  datetime={nowUtcIso}
-                  lat={parseFloat(lat)}
-                  lon={parseFloat(lon)}
-                  tzId={tzId}
-                  horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
-                />
-              </div>
-            )}
+    {/* ShubhDin block (uses NOW as anchor) */}
+    {dob && tob && lat && lon && (
+      <div className="mt-6">
+        <ShubhDinInline
+          datetime={nowUtcIso}
+          lat={parseFloat(lat)}
+          lon={parseFloat(lon)}
+          tzId={tzId}
+          horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
+        />
+      </div>
+    )}
 
-            {/* Saturn teaser */}
+    {/* Saturn teaser */}
             <div className="mt-6">
               <Link
                 href="/saturn"
@@ -609,7 +613,7 @@ export default function CreateChartClient() {
 
             {/* Vimshottari (lazy-loaded) */}
             {vimshottari && (
-              <div className="mt-6">
+              <div className="mt-6 overflow-visible">
                 <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
                 <DashaSection v={vimshottari} />
               </div>
@@ -621,6 +625,8 @@ export default function CreateChartClient() {
             </div>
           </>
         )}
+
+
       </div>
 
       {/* Deep Links */}
