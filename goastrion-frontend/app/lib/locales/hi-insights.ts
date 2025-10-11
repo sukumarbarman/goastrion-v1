@@ -300,6 +300,7 @@ const hiInsights = {
 
   dasha: {
     sectionTitle: "विंशोत्तरी — टाइमलाइन",
+    subtitle: "आपकी विम्शोत्तरी महादशा और अंतरदशा समयरेखा",
     titleFullTimeline: "विंशोत्तरी महादशा — पूर्ण टाइमलाइन",
     colLord: "स्वामी",
     colStart: "आरंभ",

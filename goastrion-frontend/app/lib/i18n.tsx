@@ -1,63 +1,70 @@
+// goastrion-frontend/app/lib/i18n.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { dictionaries } from "./locales/dictionaries";
 
-/** Base types */
-type Dictionaries = typeof dictionaries;
-type Locale = keyof Dictionaries;
+/** Dictionaries + Locale types */
+export type Dictionaries = typeof dictionaries;
+export type Locale = keyof Dictionaries; // "en" | "hi" | "bn" | "ta" | "te" | "kn"
 type KeyArgs = Record<string, string | number>;
 type ServerKey = { key: string; args?: KeyArgs };
+
+/** Single source of truth for supported locales + labels */
+export const SUPPORTED_LOCALES: ReadonlyArray<Locale> = ["en", "hi", "bn", "ta", "te", "kn"] as const;
+export const DEFAULT_LOCALE: Locale = "en";
+
+export const LOCALE_LABEL: Record<Locale, string> = {
+  en: "English",
+  hi: "हिन्दी",
+  bn: "বাংলা",
+  ta: "தமிழ்",
+  te: "తెలుగు",
+  kn: "ಕನ್ನಡ",
+};
+
+/** RTL helpers (kept generic if you add Arabic/Hebrew later) */
+export const isRtl = (l: string) => ["ar", "fa", "he", "ur"].some((x) => l.startsWith(x));
+export const dirFor = (l: string) => (isRtl(l) ? "rtl" : "ltr");
+
+/** Clamp any incoming string to a valid Locale */
+export function clampLocale(input: string | null | undefined): Locale {
+  return (input && SUPPORTED_LOCALES.includes(input as Locale) ? (input as Locale) : DEFAULT_LOCALE);
+}
 
 /** Public context shape */
 type I18nContextValue = {
   locale: Locale;
   setLocale: (l: Locale) => void;
-
-  /** translate by string key */
   t: (key: string, vars?: KeyArgs) => string;
-
-  /** translate with inline fallback if key missing */
   tOr: (key: string, fallback: string, vars?: KeyArgs) => string;
-
-  /** translate server objects like { key, args } */
   tx: (entry: string | ServerKey) => string;
-
-  /** raw access (object/array/string/number) */
   get: (key: string) => unknown;
-
-  /** expose the active dictionary */
   dict: Dictionaries[Locale];
+  dir: "ltr" | "rtl";
 };
 
-/** Defaults */
-const FALLBACK_LOCALE: Locale = "en";
-
 const I18nCtx = createContext<I18nContextValue>({
-  locale: "en",
+  locale: DEFAULT_LOCALE,
   setLocale: () => {},
   t: (k) => k,
   tOr: (_k, fb) => fb,
   tx: (e) => (typeof e === "string" ? e : e.key),
   get: () => undefined,
-  dict: dictionaries.en,
+  dict: dictionaries[DEFAULT_LOCALE],
+  dir: "ltr",
 });
 
-/** Utility: robust path resolver with array-index support (e.g. "a.b.0.c") */
+/** Robust path resolver with array-index support (e.g. "a.b.0.c") */
 function getPath(obj: unknown, path: string): unknown {
   let cur: unknown = obj;
-  const parts = path.split(".");
-  for (const part of parts) {
+  for (const part of path.split(".")) {
     if (cur == null) return undefined;
-
     if (Array.isArray(cur)) {
       const idx = Number(part);
       if (!Number.isInteger(idx) || idx < 0 || idx >= cur.length) return undefined;
       cur = cur[idx];
-      continue;
-    }
-
-    if (typeof cur === "object" && part in (cur as Record<string, unknown>)) {
+    } else if (typeof cur === "object" && part in (cur as Record<string, unknown>)) {
       cur = (cur as Record<string, unknown>)[part];
     } else {
       return undefined;
@@ -75,41 +82,56 @@ function interpolate(template: string, vars?: KeyArgs) {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocale] = useState<Locale>("en");
+  const [locale, _setLocale] = useState<Locale>(DEFAULT_LOCALE);
 
+  // Load saved locale on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("ga_locale") as Locale | null;
-      if (saved && saved in dictionaries) setLocale(saved);
-    } catch {}
+      const saved = localStorage.getItem("ga_locale");
+      _setLocale(clampLocale(saved));
+    } catch {
+      _setLocale(DEFAULT_LOCALE);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Persist locale
   useEffect(() => {
     try {
       localStorage.setItem("ga_locale", locale);
     } catch {}
   }, [locale]);
 
+  // Keep <html dir> and <html lang> in sync
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.setAttribute("dir", dirFor(locale));
+      document.documentElement.setAttribute("lang", locale);
+    }
+  }, [locale]);
+
+  // Guard before setting
+  const setLocale = (l: Locale) => _setLocale(clampLocale(l));
+
   /** Active + fallback dicts */
-  const dict = dictionaries[locale] ?? dictionaries[FALLBACK_LOCALE];
-  const fallbackDict = dictionaries[FALLBACK_LOCALE];
+  const dict = dictionaries[locale] ?? dictionaries[DEFAULT_LOCALE];
+  const fallbackDict = dictionaries[DEFAULT_LOCALE];
 
-  /** Resolve key to string (with fallback locale and final key echo if missing) */
-  const resolveToString = (key: string): string => {
-    const localVal = getPath(dict, key);
-    if (typeof localVal === "string") return localVal;
-
-    const fbVal = getPath(fallbackDict, key);
-    if (typeof fbVal === "string") return fbVal;
-
-    // last resort: echo the key
-    return key;
-  };
+  /** Resolve key → string with fallback, else echo key */
+  const resolveToString = useMemo(() => {
+    return (key: string): string => {
+      const localVal = getPath(dict, key);
+      if (typeof localVal === "string") return localVal;
+      const fbVal = getPath(fallbackDict, key);
+      if (typeof fbVal === "string") return fbVal;
+      return key;
+    };
+  }, [dict, fallbackDict]);
 
   /** t(): translate key -> string (+ interpolate) */
   const t = useMemo(() => {
     return (key: string, vars?: KeyArgs) => interpolate(resolveToString(key), vars);
-  }, [dict]);
+  }, [resolveToString]);
 
   /** tOr(): translate or use caller's fallback string */
   const tOr = useMemo(() => {
@@ -123,7 +145,7 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
               : fallback);
       return interpolate(str, vars);
     };
-  }, [dict]);
+  }, [dict, fallbackDict]);
 
   /** tx(): translate server object { key, args } or raw string key */
   const tx = useMemo(() => {
@@ -139,13 +161,14 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const get = useMemo(() => {
     return (key: string) => {
       const localVal = getPath(dict, key);
-      if (localVal !== undefined) return localVal;
-      return getPath(fallbackDict, key);
+      return localVal !== undefined ? localVal : getPath(fallbackDict, key);
     };
-  }, [dict]);
+  }, [dict, fallbackDict]);
+
+  const dir = dirFor(locale);
 
   return (
-    <I18nCtx.Provider value={{ locale, setLocale, t, tOr, tx, get, dict }}>
+    <I18nCtx.Provider value={{ locale, setLocale, t, tOr, tx, get, dict, dir }}>
       {children}
     </I18nCtx.Provider>
   );

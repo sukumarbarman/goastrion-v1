@@ -1,4 +1,4 @@
-// app/components/CreateChartClient.tsx
+//goastrion-frontend/app/components/CreateChartClient.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -522,7 +522,7 @@ export default function CreateChartClient() {
             Clear saved chart
           </button>
 
-          {savedAt && (
+        {savedAt && (
             <span className="basis-full text-xs text-slate-400">
               Last saved: {new Date(savedAt).toLocaleString()}
             </span>
@@ -565,17 +565,15 @@ export default function CreateChartClient() {
               </div>
             </div>
 
-            {/* CTA: Open Dasha in a new tab */}
+            {/* CTA: Open Vimshottari in same tab (UPDATED) */}
             {vimshottari && (
               <div className="mt-4">
                 <Link
-                  href="/dasha"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="/vimshottari"
                   className="inline-flex items-center rounded-full bg-indigo-500 px-4 py-2 text-slate-950 font-semibold hover:bg-indigo-400"
-                  aria-label={tf("dasha.openNewTab", "Open Dasha Timeline in new tab")}
+                  aria-label={tf("dasha.open", "Open Dasha Timeline")}
                 >
-                  {tf("dasha.openNewTab", "Open Dasha Timeline in new tab")} ↗
+                  {tf("dasha.open", "Open Dasha Timeline")}
                 </Link>
               </div>
             )}

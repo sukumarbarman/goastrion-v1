@@ -13,6 +13,8 @@ const enCore = {
     signup: "Sign up",
     guides: "Guides",
     faq: "FAQ",
+    saturn: "Saturn",
+    vimshottari: "Vimshottari",
   },
 
 about: {

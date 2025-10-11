@@ -13,6 +13,8 @@ const hiCore = {
     signup: "साइन अप",
     guides: "मार्गदर्शिकाएँ",
     faq: "सामान्य प्रश्न",
+    saturn: "शनि",
+    vimshottari: "विंशोत्तरी दशा",
   },
 
 about: {

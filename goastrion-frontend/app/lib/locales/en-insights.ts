@@ -300,6 +300,7 @@ const enInsights = {
 
   dasha: {
     sectionTitle: "Vimshottari — Timeline",
+    subtitle: "Your Vimshottari Mahadasha & Antardasha timeline",
     titleFullTimeline: "Vimshottari Mahadasha — Full Timeline",
     colLord: "Lord",
     colStart: "Start",

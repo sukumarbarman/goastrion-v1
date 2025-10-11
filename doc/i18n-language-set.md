@@ -6,13 +6,15 @@ This guide captures a pragmatic 10‑language set that covers key Indian audienc
 
 ## Recommended Locales (BCP‑47)
 
-| # | Language | Code | Notes |
-|---:|---|---|---|
-| 1 | English | **en** (en-US / en-GB) | Global baseline & fallback |
-| 2 | Hindi (India) | **hi-IN** | Devanagari |
-| 3 | Bengali (India/Bangladesh) | **bn-IN** / bn-BD | Eastern India + BD |
-| 4 | Tamil (India) | **ta-IN** | South India |
-| 5 | Telugu (India) | **te-IN** | South India |
+|  # | Language                   | Code | Notes |
+|---:|----------------------------|---|---|
+|  1 | English                    | **en** (en-US / en-GB) | Global baseline & fallback |
+|  2 | Hindi (India)              | **hi-IN** | Devanagari |
+|  3 | Bengali (India/Bangladesh) | **bn-IN** / bn-BD | Eastern India + BD |
+|  4 | Tamil (India)              | **ta-IN** | South India |
+|  5 | Telugu (India)             | **te-IN** | South India |
+| 5i | Kannada (kn India)         | **kn-IN** | South India |
+
 | 6 | Spanish | **es-419** / es-ES | Choose LatAm (`es-419`) unless Spain-specific |
 | 7 | Chinese (Simplified) | **zh-Hans** (zh-CN) | Use script tag when possible |
 | 8 | Arabic (RTL) | **ar** (ar-SA / ar-EG) | **RTL**; set `dir="rtl"` |
