@@ -1,5 +1,51 @@
-// app/lib/locales/en-saturn.ts
 const enSaturn = {
+  zodiac: {
+    aries: "Aries",
+    taurus: "Taurus",
+    gemini: "Gemini",
+    cancer: "Cancer",
+    leo: "Leo",
+    virgo: "Virgo",
+    libra: "Libra",
+    scorpio: "Scorpio",
+    sagittarius: "Sagittarius",
+    capricorn: "Capricorn",
+    aquarius: "Aquarius",
+    pisces: "Pisces",
+  },
+
+  // Optional: short labels (if you ever need them)
+  zodiac_short: {
+    aries: "Ari",
+    taurus: "Tau",
+    gemini: "Gem",
+    cancer: "Can",
+    leo: "Leo",
+    virgo: "Vir",
+    libra: "Lib",
+    scorpio: "Sco",
+    sagittarius: "Sag",
+    capricorn: "Cap",
+    aquarius: "Aqu",
+    pisces: "Pis",
+  },
+
+  // Alias in case other parts of your app use "rashi.*"
+  rashi: {
+    aries: "Aries",
+    taurus: "Taurus",
+    gemini: "Gemini",
+    cancer: "Cancer",
+    leo: "Leo",
+    virgo: "Virgo",
+    libra: "Libra",
+    scorpio: "Scorpio",
+    sagittarius: "Sagittarius",
+    capricorn: "Capricorn",
+    aquarius: "Aquarius",
+    pisces: "Pisces",
+  },
+
   saturn: {
     sadesati: {
       title: "Saturn · Sade Sati",

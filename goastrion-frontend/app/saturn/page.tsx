@@ -68,6 +68,15 @@ function replaceVars(str: string, vars?: Record<string, string | number>) {
     str
   );
 }
+
+// ⬅️ add this helper near other helpers
+function localizeSign(sign?: string, tf?: (k: string, fb: string) => string) {
+  if (!sign) return "—";
+  const key = `zodiac.${String(sign).toLowerCase()}`; // e.g., "zodiac.aries"
+  return tf ? tf(key, sign) : sign;
+}
+
+
 function useTf() {
   const { t } = useI18n();
   const tf = (k: string, fb: string, vars?: Record<string, string | number>) => {
@@ -296,8 +305,8 @@ export default function SaturnPage() {
         start: fmtDate(w.start),
         end: fmtDate(w.end),
         duration,
-        moonSign: w.moon_sign || "—",
-        saturnSign: w.saturn_sign || "—",
+        moonSign: localizeSign(w.moon_sign, tf),
+        saturnSign: localizeSign(w.saturn_sign, tf),
         stations: stations ?? [],
         retros: retros ?? [],
         severity,
