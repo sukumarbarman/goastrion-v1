@@ -1,8 +1,7 @@
-//app/componenets/CreateChartClient.tsxt
+// app/components/CreateChartClient.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 
 import Container from "./Container";
@@ -11,10 +10,7 @@ import AdSlot from "./AdSlot";
 
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
-import type { DashaTimeline } from "./dasha/types"; // ⬅️ types only
-
-// Lazy-load the heavy Dasha tables/summary
-const DashaSection = dynamic(() => import("./dasha/DashaSection"), { ssr: false });
+import type { DashaTimeline } from "./dasha/types"; // types only
 
 /* -------------------- Types used locally -------------------- */
 type Dictionaries = typeof dictionaries;
@@ -84,7 +80,11 @@ function tzHoursToOffset(h: number) {
   return `${sign}${pad(hh)}:${pad(mm)}`;
 }
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
-function localCivilToUtcIso(dob: string, tob: string, tzId: TzId): { dtIsoUtc: string; tzHours: number } {
+function localCivilToUtcIso(
+  dob: string,
+  tob: string,
+  tzId: TzId
+): { dtIsoUtc: string; tzHours: number } {
   const tzHours = TZ_HOURS[tzId];
   const offset = tzHoursToOffset(tzHours);
   const localTagged = `${dob}T${tob}:00${offset}`;
@@ -143,7 +143,7 @@ function makeSvgResponsive(svg: string) {
 }
 
 /* ---- Shared defaults ---- */
-const DEFAULT_SHUBHDIN_HORIZON = 24;   // months
+const DEFAULT_SHUBHDIN_HORIZON = 24; // months
 
 export default function CreateChartClient() {
   const { t, locale } = useI18n();
@@ -537,97 +537,109 @@ export default function CreateChartClient() {
         )}
 
         {/* Results */}
-{/* Results */}
-{/* Results */}
-{(svg || summary) && (
-  <>
-    <div className="grid md:grid-cols-2 gap-6 mt-6 overflow-visible min-w-0">
-      {/* Summary card (1st on mobile, 2nd on desktop) */}
-      <div className="order-1 md:order-2 rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200 min-w-0 overflow-visible">
-        <div className="text-white font-semibold mb-2">{t("results.title")}</div>
-        <ul className="space-y-1">
-          {summary &&
-            Object.entries(summary).map(([label, val]) => (
-              <li
-                key={label}
-                className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-white/5 py-1"
+        {(svg || summary) && (
+          <>
+            <div className="grid md:grid-cols-2 gap-6 mt-6 overflow-visible min-w-0">
+              {/* SVG card */}
+              <div className="rounded-2xl border border-white/10 bg-black/10 p-3 min-w-0 overflow-visible">
+                <div className="mx-auto w-full max-w-[min(92vw,520px)]">
+                  <div className="w-full" dangerouslySetInnerHTML={{ __html: svg || "" }} />
+                </div>
+              </div>
+
+              {/* Summary card */}
+              <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200 min-w-0 overflow-visible">
+                <div className="text-white font-semibold mb-2">{t("results.title")}</div>
+                <ul className="space-y-1">
+                  {summary &&
+                    Object.entries(summary).map(([label, val]) => (
+                      <li
+                        key={label}
+                        className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-white/5 py-1"
+                      >
+                        <span className="text-slate-400 break-words">{label}</span>
+                        <span className="text-slate-200 text-right break-words">{val}</span>
+                      </li>
+                    ))}
+                </ul>
+              </div>
+            </div>
+
+            {/* CTA: Open Dasha in a new tab */}
+            {vimshottari && (
+              <div className="mt-4">
+                <Link
+                  href="/dasha"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-full bg-indigo-500 px-4 py-2 text-slate-950 font-semibold hover:bg-indigo-400"
+                  aria-label={tf("dasha.openNewTab", "Open Dasha Timeline in new tab")}
+                >
+                  {tf("dasha.openNewTab", "Open Dasha Timeline in new tab")} ↗
+                </Link>
+              </div>
+            )}
+
+            {/* Ad: results mid-placement */}
+            <div className="mt-6">
+              <AdSlot slot="4741871653" minHeight={300} />
+            </div>
+
+            {/* ShubhDin block (uses NOW as anchor) */}
+            {dob && tob && lat && lon && (
+              <div className="mt-6">
+                <ShubhDinInline
+                  datetime={nowUtcIso}
+                  lat={parseFloat(lat)}
+                  lon={parseFloat(lon)}
+                  tzId={tzId}
+                  horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
+                />
+              </div>
+            )}
+
+            {/* Saturn teaser */}
+            <div className="mt-6">
+              <Link
+                href="/saturn"
+                className="block rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
+                aria-label={tf("cta.saturn.btn", "Open Saturn")}
               >
-                <span className="text-slate-400 break-words">{label}</span>
-                <span className="text-slate-200 text-right break-words">{val}</span>
-              </li>
-            ))}
-        </ul>
-      </div>
-
-      {/* SVG card (2nd on mobile, 1st on desktop) */}
-      <div className="order-2 md:order-1 rounded-2xl border border-white/10 bg-black/10 p-3 min-w-0 overflow-visible">
-        <div className="mx-auto w-full max-w-[min(92vw,520px)]">
-          <div className="w-full" dangerouslySetInnerHTML={{ __html: svg || "" }} />
-        </div>
-      </div>
-    </div>
-
-    {/* Ad: results mid-placement */}
-    <div className="mt-6">
-      <AdSlot slot="4741871653" minHeight={300} />
-    </div>
-
-    {/* ShubhDin block (uses NOW as anchor) */}
-    {dob && tob && lat && lon && (
-      <div className="mt-6">
-        <ShubhDinInline
-          datetime={nowUtcIso}
-          lat={parseFloat(lat)}
-          lon={parseFloat(lon)}
-          tzId={tzId}
-          horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
-        />
-      </div>
-    )}
-
-    {/* Saturn teaser */}
-    <div className="mt-6">
-      <Link
-        href="/saturn"
-        className="block rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
-        aria-label={tf("cta.saturn.btn", "Open Saturn")}
-      >
-        <div className="flex items-start gap-4">
-          <div className="text-2xl md:text-3xl">🪐</div>
-          <div>
-            <div className="text-white text-lg md:text-xl font-semibold">
-              {tf("cta.saturn.title", "Saturn Phases (Sade Sati & More)")}
+                <div className="flex items-start gap-4">
+                  <div className="text-2xl md:text-3xl">🪐</div>
+                  <div>
+                    <div className="text-white text-lg md:text-xl font-semibold">
+                      {tf("cta.saturn.title", "Saturn Phases (Sade Sati & More)")}
+                    </div>
+                    <p className="mt-1 text-slate-300 text-sm md:text-base">
+                      {tf(
+                        "cta.saturn.desc",
+                        "See your Sade Sati windows, Saturn transits, station days and caution periods—personalized from your birth details."
+                      )}
+                    </p>
+                    <div className="mt-3 inline-flex items-center gap-2 text-indigo-200 font-medium">
+                      {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
             </div>
-            <p className="mt-1 text-slate-300 text-sm md:text-base">
-              {tf(
-                "cta.saturn.desc",
-                "See your Sade Sati windows, Saturn transits, station days and caution periods—personalized from your birth details."
-              )}
-            </p>
-            <div className="mt-3 inline-flex items-center gap-2 text-indigo-200 font-medium">
-              {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
+
+            {/* NOTE: Inline DashaSection is intentionally disabled to avoid mobile issues */}
+            {/* If you ever want to re-enable it, keep it wrapped and mobile-safe:
+            {vimshottari && (
+              <div className="mt-6 overflow-visible">
+                <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
+                <DashaSection v={vimshottari} />
+              </div>
+            )} */}
+
+            {/* Ad: end-of-page */}
+            <div className="mt-6">
+              <AdSlot slot="4741871653" minHeight={280} />
             </div>
-          </div>
-        </div>
-      </Link>
-    </div>
-
-    {/* Vimshottari (lazy-loaded) */}
-    {vimshottari && (
-      <div className="mt-6 overflow-visible">
-        <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
-        <DashaSection v={vimshottari} />
-      </div>
-    )}
-
-    {/* Ad: end-of-page */}
-    <div className="mt-6">
-      <AdSlot slot="4741871653" minHeight={280} />
-    </div>
-  </>
-)}
-
-
+          </>
+        )}
       </div>
 
       {/* Deep Links */}

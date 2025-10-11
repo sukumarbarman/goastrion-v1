@@ -17,8 +17,9 @@ interface NavbarProps {
 export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: NavbarProps) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k)); // safe i18n fallback
 
-  // Close menu then run the passed handler (no 'any' here)
+  // Close menu then run the passed handler
   const closeAnd =
     <T extends (...args: unknown[]) => void>(fn: T) =>
       (...args: Parameters<T>) => {
@@ -49,11 +50,19 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             <Link href="/domains" className="hover:text-white">{t("navbar.lifeSpheres")}</Link>
             <Link href="/skills" className="hover:text-white">{t("navbar.skills")}</Link>
             <Link href="/saturn" className="hover:text-white">Saturn</Link>
+
+            {/* Vimshottari opens in a new tab */}
+            <Link
+              href="/vimshottari"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-white"
+            >
+              {tf("navbar.vimshottari", "Vimshottari")}
+            </Link>
+
             <Link href="/guides" className="hover:text-white">{t("navbar.guides")}</Link>
             <Link href="/faq" className="hover:text-white">{t("navbar.faq")}</Link>
-
-
-
           </nav>
 
           {/* Right cluster */}
@@ -68,26 +77,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
             </Link>
 
             <LanguageSwitcher />
-{/*
-            <button
-              onClick={onOpenAppt}
-              className="hidden md:inline-flex rounded-full border border-cyan-400/40 bg-cyan-500/15 px-3 py-1.5 text-sm text-cyan-200 hover:bg-cyan-500/25"
-            >
-              {t("navbar.book")}
-            </button>
-            <button
-              onClick={onOpenLogin}
-              className="hidden md:inline-flex rounded-full border border-white/10 px-3 py-1.5 text-sm text-slate-200 hover:border-white/20"
-            >
-              {t("navbar.login")}
-            </button>
-            <button
-              onClick={onOpenSignup}
-              className="hidden md:inline-flex rounded-full bg-cyan-500 px-3 py-1.5 text-sm text-slate-950 font-semibold hover:bg-cyan-400"
-            >
-              {t("navbar.signup")}
-            </button>
-*/}
+
             {/* Mobile menu toggle */}
             <button
               className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/10 text-slate-200"
@@ -122,7 +112,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
         >
           <nav className="px-2 py-2">
             <ul className="divide-y divide-white/5">
-            <li>
+              <li>
                 <Link href="/about" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
                   {t("navbar.about")}
                 </Link>
@@ -147,7 +137,21 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
                   Saturn
                 </Link>
               </li>
-               <li>
+
+              {/* Vimshottari opens in a new tab (mobile) */}
+              <li>
+                <Link
+                  href="/vimshottari"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block px-3 py-3 text-slate-200 hover:bg-white/5"
+                  onClick={() => setOpen(false)}
+                >
+                  {tf("navbar.vimshottari", "Vimshottari")}
+                </Link>
+              </li>
+
+              <li>
                 <Link href="/guides" className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
                   {t("navbar.guides")}
                 </Link>
@@ -157,11 +161,9 @@ export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: Navbar
                   {t("navbar.faq")}
                 </Link>
               </li>
-
-
             </ul>
 
-            {/* Actions
+            {/* Actions (kept commented)
             <div className="mt-3 grid grid-cols-2 gap-2 px-2">
               <button
                 onClick={closeAnd(onOpenAppt)}
