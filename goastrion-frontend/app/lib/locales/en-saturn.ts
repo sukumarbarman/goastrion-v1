@@ -1,3 +1,4 @@
+//goastrion-frontend/app/lib/locales/en-saturn.ts
 const enSaturn = {
   zodiac: {
     aries: "Aries",

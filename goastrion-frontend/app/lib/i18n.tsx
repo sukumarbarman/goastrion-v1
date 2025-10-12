@@ -6,12 +6,23 @@ import { dictionaries } from "./locales/dictionaries";
 
 /** Dictionaries + Locale types */
 export type Dictionaries = typeof dictionaries;
-export type Locale = keyof Dictionaries; // "en" | "hi" | "bn" | "ta" | "te" | "kn"
+export type Locale = keyof Dictionaries; // "en" | "hi" | "bn" | "ta" | "te" | "kn" | "es" | "pt" | "fr"
 type KeyArgs = Record<string, string | number>;
 type ServerKey = { key: string; args?: KeyArgs };
 
 /** Single source of truth for supported locales + labels */
-export const SUPPORTED_LOCALES: ReadonlyArray<Locale> = ["en", "hi", "bn", "ta", "te", "kn"] as const;
+export const SUPPORTED_LOCALES: ReadonlyArray<Locale> = [
+  "en",
+  "hi",
+  "bn",
+  "ta",
+  "te",
+  "kn",
+  "es",
+  "pt",
+  "fr",
+] as const;
+
 export const DEFAULT_LOCALE: Locale = "en";
 
 export const LOCALE_LABEL: Record<Locale, string> = {
@@ -21,15 +32,64 @@ export const LOCALE_LABEL: Record<Locale, string> = {
   ta: "தமிழ்",
   te: "తెలుగు",
   kn: "ಕನ್ನಡ",
-};
+  es: "Español",
+  pt: "Português",
+  fr: "Français",
+} as const;
 
 /** RTL helpers (kept generic if you add Arabic/Hebrew later) */
-export const isRtl = (l: string) => ["ar", "fa", "he", "ur"].some((x) => l.startsWith(x));
+export const isRtl = (l: string) => ["ar", "fa", "he", "ur"].some((x) => l?.toLowerCase().startsWith(x));
 export const dirFor = (l: string) => (isRtl(l) ? "rtl" : "ltr");
 
 /** Clamp any incoming string to a valid Locale */
 export function clampLocale(input: string | null | undefined): Locale {
   return (input && SUPPORTED_LOCALES.includes(input as Locale) ? (input as Locale) : DEFAULT_LOCALE);
+}
+
+/** Try to match an arbitrary BCP-47 tag to a supported Locale */
+function matchSupportedLocale(tag: string | null | undefined): Locale | null {
+  if (!tag) return null;
+  const lc = tag.toLowerCase();
+
+  // 1) exact match
+  const exact = SUPPORTED_LOCALES.find((l) => l.toLowerCase() === lc);
+  if (exact) return exact;
+
+  // 2) base-language match (e.g., fr-CA -> fr, es-419 -> es)
+  const base = lc.split("-")[0];
+  const baseHit = SUPPORTED_LOCALES.find((l) => l.toLowerCase() === base);
+  if (baseHit) return baseHit;
+
+  return null;
+}
+
+/** Resolve initial locale on client: localStorage -> <html lang> -> navigator.languages -> DEFAULT */
+function resolveInitialLocale(): Locale {
+  try {
+    // localStorage
+    const saved = localStorage.getItem("ga_locale");
+    if (saved) {
+      const clamped = clampLocale(saved);
+      if (clamped) return clamped;
+    }
+
+    // <html lang>
+    const htmlLang = typeof document !== "undefined" ? document.documentElement.getAttribute("lang") : null;
+    const fromHtml = matchSupportedLocale(htmlLang);
+    if (fromHtml) return fromHtml;
+
+    // Browser preference list
+    if (typeof navigator !== "undefined") {
+      const langs = (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language]).filter(Boolean);
+      for (const lang of langs) {
+        const hit = matchSupportedLocale(lang);
+        if (hit) return hit;
+      }
+    }
+  } catch {
+    /* noop */
+  }
+  return DEFAULT_LOCALE;
 }
 
 /** Public context shape */
@@ -84,23 +144,30 @@ function interpolate(template: string, vars?: KeyArgs) {
 export function I18nProvider({ children }: { children: React.ReactNode }) {
   const [locale, _setLocale] = useState<Locale>(DEFAULT_LOCALE);
 
-  // Load saved locale on mount
+  // Resolve initial locale on mount (client)
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("ga_locale");
-      _setLocale(clampLocale(saved));
-    } catch {
-      _setLocale(DEFAULT_LOCALE);
-    }
+    const initial = resolveInitialLocale();
+    _setLocale(initial);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Persist locale
+  // Persist locale + sync across tabs
   useEffect(() => {
     try {
       localStorage.setItem("ga_locale", locale);
     } catch {}
   }, [locale]);
+
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === "ga_locale" && typeof e.newValue === "string") {
+        const next = clampLocale(e.newValue);
+        _setLocale(next);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
 
   // Keep <html dir> and <html lang> in sync
   useEffect(() => {
@@ -137,12 +204,13 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const tOr = useMemo(() => {
     return (key: string, fallback: string, vars?: KeyArgs) => {
       const localVal = getPath(dict, key);
+      const fbVal = getPath(fallbackDict, key);
       const str =
         typeof localVal === "string"
-          ? localVal
-          : (typeof getPath(fallbackDict, key) === "string"
-              ? (getPath(fallbackDict, key) as string)
-              : fallback);
+          ? (localVal as string)
+          : typeof fbVal === "string"
+          ? (fbVal as string)
+          : fallback;
       return interpolate(str, vars);
     };
   }, [dict, fallbackDict]);

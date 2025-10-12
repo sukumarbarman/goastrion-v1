@@ -2,6 +2,38 @@
 
 This guide captures a pragmatic 10‑language set that covers key Indian audiences plus the biggest global markets, with codes, notes, and implementation tips.
 
+
+
+
+
+
+implemented language 
+
+Tamil (ta), Telugu (te), and Kannada (kn)
+
+Spanish (es), Portuguese(pt),  French(fr)
+
+
+French — fr-FR / fr-CA
+Covers France + Quebec; aligns well with education/career content.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ---
 
 ## Recommended Locales (BCP‑47)
