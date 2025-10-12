@@ -12,6 +12,7 @@ export default function sitemap() {
     "/about",
     "/guides",
     "/saturn",
+    "/dasha",
   ];
 
   return routes.map((path) => ({
