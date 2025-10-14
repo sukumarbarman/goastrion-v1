@@ -596,32 +596,7 @@ export default function CreateChartClient() {
               </div>
             )}
 
-            {/* Saturn teaser */}
-            <div className="mt-6">
-              <Link
-                href="/saturn"
-                className="block rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
-                aria-label={tf("cta.saturn.btn", "Open Saturn")}
-              >
-                <div className="flex items-start gap-4">
-                  <div className="text-2xl md:text-3xl">🪐</div>
-                  <div>
-                    <div className="text-white text-lg md:text-xl font-semibold">
-                      {tf("cta.saturn.title", "Saturn Phases (Sade Sati & More)")}
-                    </div>
-                    <p className="mt-1 text-slate-300 text-sm md:text-base">
-                      {tf(
-                        "cta.saturn.desc",
-                        "See your Sade Sati windows, Saturn transits, station days and caution periods—personalized from your birth details."
-                      )}
-                    </p>
-                    <div className="mt-3 inline-flex items-center gap-2 text-indigo-200 font-medium">
-                      {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </div>
+
 
             {/* NOTE: Inline DashaSection is intentionally disabled to avoid mobile issues */}
             {/* If you ever want to re-enable it, keep it wrapped and mobile-safe:
