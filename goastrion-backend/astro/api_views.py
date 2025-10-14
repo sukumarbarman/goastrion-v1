@@ -60,7 +60,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import AllowAny
 
+from .services.insights_pipeline import run_insights, InsightsError
 
 # ---------------- Geocode ---------------- #
 
@@ -207,150 +212,28 @@ class ChartView(APIView):
 # --- Insights API -------------------------------------------------------------
 
 
+# ... keep your other imports at top of file
+
 
 class InsightsView(APIView):
     """
     POST /api/insights
-    {
-      "datetime": "1990-11-20T17:30:00Z",
-      "lat": 22.30,
-      "lon": 87.92,
-      "tz_offset_hours": 5.5   # ignored for astronomy; UTC is used internally
-    }
+    { "datetime": "1990-11-20T17:30:00Z", "lat": 22.30, "lon": 87.92, "tz_offset_hours": 5.5 }
     """
     authentication_classes: list = []
     permission_classes = [AllowAny]
 
     def post(self, request):
         try:
-            # 1) Load validated configs (AspectConfig.json, DomainRuleSet.json)
-            try:
-                aspect_cfg, domain_rules = load_config()
-            except Exception as e:
-                return Response({"error": f"config: {e}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-            # 2) Parse & validate input
-            data: Dict[str, Any] = request.data or {}
-            dt_str = (data.get("datetime") or "").strip()
-            if not dt_str:
-                return Response({"error": "datetime required"}, status=400)
-
-            try:
-                lat = float(data.get("lat"))
-                lon = float(data.get("lon"))
-            except Exception:
-                return Response({"error": "lat/lon must be numbers"}, status=400)
-
-            if not (-90.0 <= lat <= 90.0 and -180.0 <= lon <= 180.0):
-                return Response({"error": "lat/lon out of range"}, status=400)
-
-            # Note: we accept tz_offset_hours but ignore it for core astronomy
-            try:
-                _ = float(data.get("tz_offset_hours", 0.0))
-            except Exception:
-                return Response({"error": "tz_offset_hours must be a number"}, status=400)
-
-            # 3) Normalize to aware UTC & derive naive-UTC (Swiss wants UT)
-            try:
-                dt_aw_utc: datetime = parse_client_iso_to_aware_utc(dt_str)  # aware UTC
-            except Exception as e:
-                return Response({"error": f"invalid datetime: {e}"}, status=400)
-
-            dt_naive_utc: datetime = aware_utc_to_naive(dt_aw_utc)
-
-            # 4) Compute Ascendant & planetary longitudes (sidereal) - Lahiri
-            tz_off = 0.0
-            lagna_deg, positions = compute_all_planets(
-                dt_naive_utc, lat, lon, tz_offset_hours=tz_off, ayanamsa="lahiri"
-            )
-            lagna_sign = get_sign_name(lagna_deg)
-
-            # 5) Planet placement by house (1..12)
-            bins = assign_planets_to_houses(lagna_deg, positions)
-
-            # 6) Compute house lords for all houses (based on lagna sign index)
-            asc_sign_idx = deg_to_sign_index(lagna_deg)  # 0..11
-            chart_lords: Dict[int, str] = {}
-            for h in range(1, 13):
-                sign_index_for_house = (asc_sign_idx + (h - 1)) % 12
-                chart_lords[h] = sign_lord_for(sign_index_for_house)
-
-            # 7) Build set of longitudes to feed aspect engine (include Asc)
-            planets_deg: Dict[str, float] = {"Asc": float(lagna_deg)}
-            planets_deg.update({k: float(v) for k, v in positions.items()})
-
-            # 8) Aspects (natal-style, deterministic)
-            aspects = compute_aspects(planets_deg, aspect_cfg)
-
-            # 9) Evaluate domains — now returns {"domains": [...], "globalAspects": [...]}
-            domain_result: Dict[str, Any] = evaluate_domains_v11(
-                domain_rules_json=domain_rules,
-                aspect_cfg=aspect_cfg,
-                planets_in_houses=bins,
-                chart_lords=chart_lords,
-                aspects=aspects,
-            )
-            domains_list: List[dict] = domain_result.get("domains", [])
-            global_aspects: List[dict] = domain_result.get("globalAspects", [])
-
-            # 10) Evaluate skills (includes highlights in each skill)
-            skills_list: List[dict] = evaluate_skills_v11(
-                aspect_cfg=aspect_cfg,
-                planets_in_houses={str(k): v for k, v in bins.items()},
-                aspects=aspects,
-            )
-
-            # 11) Prepare context payload for FE debugging/visualization
-            aspects_dict = [
-                {
-                    "p1": hit.p1,
-                    "p2": hit.p2,
-                    "name": hit.name,
-                    "exact": hit.exact,
-                    "delta": hit.delta,
-                    "score": hit.score,
-                    "applying": hit.applying,
-                }
-                for hit in aspects
-            ]
-
-            context = {
-                "lagna_deg": lagna_deg,
-                "lagna_sign": lagna_sign,
-                "angles": {
-                    "Asc": lagna_deg,
-                    # "MC": <optionally add later>
-                },
-                "planets": positions,
-                "planets_in_houses": {str(k): v for k, v in bins.items()},
-                "aspects": aspects_dict,
-            }
-
-            # 12) Final response (now includes globalAspects)
-            return Response(
-                {
-                    "input": {
-                        "datetime": dt_str,
-                        "lat": lat,
-                        "lon": lon,
-                        "tz_offset_hours": float(data.get("tz_offset_hours", 0.0)),
-                    },
-                    "config": {
-                        "aspectVersion": str(aspect_cfg.get("version")),
-                        "domainVersion": str(domain_rules.get("version")),
-                    },
-                    "context": context,
-                    "insights": {
-                        "domains": domains_list,
-                        "globalAspects": global_aspects,
-                        "skills": skills_list,
-                    },
-                },
-                status=200,
-            )
-
+            out = run_insights(request.data or {})
+            return Response(out, status=200)
+        except InsightsError as ie:
+            return Response({"error": str(ie)}, status=400)
         except Exception as e:
             return Response({"error": str(e)}, status=500)
+
+
+
 
 
 # astro/api_views.py

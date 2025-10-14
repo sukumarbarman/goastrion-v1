@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Dict, List, Tuple, Any, Set, Optional, Iterable, Union
 from .types import AspectHit, PlanetName
+from .scoring_recalibration import recalibrate_domains, recalibrate_skills
 
 # ----------------------------
 # Domain anchors & defaults
@@ -816,14 +817,16 @@ def evaluate_domains_v11(
             "highlights": {
                 "planets": hi_planets,
                 "houses": hi_houses,
-                "aspects": pos_hits,            # supportive
-                "aspectsNegative": neg_hits,    # stress
-                "parts": parts,                 # for UI/debug tuning
+                "aspects": pos_hits,  # supportive
+                "aspectsNegative": neg_hits,  # stress
+                "parts": parts,  # for UI/debug tuning
             },
+            "benefic_pct": int(round(ben_ratio * 100)),  # NEW
+            "malefic_pct": int(round(mal_ratio * 100)),  # NEW
         })
-
+    domains_recal = recalibrate_domains(out)
     return {
-        "domains": out,
+        "domains": domains_recal,
         "globalAspects": global_aspects,
     }
 
@@ -1050,4 +1053,4 @@ def evaluate_skills_v11(
         }
     })
 
-    return skills
+    return recalibrate_skills(skills)

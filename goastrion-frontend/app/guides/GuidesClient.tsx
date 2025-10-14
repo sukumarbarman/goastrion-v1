@@ -66,22 +66,22 @@ export default function GuidesClient() {
           <GuideCard
             title={t("guides.topics.cards.career.title")}
             blurb={t("guides.topics.cards.career.blurb")}
-            href="/domains/career"
+            href="/create"
           />
           <GuideCard
             title={t("guides.topics.cards.finance.title")}
             blurb={t("guides.topics.cards.finance.blurb")}
-            href="/domains/finance"
+            href="/create"
           />
           <GuideCard
             title={t("guides.topics.cards.marriage.title")}
             blurb={t("guides.topics.cards.marriage.blurb")}
-            href="/domains/marriage"
+            href="/create"
           />
           <GuideCard
             title={t("guides.topics.cards.health.title")}
             blurb={t("guides.topics.cards.health.blurb")}
-            href="/domains/health"
+            href="/create"
           />
         </div>
 

@@ -27,6 +27,8 @@ curl -s -X POST "http://127.0.0.1:8000/api/insights" -H "Content-Type: applicati
 curl -s -X POST "http://127.0.0.1:8000/api/insights" -H "Content-Type: application/json" -d '{"datetime":"1955-10-28T20:58:00Z","lat":47.6062,"lon":-122.3321,"tz_offset_hours":0}' | python -m json.tool
 # Nikola Tesla
 curl -s -X POST "http://127.0.0.1:8000/api/insights" -H "Content-Type: application/json" -d '{"datetime":"1856-07-10T00:00:00Z","lat":44.5600,"lon":15.2700,"tz_offset_hours":0}' | python -m json.tool
+
+
 # Mahatma Gandhi
 curl -s -X POST "http://127.0.0.1:8000/api/insights" -H "Content-Type: application/json" -d '{"datetime":"1869-10-02T03:06:19Z","lat":21.6417,"lon":69.6293,"tz_offset_hours":0}' | python -m json.tool
 
