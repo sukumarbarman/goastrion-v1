@@ -1,21 +1,23 @@
+//goastrion-frontend/app/layout.tsx
 import "./globals.css";
 import ClientShell from "./ClientShell";
 import { I18nProvider } from "./lib/i18n";
 import Footer from "./components/Footer";
 import GATracker from "./gtm-tracker";
+import ConsentBanner from "./components/ConsentBanner";
+import { AuthProvider } from "./context/AuthContext";
 
 import type { Metadata } from "next";
 import Script from "next/script";
 import { Suspense } from "react";
-import ConsentBanner from "./components/ConsentBanner";
 
-/** ——— Site constants ——— */
+/* ----------------------------- Site constants ----------------------------- */
 const SITE_URL = "https://goastrion.com" as const;
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-const ADS_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT; // ca-pub-xxxx
+const ADS_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 const ENABLE_ADS = process.env.NEXT_PUBLIC_ENABLE_ADS === "true";
 
-/** ——— Metadata (enhanced for SEO + i18n) ——— */
+/* ------------------------------- Metadata --------------------------------- */
 const defaultDescription =
   "Find auspicious dates (ShubhDin) for job change, marriage, property & more. Create a free Vedic birth chart and get Saturn/Sade Sati insights in seconds.";
 
@@ -26,14 +28,6 @@ export const metadata: Metadata = {
     template: "%s | GoAstrion",
   },
   description: defaultDescription,
-  alternates: {
-    canonical: SITE_URL,
-    languages: {
-      en: SITE_URL + "/",
-      hi: SITE_URL + "/hi",
-      bn: SITE_URL + "/bn",
-    },
-  },
   openGraph: {
     type: "website",
     url: SITE_URL,
@@ -48,7 +42,6 @@ export const metadata: Metadata = {
         alt: "GoAstrion — ShubhDin & Saturn insights",
       },
     ],
-    locale: "en_IN",
   },
   twitter: {
     card: "summary_large_image",
@@ -57,10 +50,9 @@ export const metadata: Metadata = {
     images: ["/og/og-home.jpg"],
   },
   robots: { index: true, follow: true },
-  other: { "google-adsense-account": "ca-pub-4635077618810431" },
 };
 
-// If you prefer JSON-LD via <Script />, keep your existing ORG/WEBSITE objects here
+/* ----------------------------- JSON-LD Schema ----------------------------- */
 const ORG = {
   "@context": "https://schema.org",
   "@type": "Organization",
@@ -81,11 +73,18 @@ const WEBSITE = {
   },
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+/* ------------------------------- Root Layout ------------------------------ */
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
+      <head />
+
       <body className="min-h-screen bg-[#0B1020] text-slate-200 flex flex-col">
-        {/* GA4 */}
+        {/* -------------------- Analytics & Ads Scripts -------------------- */}
         {GA_ID && (
           <>
             <Script
@@ -95,20 +94,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Script id="ga4-init" strategy="afterInteractive">{`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
-              // Consent Mode v2 defaults (safe)
-              gtag('consent','default', {
-                ad_storage: 'denied',
-                analytics_storage: 'granted',
-                ad_user_data: 'denied',
-                ad_personalization: 'denied'
+              gtag('consent','default',{
+                ad_storage:'denied',
+                analytics_storage:'granted',
+                ad_user_data:'denied',
+                ad_personalization:'denied'
               });
               gtag('js', new Date());
-              gtag('config', '${GA_ID}', { send_page_view: false, transport_type: 'beacon' });
+              gtag('config', '${GA_ID}', { send_page_view: false });
             `}</Script>
           </>
         )}
 
-        {/* AdSense loader (Auto ads toggled in AdSense UI). */}
         {ENABLE_ADS && ADS_CLIENT && (
           <Script
             id="adsense-init"
@@ -118,7 +115,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           />
         )}
 
-        {/* JSON-LD */}
+        {/* ----------------------- JSON-LD Structured Data ----------------------- */}
         <Script
           id="ld-org"
           type="application/ld+json"
@@ -132,17 +129,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
         />
 
+        {/* -------------------------- App Providers -------------------------- */}
         <ConsentBanner />
         <I18nProvider>
-          <Suspense fallback={null}>
-            <GATracker />
-          </Suspense>
+          <AuthProvider>
+            <Suspense fallback={null}>
+              <GATracker />
+            </Suspense>
 
-          <div className="flex-1">
-            <ClientShell>{children}</ClientShell>
-          </div>
+            <div className="flex-1">
+              <ClientShell>{children}</ClientShell>
+            </div>
 
-          <Footer />
+            <Footer />
+          </AuthProvider>
         </I18nProvider>
       </body>
     </html>

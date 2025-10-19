@@ -1,8 +1,9 @@
-//goastrion-frontend/app/components/CreateChartClient.tsx
+// goastrion-frontend/app/components/CreateChartClient.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 import Container from "./Container";
 import ShubhDinInline from "./shubhdin/ShubhDinInline";
@@ -11,6 +12,8 @@ import AdSlot from "./AdSlot";
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
 import type { DashaTimeline } from "./dasha/types"; // types only
+import { saveBirth } from "@/app/lib/birthStore";
+import { useAuth } from "@/app/context/AuthContext";
 
 /* -------------------- Types used locally -------------------- */
 type Dictionaries = typeof dictionaries;
@@ -66,11 +69,17 @@ function safeSave(state: PersistedState) {
   }
 }
 
+const IANA_BY_TZID: Record<TzId, string> = {
+  IST: "Asia/Kolkata",
+  UTC: "UTC",
+};
+
 /* -------------------- Helpers -------------------- */
 function fmtDate(iso: string) {
   if (typeof iso === "string" && iso.length >= 10) return iso.slice(0, 10);
   return iso;
 }
+
 function tzHoursToOffset(h: number) {
   const sign = h >= 0 ? "+" : "-";
   const abs = Math.abs(h);
@@ -79,7 +88,9 @@ function tzHoursToOffset(h: number) {
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${sign}${pad(hh)}:${pad(mm)}`;
 }
+
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
+
 function localCivilToUtcIso(
   dob: string,
   tob: string,
@@ -94,8 +105,8 @@ function localCivilToUtcIso(
 
 /* English baselines for value-localization */
 const EN_ZODIAC = [
-  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
-  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
+  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
+  "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
 ];
 const EN_NAKS = [
   "Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha",
@@ -103,7 +114,6 @@ const EN_NAKS = [
   "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"
 ];
 
-/** Replace planet names inside the incoming SVG with localized labels */
 function localizeSvgPlanets(svg: string, t: (k: string) => string) {
   if (!svg) return svg;
   const names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
@@ -120,21 +130,17 @@ function localizeSvgPlanets(svg: string, t: (k: string) => string) {
     Ketu: t("planets.ketu"),
   };
   return svg.replace(pattern, (m) => {
-    const raw = m.slice(1, -1); // remove '>' and '<'
+    const raw = m.slice(1, -1);
     return `>${map[raw] || raw}<`;
   });
 }
 
-/** Force the incoming SVG to scale on mobile */
 function makeSvgResponsive(svg: string) {
   if (!svg) return svg;
-  // remove width/height on the <svg> tag
   let out = svg.replace(/<svg([^>]*?)\s(width|height)="[^"]*"/gi, "<svg$1");
-  // ensure viewBox (fallback only if missing)
   if (!/viewBox=/.test(out)) {
     out = out.replace(/<svg([^>]*)>/i, '<svg$1 viewBox="0 0 600 600">');
   }
-  // ensure scalable styling + aspect ratio
   out = out.replace(
     /<svg([^>]*)>/i,
     '<svg$1 style="max-width:100%;height:auto;display:block" preserveAspectRatio="xMidYMid meet">'
@@ -145,11 +151,22 @@ function makeSvgResponsive(svg: string) {
 /* ---- Shared defaults ---- */
 const DEFAULT_SHUBHDIN_HORIZON = 24; // months
 
+/* ------------------------------------------------------------------ */
+/* -------------------------- Component ------------------------------ */
+/* ------------------------------------------------------------------ */
 export default function CreateChartClient() {
   const { t, locale } = useI18n();
+  const { user } = useAuth(); // ✅ hook valid here
+
+  // Save modal state (if/when you wire it)
+  const [showSavePrompt, setShowSavePrompt] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
+  const [chartName, setChartName] = useState("");
+
   const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k));
 
-  /* form state */
+  /* -------------------- form state -------------------- */
   const [dob, setDob] = useState("");
   const [tob, setTob] = useState("");
   const [tzId, setTzId] = useState<TzId>("IST");
@@ -157,7 +174,6 @@ export default function CreateChartClient() {
   const [lat, setLat] = useState("22.5726");
   const [lon, setLon] = useState("88.3639");
 
-  /* ui state */
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,11 +181,8 @@ export default function CreateChartClient() {
   const [svg, setSvg] = useState<string | null>(null);
   const [summary, setSummary] = useState<Record<string, string> | null>(null);
   const [vimshottari, setVimshottari] = useState<DashaTimeline | null>(null);
-
-  /* persistence status */
   const [savedAt, setSavedAt] = useState<string | null>(null);
 
-  /* geocode debounce */
   const [placeTyping, setPlaceTyping] = useState("");
   const lastQueryRef = useRef<string | null>(null);
   const nowUtcIso = new Date().toISOString();
@@ -195,7 +208,16 @@ export default function CreateChartClient() {
   const saveTimer = useRef<number | null>(null);
   useEffect(() => {
     const payload: PersistedState = {
-      dob, tob, tzId, place, lat, lon, svg, summary, vimshottari, savedAt: new Date().toISOString(),
+      dob,
+      tob,
+      tzId,
+      place,
+      lat,
+      lon,
+      svg,
+      summary,
+      vimshottari,
+      savedAt: new Date().toISOString(),
     };
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
@@ -210,7 +232,16 @@ export default function CreateChartClient() {
   useEffect(() => {
     const handler = () => {
       const payload: PersistedState = {
-        dob, tob, tzId, place, lat, lon, svg, summary, vimshottari, savedAt: new Date().toISOString(),
+        dob,
+        tob,
+        tzId,
+        place,
+        lat,
+        lon,
+        svg,
+        summary,
+        vimshottari,
+        savedAt: new Date().toISOString(),
       };
       safeSave(payload);
     };
@@ -219,30 +250,40 @@ export default function CreateChartClient() {
   }, [dob, tob, tzId, place, lat, lon, svg, summary, vimshottari]);
 
   /* -------- Geocoding -------- */
-  const lookupPlace = useCallback(async (raw: string) => {
-    const query = raw.trim();
-    if (!query) return;
-    if (lastQueryRef.current === query) return;
-    lastQueryRef.current = query;
+  const lookupPlace = useCallback(
+    async (raw: string) => {
+      const query = raw.trim();
+      if (!query) return;
+      if (lastQueryRef.current === query) return;
+      lastQueryRef.current = query;
 
-    setGeoMsg(null);
-    setGeoLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/geocode?place=${encodeURIComponent(query)}`);
-      const data = (await res.json()) as { address?: string; lat?: number; lon?: number; error?: string };
-      if (!res.ok) throw new Error(data?.error || `Geocode failed (${res.status})`);
-      if (typeof data.lat === "number" && typeof data.lon === "number") {
-        setLat(String(data.lat));
-        setLon(String(data.lon));
+      setGeoMsg(null);
+      setGeoLoading(true);
+      try {
+        const res = await fetch(
+          `${API_BASE}/api/geocode?place=${encodeURIComponent(query)}`
+        );
+        const data = (await res.json()) as {
+          address?: string;
+          lat?: number;
+          lon?: number;
+          error?: string;
+        };
+        if (!res.ok) throw new Error(data?.error || `Geocode failed (${res.status})`);
+        if (typeof data.lat === "number" && typeof data.lon === "number") {
+          setLat(String(data.lat));
+          setLon(String(data.lon));
+        }
+        setGeoMsg(data.address || t("create.locationFound"));
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : t("errors.genericGeocode");
+        setGeoMsg(msg);
+      } finally {
+        setGeoLoading(false);
       }
-      setGeoMsg(data.address || t("create.locationFound"));
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : t("errors.genericGeocode");
-      setGeoMsg(msg);
-    } finally {
-      setGeoLoading(false);
-    }
-  }, [t]);
+    },
+    [t]
+  );
 
   useEffect(() => {
     const q = placeTyping.trim();
@@ -252,43 +293,78 @@ export default function CreateChartClient() {
   }, [placeTyping, lookupPlace]);
 
   /* -------- Generate -------- */
-  async function onGenerate() {
+  async function onGenerate(): Promise<void> {
     setError(null);
     setLoading(true);
 
+    const ctrl = new AbortController();
     try {
+      // Basic field checks
       if (!dob || !tob || !lat || !lon) {
         throw new Error(t("create.validation.missingFields"));
       }
+      // Date sanity
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
       if (!m) throw new Error(t("create.validation.badDate"));
       const yr = parseInt(m[1], 10);
       if (yr < 1000 || yr > 2099) throw new Error(t("create.validation.badYearRange"));
 
-      const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
+      // Time sanity
+      if (!/^\d{2}:\d{2}$/.test(tob)) {
+        throw new Error(t("create.validation.badTime") || "Enter time as HH:MM");
+      }
 
+      // Coerce numbers + range-check
+      const latNum = parseFloat(lat);
+      const lonNum = parseFloat(lon);
+      if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) {
+        throw new Error(t("create.validation.badCoords") || "Latitude/Longitude must be numbers");
+      }
+      if (latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) {
+        throw new Error(t("create.validation.coordsRange") || "Latitude/Longitude out of range");
+      }
+
+      // Build UTC timestamp from local civil + tz
+      const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
+      if (!dtIsoUtc) throw new Error(t("errors.genericGenerate"));
+
+      // Call API
       const res = await fetch(`${API_BASE}/api/chart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
         body: JSON.stringify({
           datetime: dtIsoUtc,
-          lat: parseFloat(lat),
-          lon: parseFloat(lon),
+          lat: latNum,
+          lon: lonNum,
           tz_offset_hours: tzHours,
         }),
       });
 
-      const data: ApiResp = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      let data: ApiResp | null = null;
+      const text = await res.text();
+      try {
+        data = text ? (JSON.parse(text) as ApiResp) : null;
+      } catch {
+        /* non-JSON error */
+      }
+
+      if (!res.ok) {
+        const errMsg =
+          (data?.error) ||
+          (text && text.slice(0, 200)) ||
+          `HTTP ${res.status}`;
+        throw new Error(errMsg);
+      }
 
       // Localize SVG planet names + make responsive
-      const localizedSvg = data.svg
+      const localizedSvg = data?.svg
         ? makeSvgResponsive(localizeSvgPlanets(data.svg, t))
         : "";
 
-      // Localize summary labels & values
-      const rawSummary = data.summary || null;
-      const dict = dictionaries[locale as LocaleKey] as LocaleDict;
+      // Localize summary labels & values (with locale fallback)
+      const locKey = (locale in dictionaries ? locale : "en") as LocaleKey;
+      const dict = dictionaries[locKey] as LocaleDict;
       const locZodiac = dict.zodiac;
       const locNaks = dict.nakshatras;
 
@@ -310,12 +386,14 @@ export default function CreateChartClient() {
         return idx >= 0 && locNaks?.[idx] ? locNaks[idx] : val;
       };
 
+      const rawSummary = (data && data.summary) || null;
       const localizedSummary: Record<string, string> | null = rawSummary
         ? (() => {
             const result: Record<string, string> = {};
             for (const [k, v] of Object.entries(rawSummary)) {
               let vv = v;
-              if (k === "lagna_sign" || k === "sun_sign" || k === "moon_sign") vv = EN_TO_LOC_SIGN(v);
+              if (k === "lagna_sign" || k === "sun_sign" || k === "moon_sign")
+                vv = EN_TO_LOC_SIGN(v);
               if (k === "moon_nakshatra") vv = EN_TO_LOC_NAK(v);
               result[labelMap[k] ?? k] = vv;
             }
@@ -326,14 +404,39 @@ export default function CreateChartClient() {
       setSvg(localizedSvg);
       setSummary(localizedSummary);
 
-      const maybe = (data.meta?.["vimshottari"] ?? null) as DashaTimeline | null;
-      const vDash = maybe && Array.isArray(maybe.mahadashas) && maybe.mahadashas.length > 0 ? maybe : null;
+      // Vimshottari (guarded)
+      const maybe = (data?.meta?.["vimshottari"] ?? null) as DashaTimeline | null;
+      const vDash =
+        maybe &&
+        Array.isArray(maybe?.mahadashas) &&
+        (maybe?.mahadashas?.length ?? 0) > 0
+          ? maybe
+          : null;
       setVimshottari(vDash);
 
-      // Immediate save right after successful fetch
+      // Persist birth details for the Daily page
+      try {
+        saveBirth({
+          datetime: dtIsoUtc, // e.g. "1961-08-05T05:24:00.000Z"
+          lat: latNum,
+          lon: lonNum,
+          tz: IANA_BY_TZID[tzId] || "Asia/Kolkata", // IANA TZ for /daily
+        });
+      } catch {
+        /* ignore storage errors */
+      }
+
+      // Persist full Create state
       const payload: PersistedState = {
-        dob, tob, tzId, place, lat, lon,
-        svg: localizedSvg, summary: localizedSummary, vimshottari: vDash,
+        dob,
+        tob,
+        tzId,
+        place,
+        lat,
+        lon,
+        svg: localizedSvg,
+        summary: localizedSummary,
+        vimshottari: vDash,
         savedAt: new Date().toISOString(),
       };
       if (safeSave(payload)) setSavedAt(payload.savedAt!);
@@ -342,6 +445,7 @@ export default function CreateChartClient() {
       setError(msg);
     } finally {
       setLoading(false);
+      ctrl.abort();
     }
   }
 
@@ -359,7 +463,9 @@ export default function CreateChartClient() {
     setGeoMsg(null);
     lastQueryRef.current = null;
     setPlaceTyping("");
-    try { localStorage.removeItem(STORAGE_KEY); } catch {}
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {}
     setSavedAt(null);
   }
 
@@ -380,8 +486,15 @@ export default function CreateChartClient() {
 
   function clearSavedChartOnly() {
     const trimmed: PersistedState = {
-      dob, tob, tzId, place, lat, lon,
-      svg: null, summary: null, vimshottari: null,
+      dob,
+      tob,
+      tzId,
+      place,
+      lat,
+      lon,
+      svg: null,
+      summary: null,
+      vimshottari: null,
       savedAt: new Date().toISOString(),
     };
     if (safeSave(trimmed)) setSavedAt(trimmed.savedAt!);
@@ -391,7 +504,8 @@ export default function CreateChartClient() {
   }
 
   /* -------------------- UI -------------------- */
-  const birthUtcIso = (dob && tob) ? localCivilToUtcIso(dob, tob, tzId).dtIsoUtc : "";
+  const birthUtcIso =
+    dob && tob ? localCivilToUtcIso(dob, tob, tzId).dtIsoUtc : "";
 
   return (
     <Container>
@@ -522,7 +636,7 @@ export default function CreateChartClient() {
             Clear saved chart
           </button>
 
-        {savedAt && (
+          {savedAt && (
             <span className="basis-full text-xs text-slate-400">
               Last saved: {new Date(savedAt).toLocaleString()}
             </span>
@@ -565,7 +679,7 @@ export default function CreateChartClient() {
               </div>
             </div>
 
-            {/* CTA: Open Vimshottari in same tab (UPDATED) */}
+            {/* CTA: Open Vimshottari in same tab */}
             {vimshottari && (
               <div className="mt-4">
                 <Link
@@ -578,12 +692,23 @@ export default function CreateChartClient() {
               </div>
             )}
 
+            <div className="mt-2">
+              <Link
+                href="/daily"
+                className="inline-flex items-center rounded-full bg-cyan-500 px-4 py-2 text-slate-950 font-semibold hover:bg-cyan-400"
+                aria-label="Open Daily Timing"
+                title="Open Daily Timing"
+              >
+                Open Daily Timing
+              </Link>
+            </div>
+
             {/* Ad: results mid-placement */}
             <div className="mt-6">
               <AdSlot slot="4741871653" minHeight={300} />
             </div>
 
-            {/* ShubhDin block (uses NOW as anchor) */}
+            {/* ShubhDin block (uses NOW as anchor)
             {dob && tob && lat && lon && (
               <div className="mt-6">
                 <ShubhDinInline
@@ -595,17 +720,10 @@ export default function CreateChartClient() {
                 />
               </div>
             )}
+            */}
 
-
-
-            {/* NOTE: Inline DashaSection is intentionally disabled to avoid mobile issues */}
-            {/* If you ever want to re-enable it, keep it wrapped and mobile-safe:
-            {vimshottari && (
-              <div className="mt-6 overflow-visible">
-                <div className="text-white font-semibold mb-2 text-lg">{t("dasha.sectionTitle")}</div>
-                <DashaSection v={vimshottari} />
-              </div>
-            )} */}
+            {/* NOTE: Inline DashaSection intentionally disabled for mobile */}
+            {/* If you re-enable, wrap responsibly for overflow */}
 
             {/* Ad: end-of-page */}
             <div className="mt-6">
@@ -671,7 +789,10 @@ export default function CreateChartClient() {
               {tf("cta.saturn.title", "Saturn Phases")}
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              {tf("cta.saturn.desc.short", "Track Sade Sati, transits and caution days to plan moves wisely.")}
+              {tf(
+                "cta.saturn.desc.short",
+                "Track Sade Sati, transits and caution days to plan moves wisely."
+              )}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-indigo-100 font-medium">
               {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
@@ -681,4 +802,4 @@ export default function CreateChartClient() {
       </div>
     </Container>
   );
-}
+} // ← single closing brace only

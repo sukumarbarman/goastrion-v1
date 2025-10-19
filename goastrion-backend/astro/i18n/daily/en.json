@@ -1,0 +1,83 @@
+
+{
+  "headline": {
+    "comm_good": "Good for conversations {start}-{end}",
+    "travel_avoid": "Avoid travel {start}-{end}",
+    "energy_default": "Energy {val}/100 — steady progress"
+  },
+  "domains": {
+    "client_meeting_simple": "Client meeting? Try {start}-{end}. Keep it simple.",
+    "client_warm_note": "Send a warm note to one client. Ask for one clear next step.",
+    "invoices_followup": "Follow up on pending invoices before lunch. Be polite and clear."
+  },
+  "remedies": {
+    "do_label_client": "Client call",
+    "do_note_simple": "keep it simple",
+    "secular_alt": "11 slow breaths"
+  },
+  "colors": {
+    "saffron/gold": "saffron/gold",
+    "white/silver": "white/silver",
+    "red/rust": "red/rust",
+    "green": "green",
+    "yellow": "yellow",
+    "white/pastel": "white/pastel",
+    "navy/indigo": "navy/indigo",
+    "grey": "grey",
+    "earthy orange": "earthy orange"
+  },
+  "topics": {
+    "sensitive_conversations": "sensitive conversations",
+    "travel": "travel",
+    "doomscroll": "doomscrolling and impulsive posts",
+    "heated_replies": "heated replies and confrontations",
+    "overcommit_late": "over-commitment and late-night work",
+    "abrupt_exits": "abrupt exits or burning bridges",
+    "signing_without_check": "signing documents without a second check",
+    "grand_promises": "grand promises or big donations",
+    "impulse_shopping": "impulse shopping and overindulgence",
+    "emotional_decisions": "emotional decisions and late-night texting",
+    "ego_announcements": "ego-driven announcements",
+    "impulsive_decisions": "impulsive decisions"
+  },
+  "avoid": {
+    "topic": "Avoid {topic}.",
+    "drive_defensive_window": "Drive carefully {start}-{end}. Avoid confrontations."
+  },
+  "puja": {
+    "Rahu": "Short Durga stuti; avoid gossip; 10-min digital detox.",
+    "Saturn": "Sesame-oil diya at dusk; read Shani stotra 1x.",
+    "Mercury": "Chant 'Om Namo Narayanaya' 11x; write one honest note.",
+    "Jupiter": "Offer yellow flowers; read a verse on wisdom.",
+    "Venus": "Light a diya; tidy your space; share something sweet.",
+    "Mars": "Read Hanuman Chalisa 1x; offer sindoor.",
+    "Moon": "Chant 'Om Namah Shivaya' 11x; drink more water today.",
+    "Sun": "Offer water at sunrise; chant Aditya Hridayam (short).",
+    "Ketu": "Offer durva grass; 5-min journaling/declutter."
+  },
+  "phrases": {
+    "DO_TALK_MEET_WINDOW": "Talk or meet {start}-{end}.",
+    "DO_TRADING_PREFER_WINDOW": "If trading, prefer {start}-{end} with strict stops.",
+    "DO_CREATIVE_WINDOW": "Use {start}-{end} for creative work. Make a first draft.",
+    "DO_PAPERWORK_WINDOW": "Paperwork {start}-{end}. Check names, dates, and amounts.",
+    "DO_CREATIVE_SHORT": "Create for 30–45 min. Share a preview.",
+    "DO_STUDY_30MIN": "Study for 30 minutes. Review one tough topic.",
+    "DO_ADMIN_CLEAR_SMALL": "Clear 1–2 small admin tasks today.",
+    "DO_FOLLOWUP_SHORT": "Send a short follow-up by {time}.",
+    "DO_WALK_20MIN": "15–20 min mobility or a brisk walk.",
+    "DONT_AVOID_SENSITIVE_CONVOS_WINDOW": "Avoid sensitive conversations {start}-{end}.",
+    "DONT_AVOID_TRAVEL_WINDOW": "Avoid travel {start}-{end}.",
+    "DONT_AVOID_TRADING_WINDOW": "Avoid trading {start}-{end}.",
+    "DONT_DRIVE_DEFENSIVE_WINDOW": "Drive carefully {start}-{end}. Avoid confrontations.",
+    "DONT_BLOCK_SPAM": "Ignore spam/unknown callers; block and report."
+  },
+  "optional": {
+    "Rahu": {
+      "morning": "Delay socials till 10am; single-task first 30-min.",
+      "afternoon": "Mute 2 distracting chats for 4h.",
+      "evening": "Digital sunset: no scrolling after 9pm.",
+      "night": "Airplane-mode before sleep; write 1 line you’re grateful for.",
+      "generic": "Declutter 5 items; avoid gossip loops."
+    }
+  }
+}

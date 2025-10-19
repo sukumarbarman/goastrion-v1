@@ -8,6 +8,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from decouple import config, Csv
 import dj_database_url
+from datetime import timedelta
 
 # ----------------------------------------------------------------------
 # Paths
@@ -21,6 +22,14 @@ dotenv_path = BASE_DIR / ".env"
 if not dotenv_path.exists():
     dotenv_path = Path("/srv/goastrion/backend/.env")
 load_dotenv(dotenv_path, override=True)
+
+# Ensure ZoneInfo has a tz database even inside slim containers/Windows
+try:
+    import tzdata  # type: ignore
+    os.environ.setdefault("PYTHONTZPATH", tzdata.zoneinfo.__path__[0])
+except Exception:
+    # tzdata not installed: system tzdb must exist (e.g., /usr/share/zoneinfo)
+    pass
 
 # ----------------------------------------------------------------------
 # Security
@@ -69,12 +78,37 @@ INSTALLED_APPS = [
     "rest_framework",
     "corsheaders",
     "astro",
+    "rest_framework_simplejwt.token_blacklist",
+    "accounts",
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_RENDERER_CLASSES": ["astro.renderers.UTF8JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+DEFAULT_CHARSET = "utf-8"
+# Use our custom user before first migrate
+AUTH_USER_MODEL = "accounts.User"
+
+# Allow login with username OR email (fallback to default ModelBackend)
+AUTHENTICATION_BACKENDS = [
+    "accounts.backends.UsernameOrEmailBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+
 
 
 MIDDLEWARE = [
@@ -106,33 +140,59 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "goastrion_backend.wsgi.application"
-
+CORS_ALLOW_CREDENTIALS = True
 # ------------------------------------------------------------------------------
 # Database
 # ------------------------------------------------------------------------------
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = config("DATABASE_URL", default="")
+if not DATABASE_URL:
+    raise RuntimeError(
+        "DATABASE_URL is required. Set it in your .env (local) or prod EnvironmentFile."
+    )
 
-if DATABASE_URL:
-    DATABASES = {
-        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
-    }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
-    }
+DATABASES = {
+    "default": dj_database_url.parse(
+        DATABASE_URL,
+        conn_max_age=config("DB_CONN_MAX_AGE", default=120, cast=int),  # keep-alive
+        ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),  # set True if your PG needs SSL
+    )
+}
+# Auto-recycle bad/stale connections
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+
+# --- Email (Hostinger/Titan), same keys for local & prod ---
+EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
+
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.hostinger.com")   # Titan: smtp.titan.email
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)          # 587 (TLS) or 465 (SSL)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)  # if 465 -> set TLS False and SSL True
+EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
+
+EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="support@yourdomain.com")
+EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
+DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
+SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)  # for error emails
+EMAIL_SUBJECT_PREFIX = config("EMAIL_SUBJECT_PREFIX", default="[GoAstrion] ")
+EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=20, cast=int)
+
+# Link used inside password reset emails (set per environment)
+FRONTEND_RESET_URL = config("FRONTEND_RESET_URL", default="https://goastrion.com/reset-password")
+
+AUTH_USER_MODEL = "accounts.User"
+
 
 # ------------------------------------------------------------------------------
 # Password validation
 # ------------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
-    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
-    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 4},
+    },
 ]
+
+
+
 
 # ------------------------------------------------------------------------------
 # Internationalization
@@ -141,6 +201,8 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = os.getenv("TZ", "UTC")
 USE_I18N = True
 USE_TZ = True
+DEFAULT_CHARSET = "utf-8"  # explicit, Django default anyway
+
 
 # ------------------------------------------------------------------------------
 # Static files

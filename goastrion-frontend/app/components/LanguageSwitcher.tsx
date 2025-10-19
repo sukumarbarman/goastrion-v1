@@ -1,4 +1,4 @@
-//goastrion-frontend/app/components/LanguageSwitcher.tsx
+// goastrion-frontend/app/components/LanguageSwitcher.tsx
 "use client";
 import { useI18n } from "../lib/i18n";
 import { SUPPORTED_LOCALES, LOCALE_LABEL, type Locale } from "../lib/i18n";

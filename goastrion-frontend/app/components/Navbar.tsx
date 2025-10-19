@@ -1,3 +1,4 @@
+// app/components/Navbar.tsx
 "use client";
 
 import { useState } from "react";
@@ -5,164 +6,171 @@ import Link from "next/link";
 import Image from "next/image";
 import Container from "./Container";
 import LanguageSwitcher from "./LanguageSwitcher";
+import { useAuth } from "../context/AuthContext";
 import { useI18n } from "../lib/i18n";
 
-interface NavbarProps {
+export default function Navbar({
+  onOpenLogin,
+  onOpenSignup,
+  onOpenAppt, // <-- optional
+}: {
   onOpenLogin: () => void;
   onOpenSignup: () => void;
-  onOpenAppt: () => void;
-}
+  onOpenAppt?: () => void; // <-- allow this prop
+}) {
+  const { user, logout } = useAuth();
+  const [dropdown, setDropdown] = useState(false);
+  const [mobile, setMobile] = useState(false);
+  const { tOr } = useI18n();
 
-export default function Navbar({ onOpenLogin, onOpenSignup, onOpenAppt }: NavbarProps) {
-  const { t } = useI18n();
-  const [open, setOpen] = useState(false);
-  const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k)); // safe i18n fallback
+  // Map slugs → i18n keys with safe fallbacks (English stays as-is)
+  const NAV_ITEMS = [
+    { slug: "daily",        key: "navbar.daily",        fallback: "Daily" },
+    { slug: "create",       key: "navbar.create",       fallback: "Create" },
+    { slug: "saturn",       key: "navbar.saturn",       fallback: "Saturn" },
+    { slug: "vimshottari",  key: "navbar.vimshottari",  fallback: "Vimshottari" },
+    { slug: "domains",      key: "navbar.lifeSpheres",  fallback: "Domains" },
+    { slug: "skills",       key: "navbar.skills",       fallback: "Skills" },
+  ] as const;
 
-  // Close menu then run the passed handler
-  const closeAnd =
-    <T extends (...args: unknown[]) => void>(fn: T) =>
-      (...args: Parameters<T>) => {
-        setOpen(false);
-        fn(...args);
-      };
+  const loginLabel   = tOr("navbar.login",  "Log in");
+  const signupLabel  = tOr("navbar.signup", "Sign up");
+  const profileLbl   = tOr("navbar.profile","Profile");
+  const logoutLbl    = tOr("navbar.logout", "Log out");
+  const openMenuAria = tOr("navbar.openMenu","Open menu");
+  const bookLabel    = tOr("navbar.book",   "Book appointment");
+
+  // Reusable CTA that uses handler when present, or links to /book otherwise
+  const ApptCTA = ({ mobile = false }: { mobile?: boolean }) =>
+    onOpenAppt ? (
+      <button
+        onClick={onOpenAppt}
+        className={
+          mobile
+            ? "block w-full bg-emerald-500 text-slate-950 font-semibold py-2 rounded-lg mb-2"
+            : "hidden md:inline-flex bg-emerald-500 text-slate-950 font-semibold text-sm px-3 py-1.5 rounded-full hover:bg-emerald-400 transition"
+        }
+        aria-label={bookLabel}
+      >
+        {bookLabel}
+      </button>
+    ) : (
+      <Link
+        href="/book"
+        className={
+          mobile
+            ? "block w-full bg-emerald-500 text-slate-950 font-semibold py-2 rounded-lg mb-2 text-center"
+            : "hidden md:inline-flex bg-emerald-500 text-slate-950 font-semibold text-sm px-3 py-1.5 rounded-full hover:bg-emerald-400 transition"
+        }
+        aria-label={bookLabel}
+      >
+        {bookLabel}
+      </Link>
+    );
 
   return (
-    <header className="sticky top-0 z-50 bg-black/30 backdrop-blur border-b border-white/5">
+    <header className="sticky top-0 z-50 bg-black/40 backdrop-blur border-b border-white/10">
       <Container>
         <div className="flex items-center justify-between py-3">
-          {/* Brand */}
-          <Link href="/" prefetch className="flex items-center gap-2" onClick={() => setOpen(false)}>
-            <Image
-              src="/logo.png"
-              alt="GoAstrion Logo"
-              width={36}
-              height={36}
-              className="rounded-full"
-            />
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2">
+            <Image src="/logo.png" alt="GoAstrion" width={36} height={36} />
             <span className="text-cyan-300 font-bold text-lg">GoAstrion</span>
           </Link>
 
-          {/* Desktop links */}
-          <nav className="hidden md:flex gap-6 text-sm text-slate-300" aria-label="Primary">
-            <Link href="/about" prefetch className="hover:text-white">{t("navbar.about")}</Link>
-            <Link href="/create" prefetch className="hover:text-white">{t("create.title")}</Link>
-            <Link href="/domains" prefetch className="hover:text-white">{t("navbar.lifeSpheres")}</Link>
-            <Link href="/skills" prefetch className="hover:text-white">{t("navbar.skills")}</Link>
-
-            {/* Saturn: same tab */}
-            <Link href="/saturn" prefetch className="hover:text-white">
-              {tf("navbar.saturn", "Saturn")}
-            </Link>
-
-            {/* Vimshottari: now same tab */}
-            <Link href="/vimshottari" prefetch className="hover:text-white">
-              {tf("navbar.vimshottari", "Vimshottari")}
-            </Link>
-
-            <Link href="/guides" prefetch className="hover:text-white">{t("navbar.guides")}</Link>
-            <Link href="/faq" prefetch className="hover:text-white">{t("navbar.faq")}</Link>
+          {/* Links */}
+          <nav className="hidden md:flex gap-6 text-sm text-slate-300">
+            {NAV_ITEMS.map(({ slug, key, fallback }) => (
+              <Link key={slug} href={`/${slug}`} className="hover:text-white">
+                {tOr(key, fallback)}
+              </Link>
+            ))}
           </nav>
 
           {/* Right cluster */}
-          <div className="flex items-center gap-3">
-            {/* Mobile quick CTA */}
-            <Link
-              href="/create"
-              prefetch
-              className="md:hidden inline-flex rounded-full bg-cyan-500 px-3 py-1.5 text-sm text-slate-950 font-semibold hover:bg-cyan-400"
-              onClick={() => setOpen(false)}
-            >
-              {t("create.title")}
-            </Link>
-
+          <div className="flex items-center gap-3 relative">
             <LanguageSwitcher />
 
-            {/* Mobile menu toggle */}
+            {/* Desktop Appointment CTA */}
+            <ApptCTA />
+
+            {!user ? (
+              <div className="hidden md:flex gap-3">
+                <button onClick={onOpenLogin} className="text-slate-200 hover:text-white text-sm">
+                  {loginLabel}
+                </button>
+                <button
+                  onClick={onOpenSignup}
+                  className="bg-cyan-500 text-slate-950 font-semibold text-sm px-3 py-1.5 rounded-full hover:bg-cyan-400 transition"
+                >
+                  {signupLabel}
+                </button>
+              </div>
+            ) : (
+              <div className="relative">
+                <button
+                  onClick={() => setDropdown((v) => !v)}
+                  className="flex items-center gap-2 text-slate-200 hover:text-white"
+                >
+                  <div className="w-8 h-8 rounded-full bg-cyan-600 flex items-center justify-center text-white font-semibold">
+                    {user.username ? user.username[0].toUpperCase() : "U"}
+                  </div>
+                </button>
+
+                {dropdown && (
+                  <div className="absolute right-0 mt-2 w-40 bg-white text-gray-800 rounded-lg shadow-md border border-gray-100 z-50">
+                    <div className="px-4 py-2 text-sm border-b border-gray-100">
+                      {user.email}
+                    </div>
+                    <Link href="/profile" className="block px-4 py-2 text-sm hover:bg-gray-100">
+                      {profileLbl}
+                    </Link>
+                    <button onClick={logout} className="w-full text-left px-4 py-2 text-sm hover:bg-gray-100">
+                      {logoutLbl}
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mobile toggle */}
             <button
               className="md:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg border border-white/10 text-slate-200"
-              aria-expanded={open}
-              aria-controls="mobile-menu"
-              aria-label="Toggle menu"
-              onClick={() => setOpen(v => !v)}
+              onClick={() => setMobile(!mobile)}
+              aria-label={openMenuAria}
             >
-              {/* burger / close */}
-              <svg width="20" height="20" viewBox="0 0 20 20" className={open ? "hidden" : "block"} aria-hidden="true">
-                <path d="M3 6h14M3 10h14M3 14h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-              <svg width="20" height="20" viewBox="0 0 20 20" className={open ? "block" : "hidden"} aria-hidden="true">
-                <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+              ☰
             </button>
           </div>
         </div>
       </Container>
 
       {/* Mobile panel */}
-      {open && (
-        <div
-          id="mobile-menu"
-          className="
-            md:hidden
-            fixed inset-x-0 top-[56px] z-50
-            border-t border-white/10 bg-[#0B1022] shadow-lg
-            max-h-[calc(100svh-56px)] overflow-y-auto overscroll-contain
-            pb-[max(16px,env(safe-area-inset-bottom))]
-          "
-        >
-          <nav className="px-2 py-2" aria-label="Mobile primary">
-            <ul className="divide-y divide-white/5">
-              <li>
-                <Link href="/about" prefetch className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("navbar.about")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/create" prefetch className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("create.title")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/domains" prefetch className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("navbar.lifeSpheres")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/skills" prefetch className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("navbar.skills")}
-                </Link>
-              </li>
+      {mobile && (
+        <div className="md:hidden fixed inset-x-0 bg-[#0B1022] z-50 p-4 border-t border-white/10">
+          {/* Mobile Appointment CTA */}
+          <ApptCTA mobile />
 
-              {/* Saturn: same tab on mobile */}
-              <li>
-                <Link href="/saturn" prefetch className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {tf("navbar.saturn", "Saturn")}
-                </Link>
-              </li>
-
-              {/* Vimshottari: same tab on mobile */}
-              <li>
-                <Link
-                  href="/vimshottari"
-                  prefetch
-                  className="block px-3 py-3 text-slate-200 hover:bg-white/5"
-                  onClick={() => setOpen(false)}
-                >
-                  {tf("navbar.vimshottari", "Vimshottari")}
-                </Link>
-              </li>
-
-              <li>
-                <Link href="/guides" prefetch className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("navbar.guides")}
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" prefetch className="block px-3 py-3 text-slate-200 hover:bg-white/5" onClick={() => setOpen(false)}>
-                  {t("navbar.faq")}
-                </Link>
-              </li>
-            </ul>
-          </nav>
+          {!user ? (
+            <>
+              <button
+                onClick={onOpenLogin}
+                className="block w-full bg-cyan-500 text-slate-950 font-semibold py-2 rounded-lg mb-2"
+              >
+                {loginLabel}
+              </button>
+              <button
+                onClick={onOpenSignup}
+                className="block w-full border border-cyan-400 text-cyan-300 py-2 rounded-lg"
+              >
+                {signupLabel}
+              </button>
+            </>
+          ) : (
+            <button onClick={logout} className="block w-full bg-red-500 text-white py-2 rounded-lg">
+              {logoutLbl}
+            </button>
+          )}
         </div>
       )}
     </header>

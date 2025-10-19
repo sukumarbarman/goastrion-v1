@@ -9,7 +9,7 @@ import es from "./es";
 import pt from "./pt";
 import fr from "./fr";
 
-export const dictionaries = { en, hi, bn, ta, te, kn, es, pt, fr };
+export const dictionaries = { en, hi, bn, ta, te, kn, es, pt, fr } as const;
+
 export type Dictionaries = typeof dictionaries;
 export type Locale = keyof Dictionaries; // "en" | "hi" | "bn" | "ta" | "te" | "kn" | "es" | "pt" | "fr"
-
