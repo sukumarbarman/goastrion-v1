@@ -1,34 +1,36 @@
+// app/profile/layout.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "@/app/context/AuthContext";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function ProfileLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function ProfileLayout({ children }: { children: React.ReactNode }) {
   const { user, logout } = useAuth();
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
-  if (!user) {
-    router.push("/");
-    return null;
-  }
+  // Redirect on the client after mount; do not call router.push in render
+  useEffect(() => {
+    if (!user) router.replace("/");
+  }, [user, router]);
 
-    const navLinks = [
+  const navLinks = useMemo(
+    () => [
       { label: "Overview", href: "/profile" },
       { label: "Saved Charts", href: "/profile/charts" },
       { label: "Settings", href: "/profile/settings" },
       { label: "History", href: "/profile/history" },
-    ];
+    ],
+    []
+  );
 
+  // Render nothing while redirecting
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-[#0B1020] text-slate-200 flex flex-col md:flex-row">
@@ -51,14 +53,14 @@ export default function ProfileLayout({
             className="rounded-full mb-3"
           />
           <p className="font-semibold text-lg text-cyan-300">
-            {user.username || "User"}
+            {user?.username || "User"}
           </p>
-          <p className="text-sm text-slate-400 mb-4">{user.email}</p>
+          <p className="text-sm text-slate-400 mb-4">{user?.email}</p>
         </div>
 
         {/* Mobile menu (animated) */}
         <AnimatePresence>
-          {(open || typeof window === "undefined") && (
+          {open && (
             <motion.nav
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}

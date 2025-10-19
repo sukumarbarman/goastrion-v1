@@ -1,32 +1,93 @@
-//app/components/SignupModal.tsx
+// app/components/SignupModal.tsx
 "use client";
-import { useState } from "react";
-import { apiPost } from "../lib/apiClient";
+
+import { useState, type FormEvent } from "react";
+import { apiPost, ApiError } from "../lib/apiClient";
 import { useAuth } from "../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 
+// ---- Backend types (adjust if your API differs)
+type User = {
+  id: number;
+  username: string;
+  email: string;
+  [k: string]: unknown;
+};
+
+type SignupBody = {
+  username: string;
+  email: string;
+  password: string;
+};
+
+type SignupSuccess = {
+  user: User;
+  access: string;
+  refresh?: string;
+};
+
+// Typical DRF-style validation errors: { field: ["msg"], ... }
+type ValidationErrors = Record<string, string[] | string>;
+
 export default function SignupModal({ onClose }: { onClose: () => void }) {
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
+  const [form, setForm] = useState<SignupBody>({
+    username: "",
+    email: "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
 
-  async function handleSignup(e: React.FormEvent) {
+  const canSubmit =
+    form.username.trim().length > 0 &&
+    form.email.trim().length > 0 &&
+    form.password.length > 0 &&
+    !loading;
+
+  function setField<K extends keyof SignupBody>(key: K, value: SignupBody[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handleSignup(e: FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
+
     setLoading(true);
     setError("");
+
     try {
-      const data = await apiPost("/api/auth/register/", form);
-      if (data.user && data.access) {
-        login(data.user, data.access, data.refresh);
-        onClose();
-      } else {
-        setError(
-          Object.values(data).flat().join(" ") || "Registration failed"
-        );
+      const data = await apiPost<SignupSuccess, SignupBody>(
+        "/api/auth/register/",
+        form
+      );
+
+      // AuthContext.login expects a single payload object
+      login({ user: data.user, access: data.access, refresh: data.refresh });
+      onClose();
+    } catch (e) {
+      let msg = "Registration failed";
+      if (e instanceof ApiError) {
+        const d = e.data as unknown;
+        if (d && typeof d === "object") {
+          const obj = d as ValidationErrors & { detail?: string; message?: string };
+          // Prefer detail/message if present
+          msg = obj.detail ?? obj.message ?? msg;
+
+          if (msg === "Registration failed") {
+            // Build a readable string from field errors
+            const parts: string[] = [];
+            for (const v of Object.values(obj)) {
+              if (Array.isArray(v)) parts.push(...v.map(String));
+              else if (typeof v === "string") parts.push(v);
+            }
+            if (parts.length) msg = parts.join(" ");
+          }
+        } else if (e.message) {
+          msg = e.message;
+        }
       }
-    } catch {
-      setError("Network error");
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -48,33 +109,43 @@ export default function SignupModal({ onClose }: { onClose: () => void }) {
           exit={{ scale: 0.9 }}
         >
           <h2 className="text-lg font-semibold mb-4 text-center">Sign Up</h2>
+
           {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+
           <input
             name="username"
             placeholder="Username"
             className="border w-full p-2 mb-2 rounded"
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            value={form.username}
+            onChange={(e) => setField("username", e.target.value)}
+            autoComplete="username"
           />
           <input
             name="email"
             type="email"
             placeholder="Email"
             className="border w-full p-2 mb-2 rounded"
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            value={form.email}
+            onChange={(e) => setField("email", e.target.value)}
+            autoComplete="email"
           />
           <input
             name="password"
             type="password"
             placeholder="Password"
             className="border w-full p-2 mb-3 rounded"
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            value={form.password}
+            onChange={(e) => setField("password", e.target.value)}
+            autoComplete="new-password"
           />
+
           <button
-            disabled={loading}
-            className="bg-cyan-600 text-white w-full py-2 rounded-lg hover:bg-cyan-500 transition"
+            disabled={!canSubmit}
+            className="bg-cyan-600 text-white w-full py-2 rounded-lg hover:bg-cyan-500 transition disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? "Signing up..." : "Sign Up"}
           </button>
+
           <button
             type="button"
             onClick={onClose}

@@ -708,7 +708,7 @@ export default function CreateChartClient() {
               <AdSlot slot="4741871653" minHeight={300} />
             </div>
 
-            {/* ShubhDin block (uses NOW as anchor)
+            {/*
             {dob && tob && lat && lon && (
               <div className="mt-6">
                 <ShubhDinInline
@@ -720,7 +720,7 @@ export default function CreateChartClient() {
                 />
               </div>
             )}
-            */}
+            *}
 
             {/* NOTE: Inline DashaSection intentionally disabled for mobile */}
             {/* If you re-enable, wrap responsibly for overflow */}

@@ -71,13 +71,15 @@ async function request<T = unknown>(
   const data = await parseJsonSafe(resp);
 
   if (!resp.ok) {
-    // Try to pull a helpful message from common API shapes
-    const message =
-      (data &&
-        typeof data === "object" &&
-        // @ts-expect-error runtime key lookup
-        ((data.detail as string) || (data.message as string))) ||
-      `HTTP ${resp.status}`;
+    // Build a safe string message from common API shapes
+    let message: string = `HTTP ${resp.status}`;
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      const obj = data as Record<string, unknown>;
+      const detail = typeof obj.detail === "string" ? obj.detail : undefined;
+      const msg = typeof obj.message === "string" ? obj.message : undefined;
+      message = detail ?? msg ?? message;
+    }
+
     throw new ApiError(resp.status, message, data);
   }
 

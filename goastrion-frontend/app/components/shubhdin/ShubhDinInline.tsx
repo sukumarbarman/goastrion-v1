@@ -1,4 +1,4 @@
-//app/components/shubhdin/ShubhDinInline.tsx
+//goastrion-frontend/app/components/shubhdin/ShubhDinInline.tsx
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../lib/i18n";
@@ -9,24 +9,20 @@ type BackendDate = {
   date: string;
   score?: number;
   tags?: string[];
-  // new: localized tag payload
   tags_t?: Array<{ key: string; args?: Record<string, unknown> }>;
 };
 
 type BackendResult = {
   goal: string;
   headline?: string;
-  // new: localized headline payload
   headline_t?: { key: string; args?: Record<string, unknown> };
   score?: number;
   confidence?: string;
   dates?: BackendDate[];
   windows?: BackendWindow[];
   explain?: string[];
-  // new: localized explain payload
   explain_t?: Array<{ key: string; args?: Record<string, unknown> }>;
   cautions?: string[];
-  // new: localized cautions payload
   cautions_t?: Array<{ key: string; args?: Record<string, unknown> }>;
   caution_days?: string[];
 };
@@ -123,7 +119,9 @@ function GoalCard({ r }: { r: BackendResult }) {
     <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
       <div className="mb-1 flex items-center justify-between">
         <div className="text-white font-semibold capitalize">
-          {t(`sd.goals.${r.goal}`) !== `sd.goals.${r.goal}` ? t(`sd.goals.${r.goal}`) : r.goal.replace(/_/g, " ")}
+          {t(`sd.goals.${r.goal}`) !== `sd.goals.${r.goal}`
+            ? t(`sd.goals.${r.goal}`)
+            : r.goal.replace(/_/g, " ")}
         </div>
       </div>
 
@@ -162,7 +160,10 @@ function GoalCard({ r }: { r: BackendResult }) {
                 {d.tags && d.tags.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">
                     {d.tags.slice(0, 6).map((tag, j) => (
-                      <span key={`tag-${j}`} className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/80">
+                      <span
+                        key={`tag-${j}`}
+                        className="rounded bg-white/10 px-2 py-0.5 text-xs text-white/80"
+                      >
                         {tag}
                       </span>
                     ))}
@@ -201,32 +202,34 @@ function GoalCard({ r }: { r: BackendResult }) {
         </div>
       )}
 
-      {windows.length === 0 && cautions.length === 0 && explain.length === 0 && dates.length === 0 && (
-        <div className="text-sm text-white/70">{/* Optional: localized generic fallback */}</div>
-      )}
+      {windows.length === 0 &&
+        cautions.length === 0 &&
+        explain.length === 0 &&
+        dates.length === 0 && (
+          <div className="text-sm text-white/70">{/* Optional: localized generic fallback */}</div>
+        )}
     </div>
   );
 }
 
 /* ---------- Main component ---------- */
 type Props = {
-  /** Anchor moment in UTC ISO (use NOW) */
-  datetime: string;
+  datetime: string;  // UTC ISO
   lat: number;
   lon: number;
-  tzId?: TzId;                 // default IST
-  horizonMonths?: number;      // default 24
-  /** If provided, backend may tailor scoring, but we still render ALL goals */
-  goal?: string;               // optional hint for backend
+  tzId?: TzId;
+  horizonMonths?: number;
+  goal?: string;
 
-  // ====== optional props you had in caller; keep for compatibility ======
+  // visual: default false so page can own the <h1>
+  showTitle?: boolean;
+
+  // passthroughs
   variant?: "smart";
   displayMode?: "all" | "single";
-
-  // ⬇️ NEW optional props passed to backend
-  saturnCapDays?: number;      // trims Saturn horizon on backend (e.g., 365)
-  goals?: string[];            // override the evaluated goals set
-  businessType?: string;       // for business_start copy/context
+  saturnCapDays?: number;
+  goals?: string[];
+  businessType?: string;
 };
 
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0 };
@@ -241,6 +244,7 @@ export default function ShubhDinInline({
   saturnCapDays,
   goals,
   businessType,
+  showTitle = false,
 }: Props) {
   const { t, locale } = useI18n();
   const [resp, setResp] = useState<BackendResponse | null>(null);
@@ -250,13 +254,12 @@ export default function ShubhDinInline({
 
   useEffect(() => {
     let abort = false;
-    async function run() {
+    (async () => {
       if (!datetime || !Number.isFinite(lat) || !Number.isFinite(lon)) return;
       try {
         setLoading(true);
         setErr(null);
 
-        // Build payload with optional fields only when present
         const payload: Record<string, unknown> = {
           datetime,
           lat,
@@ -280,7 +283,6 @@ export default function ShubhDinInline({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
         });
-
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json = (await res.json()) as BackendResponse;
         if (!abort) setResp(json);
@@ -289,8 +291,7 @@ export default function ShubhDinInline({
       } finally {
         if (!abort) setLoading(false);
       }
-    }
-    run();
+    })();
     return () => {
       abort = true;
     };
@@ -300,10 +301,12 @@ export default function ShubhDinInline({
 
   return (
     <section className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-white">{t("sd.title")}</h2>
-        {loading && <span className="text-xs text-white/60">loading…</span>}
-      </div>
+      {(showTitle || loading) && (
+        <div className="mb-3 flex items-center justify-between">
+          {showTitle && <h2 className="text-lg font-semibold text-white">{t("sd.title")}</h2>}
+          {loading && <span className="text-xs text-white/60">loading…</span>}
+        </div>
+      )}
 
       {err && <div className="text-sm text-red-300">Error: {err}</div>}
 

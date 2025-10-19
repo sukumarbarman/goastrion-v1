@@ -1,4 +1,3 @@
-// app/components/Navbar.tsx
 "use client";
 
 import { useState } from "react";
@@ -26,6 +25,7 @@ export default function Navbar({
   // Map slugs → i18n keys with safe fallbacks (English stays as-is)
   const NAV_ITEMS = [
     { slug: "daily",        key: "navbar.daily",        fallback: "Daily" },
+    { slug: "shubhdin",     key: "navbar.shubhdin",     fallback: "ShubhDin" }, // ✅ NEW
     { slug: "create",       key: "navbar.create",       fallback: "Create" },
     { slug: "saturn",       key: "navbar.saturn",       fallback: "Saturn" },
     { slug: "vimshottari",  key: "navbar.vimshottari",  fallback: "Vimshottari" },
