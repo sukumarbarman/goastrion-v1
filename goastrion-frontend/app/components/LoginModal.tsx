@@ -1,54 +1,44 @@
 // app/components/LoginModal.tsx
 "use client";
-import { useState } from "react";
+
+import { useEffect, useState, KeyboardEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { apiPost, ApiError } from "../lib/apiClient";
 import { useAuth } from "../context/AuthContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { AUTH_ENDPOINTS } from "../lib/authEndpoints";
+import SignupModal from "./SignupModal";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
-// ---- Types returned by your backend
-type User = {
-  id: number;
-  username: string;
-  email: string;
-  [k: string]: unknown;
-};
-
-type LoginSuccess = {
-  user: User;
-  access: string;
-  refresh?: string;
-};
-
-type LoginBody = {
-  identifier: string;
-  password: string;
-};
+type User = { id: number; username: string; email: string; [k: string]: unknown };
+type LoginSuccess = { user: User; access: string; refresh?: string };
+type LoginBody = { identifier: string; password: string };
 
 export default function LoginModal({ onClose }: { onClose: () => void }) {
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
 
-  const canSubmit = identifier.trim().length > 0 && password.length > 0 && !loading;
+  // nested
+  const [showSignup, setShowSignup] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+
+  const { login } = useAuth();
+  const canSubmit = identifier.trim() && password && !loading;
 
   async function handleLogin() {
     if (!canSubmit) return;
     setLoading(true);
     setError("");
     try {
-      const data = await apiPost<LoginSuccess, LoginBody>("/api/auth/login/", {
+      const data = await apiPost<LoginSuccess, LoginBody>(AUTH_ENDPOINTS.login, {
         identifier,
         password,
       });
-
-      // ✅ AuthContext.login expects a single payload argument
       login({ user: data.user, access: data.access, refresh: data.refresh });
-
       onClose();
     } catch (e) {
-      let msg = "Invalid credentials";
+      let msg = "Invalid credentials. Please try again.";
       if (e instanceof ApiError) {
         const d = e.data as Record<string, unknown> | null;
         if (d && typeof d === "object") {
@@ -66,57 +56,102 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
     }
   }
 
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && canSubmit) {
+      e.preventDefault();
+      handleLogin();
+    }
+  }
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
   return (
     <AnimatePresence>
-      <motion.div
-        className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-      >
-        <motion.div
-          className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-gray-800"
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0.9 }}
-        >
-          <h2 className="text-lg font-semibold mb-4 text-center">Log In</h2>
+      {!showSignup && !showForgot && (
+        <motion.div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true">
+          <motion.div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-gray-800"
+            initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
+            <h2 className="text-lg font-semibold mb-4 text-center">Log In</h2>
 
-          {error && <p className="text-red-600 text-sm mb-2">{error}</p>}
+            {error && (
+              <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {error}
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <button onClick={() => setShowSignup(true)} className="font-medium underline underline-offset-2">
+                    Need an account? Sign up
+                  </button>
+                  <button onClick={() => setShowForgot(true)} className="font-medium underline underline-offset-2">
+                    Forgot password?
+                  </button>
+                </div>
+              </div>
+            )}
 
-          <input
-            type="text"
-            placeholder="Email or Username"
-            className="border w-full p-2 mb-2 rounded"
-            value={identifier}
-            onChange={(e) => setIdentifier(e.target.value)}
-            autoComplete="username email"
-          />
-          <input
-            type="password"
-            placeholder="Password"
-            className="border w-full p-2 mb-3 rounded"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
+            <label className="block text-sm mb-1">Email or Username</label>
+            <input
+              type="text"
+              placeholder="you@example.com or username"
+              className="border w-full p-2 mb-3 rounded outline-none focus:ring-2 focus:ring-cyan-300"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              onKeyDown={onKeyDown}
+              autoComplete="username email"
+            />
 
-          <button
-            onClick={handleLogin}
-            disabled={!canSubmit}
-            className="bg-cyan-600 text-white w-full py-2 rounded-lg hover:bg-cyan-500 transition disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
+            <label className="block text-sm mb-1">Password</label>
+            <input
+              type="password"
+              placeholder="••••••••"
+              className="border w-full p-2 mb-1 rounded outline-none focus:ring-2 focus:ring-cyan-300"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={onKeyDown}
+              autoComplete="current-password"
+            />
 
-          <button
-            onClick={onClose}
-            className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700"
-          >
-            Cancel
-          </button>
+            <div className="mt-1 mb-3 text-right">
+              <button type="button" onClick={() => setShowForgot(true)}
+                className="text-xs text-gray-600 hover:text-gray-800 underline underline-offset-2">
+                Forgot password?
+              </button>
+            </div>
+
+            <button
+              onClick={handleLogin}
+              disabled={!canSubmit}
+              className="bg-cyan-600 text-white w-full py-2 rounded-lg hover:bg-cyan-500 transition disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+
+            <div className="mt-3 text-sm text-center">
+              <span className="text-gray-500">No account? </span>
+              <button onClick={() => setShowSignup(true)}
+                className="text-cyan-700 hover:text-cyan-800 font-medium underline underline-offset-2">
+                Sign up
+              </button>
+            </div>
+
+            <button onClick={onClose} className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700">
+              Cancel
+            </button>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      )}
+
+      {showSignup && (
+        <SignupModal
+          onClose={() => { setShowSignup(false); onClose(); }}
+          onOpenLogin={() => setShowSignup(false)}
+        />
+      )}
+
+      {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
     </AnimatePresence>
   );
 }

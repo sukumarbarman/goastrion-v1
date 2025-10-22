@@ -186,7 +186,7 @@ export default function DomainsPage() {
   const localizedSvg = useMemo(() => (svg ? localizeSvgPlanets(svg, t) : null), [svg, t]);
 
   const occupantsForHouse = (h: number): string[] => ctxHouses[String(h)] ?? [];
-  const uniqStr = (arr: string[]) => Array.from(new Set(arr)).filter(Boolean);
+  //const uniqStr = (arr: string[]) => Array.from(new Set(arr)).filter(Boolean);
 
   // Build localized, interactive sentence parts
   const buildOption2Parts = (d: DomainItemClient) => {

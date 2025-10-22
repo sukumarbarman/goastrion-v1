@@ -6,7 +6,35 @@ import Link from "next/link";
 import DailyResults, { type DailyPayload } from "./DailyResults";
 import { loadBirth } from "@/app/lib/birthStore";
 import { useI18n } from "@/app/lib/i18n";
-type DailyPayloadPlus = DailyPayload & { headline_i18n?: string[] };
+
+type TimeWindow = { start: string; end: string; reason?: string | null };
+type WindowsBlock = {
+  best?: TimeWindow | null;
+  green?: TimeWindow[];
+  caution?: TimeWindow[];
+};
+type Remedies = { wear?: string | null };
+
+type DailyPayloadPlus = DailyPayload & {
+  headline?: string;
+  headline_i18n?: string[];
+  windows?: WindowsBlock;
+  remedies?: Remedies;
+};
+
+type BirthLike = {
+  datetime?: string;
+  tz?: string;
+  lat?: number;
+  lon?: number;
+  // optional name-y fields we might have stored
+  name?: string;
+  label?: string;
+  profileName?: string;
+  fullName?: string;
+  title?: string;
+  person?: { name?: string | null } | null;
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
@@ -50,6 +78,33 @@ function formatDobUTC(dtISO: string) {
   }
 }
 
+/** Always-English date like "22 Oct 2025" (no localization) */
+function formatDateEnglish(dt: Date, tz?: string) {
+  try {
+    return new Intl.DateTimeFormat("en-GB", {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      timeZone: tz || undefined,
+    }).format(dt);
+  } catch {
+    return dt.toISOString().slice(0, 10);
+  }
+}
+
+/** Try to pull a displayable name from the birth object (supports multiple shapes) */
+function getBirthName(birth: BirthLike | null | undefined): string {
+  const name =
+    birth?.name ??
+    birth?.label ??
+    birth?.profileName ??
+    birth?.fullName ??
+    birth?.title ??
+    birth?.person?.name ??
+    "";
+  return (typeof name === "string" ? name : "").trim();
+}
+
 function SkeletonCard({ className = "" }: { className?: string }) {
   return (
     <div className={`rounded-2xl border border-white/10 bg-white/[0.03] p-5 ${className}`}>
@@ -64,7 +119,7 @@ export default function DailyClient() {
   const { t, tx, locale } = useI18n();
 
   const [mounted, setMounted] = useState(false);
-  const [birth, setBirth] = useState<ReturnType<typeof loadBirth> | null>(null);
+  const [birth, setBirth] = useState<BirthLike | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [payload, setPayload] = useState<DailyPayloadPlus | null>(null);
@@ -72,15 +127,25 @@ export default function DailyClient() {
 
   useEffect(() => {
     setMounted(true);
-    setBirth(loadBirth() || null);
+    const b = loadBirth();
+    setBirth((b as unknown as BirthLike) || null);
   }, []);
 
   const dobLine = useMemo(() => {
     if (!birth?.datetime) return "";
-    const local = formatDobLocal(birth.datetime, birth?.tz);
-    const tzLabel = birth?.tz ? ` (${birth.tz})` : " (UTC)";
-    return `${t("daily.ui.dobLabel")}: ${local}${tzLabel}`;
-  }, [birth?.datetime, birth?.tz, t]);
+    const local = formatDobLocal(birth.datetime, birth.tz);
+    const tzLabel = birth.tz ? ` (${birth.tz})` : " (UTC)";
+    const name = getBirthName(birth);
+    const namePart = name ? `${name} — ` : "";
+    return `${t("daily.ui.dobLabel")}: ${namePart}${local}${tzLabel}`;
+  }, [birth, t]);
+
+  // Force English date string (e.g., "22 Oct 2025"), still respecting birth.tz for day boundary
+  const todayLine = useMemo(() => {
+    const tz = birth?.tz;
+    const today = new Date();
+    return `Date: ${formatDateEnglish(today, tz)}`;
+  }, [birth]);
 
   async function fetchToday() {
     if (!birth?.datetime || typeof birth.lat !== "number" || typeof birth.lon !== "number" || !birth.tz) {
@@ -96,7 +161,7 @@ export default function DailyClient() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept-Language": locale, // ensure backend i18n matches UI
+          "Accept-Language": locale,
         },
         body: JSON.stringify({
           datetime: birth.datetime,
@@ -106,10 +171,10 @@ export default function DailyClient() {
           persona: "manager",
         }),
       });
-      const data = (await res.json()) as DailyPayloadPlus & { error?: string };
+      const data: DailyPayloadPlus & { error?: string } = await res.json();
       if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
       setPayload(data);
-    } catch (e) {
+    } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t("daily.ui.errorGeneric"));
     } finally {
       setLoading(false);
@@ -118,12 +183,9 @@ export default function DailyClient() {
 
   useEffect(() => {
     if (!mounted || !birth?.datetime) return;
-    fetchToday();
+    void fetchToday();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mounted, birth?.datetime, locale]); // refetch if language changes
-
-  // constant since we removed the checkbox (keep en-dash formatting)
-  const asciiFallback = false;
 
   // Prefer backend's structured headline_i18n if present; fall back to plain string
   const headlineText = useMemo(() => {
@@ -146,8 +208,10 @@ export default function DailyClient() {
             <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">
               {t("daily.title")}
             </h2>
-            <p className="mt-1 text-xs md:text-sm text-slate-400">{t("daily.ui.dobLabel")}: —</p>
+            {/* subtitle directly after title */}
             <p className="mt-2 text-sm md:text-base text-slate-400">{t("daily.subtitle")}</p>
+            <p className="mt-1 text-xs md:text-sm text-slate-400">{t("daily.ui.dobLabel")}: —</p>
+            <p className="mt-1 text-xs md:text-sm text-slate-400">Date: —</p>
           </div>
         </header>
         <div className="grid lg:grid-cols-3 gap-6">
@@ -163,8 +227,10 @@ export default function DailyClient() {
       <div className="grid gap-6">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">{t("daily.title")}</h2>
-          <p className="mt-1 text-xs md:text-sm text-slate-400">{t("daily.ui.dobLabel")}: —</p>
+          {/* subtitle directly after title */}
           <p className="mt-2 text-sm md:text-base text-slate-400">{t("daily.subtitle")}</p>
+          <p className="mt-1 text-xs md:text-sm text-slate-400">{t("daily.ui.dobLabel")}: —</p>
+          <p className="mt-1 text-xs md:text-sm text-slate-400">Date: —</p>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
@@ -181,20 +247,29 @@ export default function DailyClient() {
     );
   }
 
+  const best = payload?.windows?.best ?? null;
+  const green: TimeWindow[] = payload?.windows?.green ?? [];
+  const caution: TimeWindow[] = payload?.windows?.caution ?? [];
+  const wear = payload?.remedies?.wear ?? null;
+
   return (
     <div className="grid gap-8">
       <header className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">{t("daily.title")}</h2>
+
+          {/* subtitle directly after title */}
+          <p className="mt-2 text-sm md:text-base text-slate-400">{t("daily.subtitle")}</p>
+
+          {/* then DOB and Date */}
           <p
             className="mt-1 text-xs md:text-sm text-slate-400"
             title={`UTC: ${formatDobUTC(birth.datetime)}`}
           >
             {dobLine}
           </p>
-          <p className="mt-2 text-sm md:text-base text-slate-400">{t("daily.subtitle")}</p>
+          <p className="mt-1 text-xs md:text-sm text-slate-400">{todayLine}</p>
         </div>
-        {/* controls removed */}
       </header>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -226,25 +301,19 @@ export default function DailyClient() {
         <aside className="lg:sticky lg:top-24 lg:self-start space-y-4">
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.02] p-5">
             <div className="text-sm text-slate-300 mb-2">{t("daily.ui.headline")}</div>
-            <div className="text-slate-100 font-medium">
-              {headlineText}
-            </div>
+            <div className="text-slate-100 font-medium">{headlineText}</div>
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.04] to-white/[0.02] p-5">
             <div className="text-sm text-slate-300 mb-2">{t("daily.ui.windowsToday")}</div>
 
-            {payload?.windows?.best?.start && payload?.windows?.best?.end ? (
+            {best?.start && best?.end ? (
               <div className="mb-3">
                 <div className="text-xs text-slate-400 mb-1">{t("daily.ui.best")}</div>
                 <div className="text-slate-50 font-medium">
-                  {dash(payload.windows.best.start)} – {dash(payload.windows.best.end)}
+                  {dash(best.start)} – {dash(best.end)}
                 </div>
-                {payload.windows.best.reason && (
-                  <div className="text-xs text-slate-400 mt-0.5">
-                    {dash(payload.windows.best.reason)}
-                  </div>
-                )}
+                {best.reason && <div className="text-xs text-slate-400 mt-0.5">{dash(best.reason)}</div>}
               </div>
             ) : (
               <div className="text-slate-400 text-sm mb-3">{t("daily.ui.best")}: —</div>
@@ -252,7 +321,7 @@ export default function DailyClient() {
 
             <div className="text-xs text-slate-400 mb-1">{t("daily.ui.green")}</div>
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {(payload?.windows?.green || []).map((w, i) => (
+              {green.map((w, i) => (
                 <span
                   key={`g-${i}`}
                   className="rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-200 px-2 py-0.5"
@@ -260,12 +329,12 @@ export default function DailyClient() {
                   {dash(w.start)} – {dash(w.end)}
                 </span>
               ))}
-              {!payload?.windows?.green?.length && <span className="text-slate-500">—</span>}
+              {!green.length && <span className="text-slate-500">—</span>}
             </div>
 
             <div className="text-xs text-slate-400 mb-1">{t("daily.ui.caution")}</div>
             <div className="flex flex-wrap gap-1.5">
-              {(payload?.windows?.caution || []).map((w, i) => (
+              {caution.map((w, i) => (
                 <span
                   key={`c-${i}`}
                   className="rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-200 px-2 py-0.5"
@@ -273,7 +342,7 @@ export default function DailyClient() {
                   {dash(w.start)} – {dash(w.end)}
                 </span>
               ))}
-              {!payload?.windows?.caution?.length && <span className="text-slate-500">—</span>}
+              {!caution.length && <span className="text-slate-500">—</span>}
             </div>
           </div>
 
@@ -283,9 +352,9 @@ export default function DailyClient() {
               <span
                 className="inline-block h-3.5 w-3.5 rounded-full border"
                 style={{ background: "#fff3", borderColor: "#fff4" }}
-                title={payload?.remedies?.wear}
+                title={wear || undefined}
               />
-              <div className="text-slate-100">{payload?.remedies?.wear || "—"}</div>
+              <div className="text-slate-100">{wear || "—"}</div>
             </div>
           </div>
         </aside>

@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Planet, Horoscope, DailyReport
+from .models import Planet, Horoscope, DailyReport, Chart
 
 @admin.register(Planet)
 class PlanetAdmin(admin.ModelAdmin):
@@ -19,3 +19,11 @@ class DailyReportAdmin(admin.ModelAdmin):
     list_display = ("user", "date", "summary", "created_at")
     search_fields = ("user__username", "summary")
     list_filter = ("date",)
+
+
+@admin.register(Chart)
+class ChartAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "name", "birth_datetime", "place", "created_at")
+    list_filter = ("timezone", "created_at")
+    search_fields = ("name", "place", "user__username", "user__email")
+

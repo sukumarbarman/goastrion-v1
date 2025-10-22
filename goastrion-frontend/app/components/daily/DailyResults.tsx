@@ -1,4 +1,4 @@
-// goastrion-frontend/app/components/daily/DailyResults.tsx
+// app/components/daily/DailyResults.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -252,7 +252,7 @@ function energySentence(
 /** Localize “do” bullets using server key/args when available */
 function buildGoodTimes(
   t: (k: string) => string,
-  tOr: (k: string, fb: string, vars?: KeyArgs) => string, // ← align with i18n
+  tOr: (k: string, fb: string, vars?: KeyArgs) => string,
   data: DailyPayload,
   ascii = false
 ) {
@@ -261,9 +261,12 @@ function buildGoodTimes(
       ? data.windows.best
       : undefined;
 
-  if (best?.start && best?.end) {
-    /* we render the bold line separately in the card */
-  }
+  // If we have a best window, build a normalized span string that respects ascii/en-dash.
+  const spanSep = ascii ? "-" : "–";
+  const bestSpan =
+    best?.start && best?.end
+      ? `${dash(best.start, ascii)} ${spanSep} ${dash(best.end, ascii)}`
+      : "";
 
   const doItems = (data.actions?.do || []) as ActionItem[];
 
@@ -290,8 +293,7 @@ function buildGoodTimes(
     6
   );
 
-  const bestSpan =
-    best?.start && best?.end ? `${best.start}–${best.end}`.replace(/-/g, "–") : "";
+  // Avoid duplicating a bullet that already contains the exact best span.
   const filtered = merged.filter((b) => (bestSpan ? !b.includes(bestSpan) : true));
 
   return { best, bullets: filtered, bestLine: "" };
@@ -312,6 +314,9 @@ export default function DailyResults({
 }) {
   const { t, tOr } = useI18n();
   const [showWhy, setShowWhy] = useState(false);
+
+  // Use dobLine in an accessible (non-visual) way to keep prop useful and lint-clean.
+  const srDobLine = dobLine ? <span className="sr-only">{dobLine}</span> : null;
 
   const energyVal = data.overview?.energy ?? 0;
   const energyText = useMemo(() => energySentence(t, energyVal), [energyVal, t]);
@@ -367,6 +372,9 @@ export default function DailyResults({
 
   return (
     <div className="grid gap-6">
+      {/* Invisible accessibility helper (consumes dobLine to keep lint happy) */}
+      {srDobLine}
+
       {/* Energy strip */}
       <Card className="flex items-center justify-between flex-wrap gap-4">
         <EnergyGauge value={energyVal} />

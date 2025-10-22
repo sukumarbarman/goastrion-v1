@@ -1,5 +1,5 @@
 // =========================
-// app/components/Hero.tsx — localized, keyword‑rich, accessible
+// app/components/Hero.tsx — localized, keyword-rich, accessible
 // =========================
 "use client";
 import Link from "next/link";
@@ -7,7 +7,7 @@ import Container from "./Container";
 import { useI18n } from "../lib/i18n";
 
 export default function Hero() {
-  const { t, locale } = useI18n();
+  const { t } = useI18n();
 
   return (
     <section className="relative overflow-hidden" aria-labelledby="hero-title">
@@ -38,18 +38,17 @@ export default function Hero() {
             <p className="mt-4 text-lg md:text-xl text-slate-300 max-w-xl">
               {t("hero.subline", {
                 default:
-                  "Plan job change, marriage or property with data‑backed windows from your natal chart. Fast, private, IST‑optimized.",
+                  "Plan job change, marriage or property with data-backed windows from your natal chart. Fast, private, IST-optimized.",
               })}
             </p>
 
             {/* Support line with internal keyword links */}
             <p className="mt-2 text-sm md:text-base text-slate-400 max-w-xl">
-              {t("hero.support.before", { default: "Start with a free" })} {" "}
+              {t("hero.support.before", { default: "Start with a free" })}{" "}
               <Link href="/chart" className="underline underline-offset-4 hover:text-cyan-300">
                 {t("hero.support.chart", { default: "birth chart" })}
               </Link>
               {" • "}
-
               <Link href="/saturn" className="underline underline-offset-4 hover:text-cyan-300">
                 {t("hero.support.saturn", { default: "Saturn/Sade Sati" })}
               </Link>
@@ -101,8 +100,14 @@ function HeroGraphic() {
       <div className="relative h-56 w-56 rounded-full border border-cyan-400/30" />
       <div className="absolute h-40 w-40 rounded-full border border-white/10" />
       <div className="absolute h-28 w-28 rounded-full border border-white/10" />
-      <div className="absolute h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_20px_4px_rgba(0,194,255,0.5)]" style={{ top: "30%", left: "25%" }} />
-      <div className="absolute h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_16px_4px_rgba(255,200,87,0.45)]" style={{ top: "60%", left: "65%" }} />
+      <div
+        className="absolute h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_20px_4px_rgba(0,194,255,0.5)]"
+        style={{ top: "30%", left: "25%" }}
+      />
+      <div
+        className="absolute h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_16px_4px_rgba(255,200,87,0.45)]"
+        style={{ top: "60%", left: "65%" }}
+      />
       <div className="absolute bottom-5 right-5 text-xs text-slate-400">SVG preview</div>
     </div>
   );

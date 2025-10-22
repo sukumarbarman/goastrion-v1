@@ -1,7 +1,8 @@
-// goastrion-frontend/app/daily/page.tsx
+// app/daily/page.tsx
+import type { Metadata } from "next";
 import DailyClient from "@/app/components/daily/DailyClient";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Daily — GoAstrion",
   description: "Supportive windows, highlights, and remedies for your day.",
 };

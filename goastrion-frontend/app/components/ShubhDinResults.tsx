@@ -1,3 +1,4 @@
+// app/components/ShubhDinResults.tsx
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../lib/i18n";
@@ -87,7 +88,9 @@ function fmtCautionDates(dates: string[]) {
 function GoalCard({ r }: { r: BackendResult }) {
   const { t } = useI18n();
 
-  const windows = r.windows ?? [];
+  // ✅ Memoize windows so dependency in useMemo is stable
+  const windows = useMemo<BackendWindow[]>(() => r.windows ?? [], [r.windows]);
+
   const cautions = r.cautions ?? [];
   const cautionDays = r.caution_days ?? [];
   const explain = r.explain ?? [];

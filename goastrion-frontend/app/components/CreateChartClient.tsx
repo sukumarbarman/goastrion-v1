@@ -1,19 +1,32 @@
-// goastrion-frontend/app/components/CreateChartClient.tsx
+// app/components/CreateChartClient.tsx
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
 
 import Container from "./Container";
-import ShubhDinInline from "./shubhdin/ShubhDinInline";
 import AdSlot from "./AdSlot";
 
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
-import type { DashaTimeline } from "./dasha/types"; // types only
+import type { DashaTimeline } from "./dasha/types";
 import { saveBirth } from "@/app/lib/birthStore";
-import { useAuth } from "@/app/context/AuthContext";
+
+// Login-gated backend save (after chart render)
+import SaveChartButton, { type ChartPayload } from "@/app/components/SaveChartButton";
+// Saved Charts panel (from server/account)
+import SavedChartsPanel from "@/app/components/SavedChartsPanel";
+
+// 👉 import all persistence/timezone helpers & types from a single source of truth
+import {
+  STORAGE_KEY,
+  IANA_BY_TZID,
+  localCivilToUtcIso,
+  loadCreateState,
+  saveCreateState,
+  type TzId,
+  type PersistedCreateState as PersistedState,
+} from "@/app/lib/birthState";
 
 /* -------------------- Types used locally -------------------- */
 type Dictionaries = typeof dictionaries;
@@ -30,78 +43,8 @@ type ApiResp = {
   error?: string;
 };
 
-type TzId = "IST" | "UTC";
-type PersistedState = {
-  dob: string;
-  tob: string;
-  tzId: TzId;
-  place: string;
-  lat: string;
-  lon: string;
-  svg: string | null;
-  summary: Record<string, string> | null;
-  vimshottari: DashaTimeline | null;
-  savedAt?: string; // ISO
-};
-
 /* -------------------- Config -------------------- */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
-
-/* -------------------- Persistence -------------------- */
-const STORAGE_KEY = "ga_create_state_v1";
-
-function safeLoad(): PersistedState | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as PersistedState;
-  } catch {
-    return null;
-  }
-}
-
-function safeSave(state: PersistedState) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-const IANA_BY_TZID: Record<TzId, string> = {
-  IST: "Asia/Kolkata",
-  UTC: "UTC",
-};
-
-/* -------------------- Helpers -------------------- */
-function fmtDate(iso: string) {
-  if (typeof iso === "string" && iso.length >= 10) return iso.slice(0, 10);
-  return iso;
-}
-
-function tzHoursToOffset(h: number) {
-  const sign = h >= 0 ? "+" : "-";
-  const abs = Math.abs(h);
-  const hh = Math.floor(abs);
-  const mm = Math.round((abs - hh) * 60);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${sign}${pad(hh)}:${pad(mm)}`;
-}
-
-const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
-
-function localCivilToUtcIso(
-  dob: string,
-  tob: string,
-  tzId: TzId
-): { dtIsoUtc: string; tzHours: number } {
-  const tzHours = TZ_HOURS[tzId];
-  const offset = tzHoursToOffset(tzHours);
-  const localTagged = `${dob}T${tob}:00${offset}`;
-  const dtIsoUtc = new Date(localTagged).toISOString();
-  return { dtIsoUtc, tzHours };
-}
 
 /* English baselines for value-localization */
 const EN_ZODIAC = [
@@ -148,23 +91,13 @@ function makeSvgResponsive(svg: string) {
   return out;
 }
 
-/* ---- Shared defaults ---- */
-const DEFAULT_SHUBHDIN_HORIZON = 24; // months
-
 /* ------------------------------------------------------------------ */
 /* -------------------------- Component ------------------------------ */
 /* ------------------------------------------------------------------ */
 export default function CreateChartClient() {
-  const { t, locale } = useI18n();
-  const { user } = useAuth(); // ✅ hook valid here
+  const { t, tOr, locale } = useI18n();
 
-  // Save modal state (if/when you wire it)
-  const [showSavePrompt, setShowSavePrompt] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [savedMsg, setSavedMsg] = useState("");
   const [chartName, setChartName] = useState("");
-
-  const tf = (k: string, fb: string) => (t(k) === k ? fb : t(k));
 
   /* -------------------- form state -------------------- */
   const [dob, setDob] = useState("");
@@ -185,12 +118,12 @@ export default function CreateChartClient() {
 
   const [placeTyping, setPlaceTyping] = useState("");
   const lastQueryRef = useRef<string | null>(null);
-  const nowUtcIso = new Date().toISOString();
 
   /* -------- Restore on mount -------- */
   useEffect(() => {
-    const saved = safeLoad();
+    const saved = loadCreateState();
     if (saved) {
+      setChartName(saved.name || "");
       setDob(saved.dob || "");
       setTob(saved.tob || "");
       setTzId(saved.tzId || "IST");
@@ -199,7 +132,7 @@ export default function CreateChartClient() {
       setLon(saved.lon || "88.3639");
       setSvg(saved.svg || null);
       setSummary(saved.summary || null);
-      setVimshottari(saved.vimshottari || null);
+      setVimshottari((saved.vimshottari as DashaTimeline | null) || null);
       setSavedAt(saved.savedAt || null);
     }
   }, []);
@@ -208,6 +141,7 @@ export default function CreateChartClient() {
   const saveTimer = useRef<number | null>(null);
   useEffect(() => {
     const payload: PersistedState = {
+      name: chartName,
       dob,
       tob,
       tzId,
@@ -216,22 +150,23 @@ export default function CreateChartClient() {
       lon,
       svg,
       summary,
-      vimshottari,
+      vimshottari, // PersistedCreateState allows `unknown | null`
       savedAt: new Date().toISOString(),
     };
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
-      if (safeSave(payload)) setSavedAt(payload.savedAt!);
+      if (saveCreateState(payload)) setSavedAt(payload.savedAt!);
     }, 300);
     return () => {
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
     };
-  }, [dob, tob, tzId, place, lat, lon, svg, summary, vimshottari]);
+  }, [chartName, dob, tob, tzId, place, lat, lon, svg, summary, vimshottari]);
 
   /* -------- Save on unload as a fallback -------- */
   useEffect(() => {
     const handler = () => {
       const payload: PersistedState = {
+        name: chartName,
         dob,
         tob,
         tzId,
@@ -243,11 +178,11 @@ export default function CreateChartClient() {
         vimshottari,
         savedAt: new Date().toISOString(),
       };
-      safeSave(payload);
+      saveCreateState(payload);
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [dob, tob, tzId, place, lat, lon, svg, summary, vimshottari]);
+  }, [chartName, dob, tob, tzId, place, lat, lon, svg, summary, vimshottari]);
 
   /* -------- Geocoding -------- */
   const lookupPlace = useCallback(
@@ -417,17 +352,16 @@ export default function CreateChartClient() {
       // Persist birth details for the Daily page
       try {
         saveBirth({
-          datetime: dtIsoUtc, // e.g. "1961-08-05T05:24:00.000Z"
+          datetime: dtIsoUtc,
           lat: latNum,
           lon: lonNum,
-          tz: IANA_BY_TZID[tzId] || "Asia/Kolkata", // IANA TZ for /daily
+          tz: IANA_BY_TZID[tzId] || "Asia/Kolkata",
         });
-      } catch {
-        /* ignore storage errors */
-      }
+      } catch {}
 
-      // Persist full Create state
+      // Persist full Create state (including name)
       const payload: PersistedState = {
+        name: chartName,
         dob,
         tob,
         tzId,
@@ -439,7 +373,7 @@ export default function CreateChartClient() {
         vimshottari: vDash,
         savedAt: new Date().toISOString(),
       };
-      if (safeSave(payload)) setSavedAt(payload.savedAt!);
+      if (saveCreateState(payload)) setSavedAt(payload.savedAt!);
     } catch (e) {
       const msg = e instanceof Error ? e.message : t("errors.genericGenerate");
       setError(msg);
@@ -450,6 +384,7 @@ export default function CreateChartClient() {
   }
 
   function onReset() {
+    setChartName("");
     setDob("");
     setTob("");
     setTzId("IST");
@@ -470,8 +405,9 @@ export default function CreateChartClient() {
   }
 
   function loadLastSaved() {
-    const saved = safeLoad();
+    const saved = loadCreateState();
     if (!saved) return;
+    setChartName(saved.name || "");
     setDob(saved.dob || "");
     setTob(saved.tob || "");
     setTzId(saved.tzId || "IST");
@@ -480,12 +416,13 @@ export default function CreateChartClient() {
     setLon(saved.lon || "88.3639");
     setSvg(saved.svg || null);
     setSummary(saved.summary || null);
-    setVimshottari(saved.vimshottari || null);
+    setVimshottari((saved.vimshottari as DashaTimeline | null) || null);
     setSavedAt(saved.savedAt || null);
   }
 
   function clearSavedChartOnly() {
     const trimmed: PersistedState = {
+      name: chartName,
       dob,
       tob,
       tzId,
@@ -497,7 +434,7 @@ export default function CreateChartClient() {
       vimshottari: null,
       savedAt: new Date().toISOString(),
     };
-    if (safeSave(trimmed)) setSavedAt(trimmed.savedAt!);
+    if (saveCreateState(trimmed)) setSavedAt(trimmed.savedAt!);
     setSvg(null);
     setSummary(null);
     setVimshottari(null);
@@ -506,6 +443,19 @@ export default function CreateChartClient() {
   /* -------------------- UI -------------------- */
   const birthUtcIso =
     dob && tob ? localCivilToUtcIso(dob, tob, tzId).dtIsoUtc : "";
+
+  // Build payload for backend save (only when we have fields)
+  const backendChartPayload: ChartPayload | null =
+    dob && tob && lat && lon
+      ? {
+          name: chartName || undefined,
+          birth_datetime: birthUtcIso, // UTC ISO
+          latitude: parseFloat(lat),
+          longitude: parseFloat(lon),
+          timezone: IANA_BY_TZID[tzId] || "Asia/Kolkata",
+          place: place || undefined,
+        }
+      : null;
 
   return (
     <Container>
@@ -521,6 +471,18 @@ export default function CreateChartClient() {
       <div className="bg-[#141A2A] rounded-2xl p-6 pb-8 border border-white/5 overflow-visible">
         {/* Form */}
         <div className="grid md:grid-cols-2 gap-4">
+          {/* Name (optional) */}
+          <div className="md:col-span-2">
+            <label className="block text-sm text-slate-300 mb-1">{tOr("profile.birth.name.label", "Name (optional)")}</label>
+            <input
+              type="text"
+              className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
+              placeholder={tOr("profile.birth.name.ph", "e.g., Self, Ananya, Father")}
+              value={chartName}
+              onChange={(e) => setChartName(e.target.value)}
+            />
+          </div>
+
           <div>
             <label className="block text-sm text-slate-300 mb-1">{t("create.dob")}</label>
             <input
@@ -613,6 +575,7 @@ export default function CreateChartClient() {
           >
             {loading ? t("create.generating") : t("create.generate")}
           </button>
+
           <button
             onClick={onReset}
             className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
@@ -679,15 +642,28 @@ export default function CreateChartClient() {
               </div>
             </div>
 
-            {/* CTA: Open Vimshottari in same tab */}
+            {/* Save to backend — RIGHT AFTER the chart render */}
+            <div className="mt-4">
+              {backendChartPayload && (
+                <SaveChartButton
+                  chart={backendChartPayload}
+                  label="Save to account"
+                  onSaved={() => {
+                    // The button dispatches "charts:refresh" on success.
+                  }}
+                />
+              )}
+            </div>
+
+            {/* CTA: Open Vimshottari */}
             {vimshottari && (
               <div className="mt-4">
                 <Link
                   href="/vimshottari"
                   className="inline-flex items-center rounded-full bg-indigo-500 px-4 py-2 text-slate-950 font-semibold hover:bg-indigo-400"
-                  aria-label={tf("dasha.open", "Open Dasha Timeline")}
+                  aria-label="Open Dasha Timeline"
                 >
-                  {tf("dasha.open", "Open Dasha Timeline")}
+                  Open Dasha Timeline
                 </Link>
               </div>
             )}
@@ -708,29 +684,17 @@ export default function CreateChartClient() {
               <AdSlot slot="4741871653" minHeight={300} />
             </div>
 
-            {/*
-            {dob && tob && lat && lon && (
-              <div className="mt-6">
-                <ShubhDinInline
-                  datetime={nowUtcIso}
-                  lat={parseFloat(lat)}
-                  lon={parseFloat(lon)}
-                  tzId={tzId}
-                  horizonMonths={DEFAULT_SHUBHDIN_HORIZON}
-                />
-              </div>
-            )}
-            *}
-
-            {/* NOTE: Inline DashaSection intentionally disabled for mobile */}
-            {/* If you re-enable, wrap responsibly for overflow */}
-
             {/* Ad: end-of-page */}
             <div className="mt-6">
               <AdSlot slot="4741871653" minHeight={280} />
             </div>
           </>
         )}
+      </div>
+
+      {/* Saved Charts Panel (account) */}
+      <div className="mt-8">
+        <SavedChartsPanel />
       </div>
 
       {/* Deep Links */}
@@ -740,20 +704,17 @@ export default function CreateChartClient() {
           <Link
             href="/domains"
             className="group rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-cyan-500/20 via-emerald-500/10 to-transparent p-5 hover:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
-            aria-label={tf("cta.domains.btn", "Open Life Wheel")}
+            aria-label="Open Life Wheel"
           >
             <div className="text-2xl">✨</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              {tf("cta.domains.title", "Life Wheel (Domains)")}
+              Life Wheel (Domains)
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              {tf(
-                "cta.domains.desc",
-                "See strengths across Career, Finance, Health, Relationships and more—at a glance."
-              )}
+              See strengths across Career, Finance, Health, Relationships and more—at a glance.
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-cyan-100 font-medium">
-              {tf("cta.domains.btn", "Open Life Wheel")} <span className="animate-pulse">↗</span>
+              Open Life Wheel <span className="animate-pulse">↗</span>
             </div>
           </Link>
 
@@ -761,20 +722,17 @@ export default function CreateChartClient() {
           <Link
             href="/skills"
             className="group rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent p-5 hover:border-emerald-300/60 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
-            aria-label={tf("cta.skills.btn", "See Skills")}
+            aria-label="See Skills"
           >
             <div className="text-2xl">🚀</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              {tf("cta.skills.title", "Top Skills")}
+              Top Skills
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              {tf(
-                "cta.skills.desc",
-                "Discover your standout abilities and how to use them for jobs, business or growth."
-              )}
+              Discover your standout abilities and how to use them for jobs, business or growth.
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-emerald-100 font-medium">
-              {tf("cta.skills.btn", "See Skills")} <span className="animate-pulse">↗</span>
+              See Skills <span className="animate-pulse">↗</span>
             </div>
           </Link>
 
@@ -782,24 +740,21 @@ export default function CreateChartClient() {
           <Link
             href="/saturn"
             className="group rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
-            aria-label={tf("cta.saturn.btn", "Open Saturn")}
+            aria-label="Open Saturn"
           >
             <div className="text-2xl">🪐</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              {tf("cta.saturn.title", "Saturn Phases")}
+              Saturn Phases
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              {tf(
-                "cta.saturn.desc.short",
-                "Track Sade Sati, transits and caution days to plan moves wisely."
-              )}
+              Track Sade Sati, transits and caution days to plan moves wisely.
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-indigo-100 font-medium">
-              {tf("cta.saturn.btn", "Open Saturn")} <span className="animate-pulse">↗</span>
+              Open Saturn <span className="animate-pulse">↗</span>
             </div>
           </Link>
         </div>
       </div>
     </Container>
   );
-} // ← single closing brace only
+}
