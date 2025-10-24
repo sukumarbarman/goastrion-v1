@@ -33,10 +33,19 @@ from .shubhdin_helpers import (
     angle_diff,
     dates_in_range,
 )
+from django.views.decorators.http import require_GET
+from django.http import JsonResponse
 
 # -----------------------------------------------------------------------------
 # Utilities for Vimshottari serialization
 # -----------------------------------------------------------------------------
+@require_GET
+def health(request):
+    return JsonResponse(
+        {"ok": True, "app": "goastrion-backend"},
+        status=200
+    )
+
 
 def _serialize_period(p: Period) -> Dict[str, Any]:
     return {
