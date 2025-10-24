@@ -1,11 +1,19 @@
+// app/api/saturn/overview/route.ts
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 function getBackendBase() {
+  // prefer explicit envs, but default per environment
+  const fallback =
+    process.env.NODE_ENV === "production"
+      ? "http://127.0.0.1:8001"
+      : "http://127.0.0.1:8000";
+
   const raw =
     process.env.BACKEND_URL ||
     process.env.NEXT_PUBLIC_BACKEND_BASE ||
-    "http://127.0.0.1:8000";
+    fallback;
+
   return raw.replace(/\/+$/, "");
 }
 
@@ -18,9 +26,15 @@ export async function POST(req: Request) {
 
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // important in prod to avoid SECURE_SSL_REDIRECT 301
+        "X-Forwarded-Proto": "https",
+      },
       body: bodyText || "{}",
       cache: "no-store",
+      // don't auto-follow to https://127.0.0.1:8001 with invalid cert
+      redirect: "manual",
     });
 
     const contentType = res.headers.get("content-type") || "application/json";
@@ -43,7 +57,7 @@ export async function POST(req: Request) {
     console.error("[/api/saturn/overview] proxy error →", err);
     const message = err instanceof Error ? err.message : "Proxy error";
     return new Response(JSON.stringify({ error: message, backend }), {
-      status: 500,
+      status: 502,
       headers: { "Content-Type": "application/json" },
     });
   }
