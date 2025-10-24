@@ -341,15 +341,20 @@ export default function CreateChartClient() {
       setSvg(localizedSvg);
       setSummary(localizedSummary);
 
-      // Vimshottari (guarded)
-      const maybe = (data?.meta?.["vimshottari"] ?? null) as DashaTimeline | null;
-      const vDash =
-        maybe &&
-        Array.isArray((maybe as any)?.mahadashas) &&
-        (((maybe as any)?.mahadashas?.length ?? 0) > 0)
-          ? maybe
-          : null;
-      setVimshottari(vDash);
+        // Vimshottari (guarded, no `any`)
+        const vRaw = (data?.meta?.["vimshottari"] ?? null) as unknown;
+
+        const vDash: DashaTimeline | null =
+          typeof vRaw === "object" &&
+          vRaw !== null &&
+          "mahadashas" in vRaw &&
+          Array.isArray((vRaw as { mahadashas: unknown[] }).mahadashas) &&
+          (vRaw as { mahadashas: unknown[] }).mahadashas.length > 0
+            ? (vRaw as DashaTimeline)
+            : null;
+
+        setVimshottari(vDash);
+
 
       // Persist birth details for the Daily page
       try {

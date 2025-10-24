@@ -7,10 +7,10 @@ import { apiPost, ApiError } from "@/app/lib/apiClient";
 
 export type ChartPayload = {
   name?: string;
-  birth_datetime: string; // ISO (UTC) e.g. "1990-11-20T12:34:56Z"
+  birth_datetime: string; // ISO (UTC)
   latitude: number;
   longitude: number;
-  timezone: string;       // e.g. "Asia/Kolkata" (aliases like "IST" OK; server normalizes)
+  timezone: string;       // e.g. "Asia/Kolkata"
   place?: string;
 };
 
@@ -23,6 +23,17 @@ export type SavedChart = ChartPayload & {
 
 // Internal flag we return when we choose an existing chart (so UI won't append again)
 type SaveResult = SavedChart & { _existing?: boolean };
+
+// Payload that can include the optional force flag for duplicates
+type ChartUpsertPayload = ChartPayload & { force?: boolean };
+
+// Shape returned by the backend on 409 conflict
+type ConflictPayload = {
+  detail?: {
+    message?: string;
+    existing?: SavedChart;
+  };
+};
 
 type Props = {
   chart?: ChartPayload;
@@ -71,7 +82,6 @@ export default function SaveChartButton({
       if (!saved._existing) {
         window.dispatchEvent(new CustomEvent("charts:append", { detail: saved }));
       }
-      // You can keep this to refresh any list views
       window.dispatchEvent(new Event("charts:refresh"));
 
       onSaved?.(saved); // _existing flag is harmless to callers
@@ -101,8 +111,7 @@ export default function SaveChartButton({
 
       // Duplicate detected by server (409)
       if (status === 409 && e instanceof ApiError) {
-        // Server shape: { detail: { message, existing } }
-        const existing = (e.data as any)?.detail?.existing as SavedChart | undefined;
+        const existing = getExistingFromApiError(e);
 
         const useExisting = window.confirm(
           "A matching chart already exists.\n\nOK: Open and use the existing chart\nCancel: Save a new copy anyway"
@@ -114,8 +123,9 @@ export default function SaveChartButton({
         }
 
         // Save anyway → repost with force: true
-        const token2 = (await refreshAccess()) || (token as string);
-        return await apiPost<SaveResult, any>(CHARTS_ENDPOINT, { ...body, force: true }, token2);
+        const token2 = (await refreshAccess()) || token;
+        const upsert: ChartUpsertPayload = { ...body, force: true };
+        return await apiPost<SaveResult, ChartUpsertPayload>(CHARTS_ENDPOINT, upsert, token2);
       }
 
       // Bubble up other errors
@@ -128,6 +138,19 @@ export default function SaveChartButton({
     if (typeof err === "object" && err !== null && "status" in err) {
       const s = (err as { status?: unknown }).status;
       if (typeof s === "number") return s;
+    }
+    return undefined;
+  }
+
+  // Narrow ApiError.data to ConflictPayload and pull out existing chart safely
+  function getExistingFromApiError(err: ApiError): SavedChart | undefined {
+    const d: unknown = err.data;
+    if (typeof d !== "object" || d === null) return undefined;
+    const detail = (d as { detail?: unknown }).detail;
+    if (typeof detail !== "object" || detail === null) return undefined;
+    const existing = (detail as { existing?: unknown }).existing;
+    if (existing && typeof existing === "object") {
+      return existing as SavedChart;
     }
     return undefined;
   }
