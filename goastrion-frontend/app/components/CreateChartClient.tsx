@@ -15,7 +15,6 @@ import { saveBirth } from "@/app/lib/birthStore";
 // Login-gated backend save (after chart render)
 import SaveChartButton, { type ChartPayload } from "@/app/components/SaveChartButton";
 // Saved Charts panel (from server/account)
-import SavedChartsPanel from "@/app/components/SavedChartsPanel";
 
 // 👉 import all persistence/timezone helpers & types from a single source of truth
 import {
@@ -115,6 +114,9 @@ export default function CreateChartClient() {
   const [summary, setSummary] = useState<Record<string, string> | null>(null);
   const [vimshottari, setVimshottari] = useState<DashaTimeline | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedOK, setSavedOK] = useState(false);
+  const saveTimerRef = useRef<number | null>(null);
 
   const [placeTyping, setPlaceTyping] = useState("");
   const lastQueryRef = useRef<string | null>(null);
@@ -343,8 +345,8 @@ export default function CreateChartClient() {
       const maybe = (data?.meta?.["vimshottari"] ?? null) as DashaTimeline | null;
       const vDash =
         maybe &&
-        Array.isArray(maybe?.mahadashas) &&
-        (maybe?.mahadashas?.length ?? 0) > 0
+        Array.isArray((maybe as any)?.mahadashas) &&
+        (((maybe as any)?.mahadashas?.length ?? 0) > 0)
           ? maybe
           : null;
       setVimshottari(vDash);
@@ -550,7 +552,7 @@ export default function CreateChartClient() {
               className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
               value={lat}
               onChange={(e) => setLat(e.target.value)}
-              placeholder="e.g., 22.5726"
+              placeholder={tOr("create.latPh", "e.g., 22.5726")}
             />
           </div>
 
@@ -561,7 +563,7 @@ export default function CreateChartClient() {
               className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
               value={lon}
               onChange={(e) => setLon(e.target.value)}
-              placeholder="e.g., 88.3639"
+              placeholder={tOr("create.lonPh", "e.g., 88.3639")}
             />
           </div>
         </div>
@@ -586,22 +588,18 @@ export default function CreateChartClient() {
             type="button"
             onClick={loadLastSaved}
             className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
-            title="Load last saved chart & inputs"
-          >
-            Load last saved
-          </button>
+            title={tOr("create.loadLastSavedTitle", "Load last saved chart & inputs")}
+          >{tOr("create.loadLastSaved", "Load last saved")}</button>
           <button
             type="button"
             onClick={clearSavedChartOnly}
             className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
-            title="Remove saved chart (keep inputs)"
-          >
-            Clear saved chart
-          </button>
+            title={tOr("create.clearSavedChartTitle", "Remove saved chart (keep inputs)")}
+          >{tOr("create.clearSavedChart", "Clear saved chart")}</button>
 
           {savedAt && (
             <span className="basis-full text-xs text-slate-400">
-              Last saved: {new Date(savedAt).toLocaleString()}
+              {tOr("create.lastSavedPrefix", "Last saved: ")} {new Date(savedAt).toLocaleString()}
             </span>
           )}
         </div>
@@ -643,78 +641,110 @@ export default function CreateChartClient() {
             </div>
 
             {/* Save to backend — RIGHT AFTER the chart render */}
-            <div className="mt-4">
-              {backendChartPayload && (
+            <div className="mt-1 space-y-1">
+              {backendChartPayload && !savedOK && (
+                <div
+                className="relative inline-block"
+                onClickCapture={(e) => {
+                  if (isSaving || savedOK) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                  }
+                  setIsSaving(true);
+                  if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+                  // Fail-safe: auto-unlock if backend never calls onSaved
+                  saveTimerRef.current = window.setTimeout(() => setIsSaving(false), 8000);
+                }}
+              >
                 <SaveChartButton
                   chart={backendChartPayload}
-                  label="Save to account"
+                  label={tOr("create.saveCta", "Save to account")}
                   onSaved={() => {
-                    // The button dispatches "charts:refresh" on success.
+                    setSavedOK(true);
+                    setIsSaving(false);
+                    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
                   }}
                 />
-              )}
-            </div>
-
-            {/* CTA: Open Vimshottari */}
-            {vimshottari && (
-              <div className="mt-4">
-                <Link
-                  href="/vimshottari"
-                  className="inline-flex items-center rounded-full bg-indigo-500 px-4 py-2 text-slate-950 font-semibold hover:bg-indigo-400"
-                  aria-label="Open Dasha Timeline"
-                >
-                  Open Dasha Timeline
-                </Link>
+                {isSaving && !savedOK && (
+                  <div className="absolute inset-0" aria-hidden="true" />
+                )}
               </div>
-            )}
+              )}
 
-            <div className="mt-2">
-              <Link
-                href="/daily"
-                className="inline-flex items-center rounded-full bg-cyan-500 px-4 py-2 text-slate-950 font-semibold hover:bg-cyan-400"
-                aria-label="Open Daily Timing"
-                title="Open Daily Timing"
-              >
-                Open Daily Timing
-              </Link>
+              {savedOK && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/40 bg-emerald-500/15 px-3 py-1.5 text-sm text-emerald-200">
+                  <span>✓</span>
+                  <span>{tOr("create.saved", "Saved")}</span>
+                </div>
+              )}
+
+              {/* ✍️ helper text next to Save to account */}
+              <p className="text-xs text-slate-400">
+                {tOr(
+                  "create.saveTip",
+                  "Tip: If you want to avoid entering your details again, save this chart to your account."
+                )}
+              </p>
             </div>
 
-            {/* Ad: results mid-placement */}
-            <div className="mt-6">
-              <AdSlot slot="4741871653" minHeight={300} />
-            </div>
 
-            {/* Ad: end-of-page */}
-            <div className="mt-6">
-              <AdSlot slot="4741871653" minHeight={280} />
-            </div>
-          </>
+            </>
         )}
       </div>
-
-      {/* Saved Charts Panel (account) */}
-      <div className="mt-8">
-        <SavedChartsPanel />
-      </div>
-
       {/* Deep Links */}
-      <div className="mt-8">
+      <div className="mt-0">
         <div className="grid md:grid-cols-3 gap-6">
+            {/* Daily */}
+          <Link
+            href="/daily"
+            className="group rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/20 via-cyan-500/10 to-transparent p-5 hover:border-sky-300/60 focus:outline-none focus:ring-2 focus:ring-sky-300/60"
+            aria-label={tOr("cards.daily.cta", "Open Daily")}
+          >
+            <div className="text-2xl">📅</div>
+            <div className="mt-2 text-white font-semibold text-lg">
+              {tOr("cards.daily.title", "Daily Timing")}
+            </div>
+            <p className="mt-1 text-slate-300 text-sm">
+              {tOr("cards.daily.desc", "See today's supportive windows, do/don'ts, mantra & more.")}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 text-sky-100 font-medium">
+              {tOr("cards.daily.cta", "Open Daily")} <span className="animate-pulse">↗</span>
+            </div>
+          </Link>
+
+          {/* ShubhDin */}
+          <Link
+            href="/components/shubhdin"
+            className="group rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-rose-500/10 to-transparent p-5 hover:border-amber-300/60 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
+            aria-label={tOr("cards.shubhdin.cta", "Plan ShubhDin")}
+          >
+            <div className="text-2xl">🗓️✨</div>
+            <div className="mt-2 text-white font-semibold text-lg">
+              {tOr("cards.shubhdin.title", "ShubhDin")}
+            </div>
+            <p className="mt-1 text-slate-300 text-sm">
+              {tOr("cards.shubhdin.desc", "Pick auspicious dates for interviews, purchases, travel, and more.")}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 text-amber-100 font-medium">
+              {tOr("cards.shubhdin.cta", "Plan ShubhDin")} <span className="animate-pulse">↗</span>
+            </div>
+          </Link>
           {/* Life Wheel */}
           <Link
             href="/domains"
             className="group rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-cyan-500/20 via-emerald-500/10 to-transparent p-5 hover:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
-            aria-label="Open Life Wheel"
+            aria-label={tOr("cards.life.cta", "Open Life Wheel")}
           >
             <div className="text-2xl">✨</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              Life Wheel (Domains)
+              {tOr("cards.life.title", "Life Wheel (Domains)")}
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              See strengths across Career, Finance, Health, Relationships and more—at a glance.
+              {tOr("cards.life.desc", "See strengths across Career, Finance, Health, Relationships and more—at a glance.")}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-cyan-100 font-medium">
-              Open Life Wheel <span className="animate-pulse">↗</span>
+              {tOr("cards.life.cta", "Open Life Wheel")} <span className="animate-pulse">↗</span>
             </div>
           </Link>
 
@@ -722,17 +752,17 @@ export default function CreateChartClient() {
           <Link
             href="/skills"
             className="group rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent p-5 hover:border-emerald-300/60 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
-            aria-label="See Skills"
+            aria-label={tOr("cards.skills.cta", "See Skills")}
           >
             <div className="text-2xl">🚀</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              Top Skills
+              {tOr("cards.skills.title", "Top Skills")}
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              Discover your standout abilities and how to use them for jobs, business or growth.
+              {tOr("cards.skills.desc", "Discover your standout abilities and how to use them for jobs, business or growth.")}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-emerald-100 font-medium">
-              See Skills <span className="animate-pulse">↗</span>
+              {tOr("cards.skills.cta", "See Skills")} <span className="animate-pulse">↗</span>
             </div>
           </Link>
 
@@ -740,20 +770,45 @@ export default function CreateChartClient() {
           <Link
             href="/saturn"
             className="group rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
-            aria-label="Open Saturn"
+            aria-label={tOr("cards.saturn.cta", "Open Saturn")}
           >
             <div className="text-2xl">🪐</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              Saturn Phases
+              {tOr("cards.saturn.title", "Saturn Phases")}
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              Track Sade Sati, transits and caution days to plan moves wisely.
+              {tOr("cards.saturn.desc", "Track Sade Sati, transits and caution days to plan moves wisely.")}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-indigo-100 font-medium">
-              Open Saturn <span className="animate-pulse">↗</span>
+              {tOr("cards.saturn.cta", "Open Saturn")} <span className="animate-pulse">↗</span>
             </div>
           </Link>
+
+          {/* Dasha Timeline */}
+          <Link
+            href="/vimshottari"
+            className="group rounded-2xl border border-violet-400/40 bg-gradient-to-br from-violet-500/20 via-purple-500/10 to-transparent p-5 hover:border-violet-300/60 focus:outline-none focus:ring-2 focus:ring-violet-300/60"
+            aria-label={tOr("vimshottari.openCta", "Open Dasha Timeline")}
+          >
+            <div className="text-2xl">⏳</div>
+            <div className="mt-2 text-white font-semibold text-lg">
+              {tOr("vimshottari.cardTitle", "Dasha Timeline")}
+            </div>
+            <p className="mt-1 text-slate-300 text-sm">
+              {tOr("vimshottari.cardDesc", "See your Vimshottari sequence and key periods.")}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 text-violet-100 font-medium">
+              {tOr("vimshottari.openCta", "Open Dasha Timeline")} <span className="animate-pulse">↗</span>
+            </div>
+          </Link>
+
+
         </div>
+      </div>
+
+      {/* Ad: end-of-page */}
+      <div className="mt-10">
+        <AdSlot slot="4741871653" minHeight={300} />
       </div>
     </Container>
   );

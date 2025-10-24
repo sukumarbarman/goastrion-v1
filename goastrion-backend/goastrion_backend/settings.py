@@ -2,51 +2,55 @@
 Django settings for goastrion_backend project.
 """
 
+from __future__ import annotations
 
 import os
 from pathlib import Path
+from datetime import timedelta
+
 from dotenv import load_dotenv
 from decouple import config, Csv
 import dj_database_url
-from datetime import timedelta
 
-# ----------------------------------------------------------------------
-# Paths
-# ----------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Paths & .env
+# ------------------------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load environment file:
-#  1) Prefer project-local .env (for local dev)
-#  2) Fallback to /srv/goastrion/backend/.env (production)
+# Prefer project-local .env; fall back to prod path
 dotenv_path = BASE_DIR / ".env"
 if not dotenv_path.exists():
     dotenv_path = Path("/srv/goastrion/backend/.env")
 load_dotenv(dotenv_path, override=True)
 
-# Ensure ZoneInfo has a tz database even inside slim containers/Windows
+# Give ZoneInfo a tz database on Win/containers if tzdata is installed
 try:
     import tzdata  # type: ignore
     os.environ.setdefault("PYTHONTZPATH", tzdata.zoneinfo.__path__[0])
 except Exception:
-    # tzdata not installed: system tzdb must exist (e.g., /usr/share/zoneinfo)
     pass
 
-# ----------------------------------------------------------------------
-# Security
-# ----------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Core / Security
+# ------------------------------------------------------------------------------
 SECRET_KEY = config("DJANGO_SECRET_KEY", default="unsafe-dev-key")
 DEBUG = config("DJANGO_DEBUG", default=False, cast=bool)
 ALLOWED_HOSTS = config("DJANGO_ALLOWED_HOSTS", default="localhost,127.0.0.1", cast=Csv())
 
+# Security toggles (enable in prod)
+DJANGO_SECURE = config("DJANGO_SECURE", default=not DEBUG, cast=bool)
+SECURE_SSL_REDIRECT = config("SECURE_SSL_REDIRECT", default=DJANGO_SECURE, cast=bool)
+SESSION_COOKIE_SECURE = config("SESSION_COOKIE_SECURE", default=DJANGO_SECURE, cast=bool)
+CSRF_COOKIE_SECURE = config("CSRF_COOKIE_SECURE", default=DJANGO_SECURE, cast=bool)
+SECURE_HSTS_SECONDS = config("SECURE_HSTS_SECONDS", default=(31536000 if DJANGO_SECURE else 0), cast=int)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config("SECURE_HSTS_INCLUDE_SUBDOMAINS", default=False, cast=bool)
+SECURE_HSTS_PRELOAD = config("SECURE_HSTS_PRELOAD", default=False, cast=bool)
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")  # behind nginx/proxy
 
-# ----------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # CORS / CSRF
-# ----------------------------------------------------------------------
-# Support either naming convention in your .env:
-# - CORS_ALLOWED_ORIGINS / CSRF_TRUSTED_ORIGINS (typical)
-# - DJANGO_CORS_ORIGINS / DJANGO_CSRF_TRUSTED (your earlier keys)
+# ------------------------------------------------------------------------------
 CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=False, cast=bool)
-
 _cors_from_new = config("CORS_ALLOWED_ORIGINS", default="", cast=Csv())
 _cors_from_old = config("DJANGO_CORS_ORIGINS", default="", cast=Csv())
 CORS_ALLOWED_ORIGINS = _cors_from_new or _cors_from_old
@@ -55,15 +59,24 @@ _csrf_from_new = config("CSRF_TRUSTED_ORIGINS", default="", cast=Csv())
 _csrf_from_old = config("DJANGO_CSRF_TRUSTED", default="", cast=Csv())
 CSRF_TRUSTED_ORIGINS = _csrf_from_new or _csrf_from_old
 
-# ----------------------------------------------------------------------
-# App-level config directory (for Aspect/Domain JSON etc.)
-# ----------------------------------------------------------------------
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list({
+    "accept",
+    "accept-encoding",
+    "authorization",
+    "content-type",
+    "dnt",
+    "origin",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+})
+
+# ------------------------------------------------------------------------------
+# App-level config dir (Aspect/Domain JSON etc.)
+# ------------------------------------------------------------------------------
 GOASTRION_CONFIG_DIR = config("GOASTRION_CONFIG_DIR", default=str(BASE_DIR / "config"))
-
-# Ensure submodules that read directly from os.getenv see it:
 os.environ.setdefault("GOASTRION_CONFIG_DIR", GOASTRION_CONFIG_DIR)
-
-
 
 # ------------------------------------------------------------------------------
 # Applications
@@ -75,44 +88,17 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",
+
     "corsheaders",
-    "astro",
+    "rest_framework",
     "rest_framework_simplejwt.token_blacklist",
+
     "accounts",
+    "astro",
 ]
-
-REST_FRAMEWORK = {
-    "DEFAULT_RENDERER_CLASSES": ["astro.renderers.UTF8JSONRenderer"],
-    "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
-    "DEFAULT_AUTHENTICATION_CLASSES": (
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
-    ),
-}
-
-SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
-    "AUTH_HEADER_TYPES": ("Bearer",),
-}
-
-DEFAULT_CHARSET = "utf-8"
-# Use our custom user before first migrate
-AUTH_USER_MODEL = "accounts.User"
-
-# Allow login with username OR email (fallback to default ModelBackend)
-AUTHENTICATION_BACKENDS = [
-    "accounts.backends.UsernameOrEmailBackend",
-    "django.contrib.auth.backends.ModelBackend",
-]
-
-
-
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # must be first
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -140,59 +126,74 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "goastrion_backend.wsgi.application"
-CORS_ALLOW_CREDENTIALS = True
+
+# ------------------------------------------------------------------------------
+# DRF / Auth
+# ------------------------------------------------------------------------------
+REST_FRAMEWORK = {
+    # Keep your UTF-8 JSON renderer
+    "DEFAULT_RENDERER_CLASSES": ["astro.renderers.UTF8JSONRenderer"] if not DEBUG else [
+        "astro.renderers.UTF8JSONRenderer",
+        # Uncomment to enable Browsable API in dev:
+        # "rest_framework.renderers.BrowsableAPIRenderer",
+    ],
+    "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_AUTHENTICATION_CLASSES": ("rest_framework_simplejwt.authentication.JWTAuthentication",),
+    # Permissions are set per-view (Chart requires IsAuthenticated)
+}
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=config("JWT_ACCESS_MIN", default=60, cast=int)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=config("JWT_REFRESH_DAYS", default=7, cast=int)),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+AUTH_USER_MODEL = "accounts.User"
+AUTHENTICATION_BACKENDS = [
+    "accounts.backends.UsernameOrEmailBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+DEFAULT_CHARSET = "utf-8"
+APPEND_SLASH = True
+
 # ------------------------------------------------------------------------------
 # Database
 # ------------------------------------------------------------------------------
 DATABASE_URL = config("DATABASE_URL", default="")
 if not DATABASE_URL:
-    raise RuntimeError(
-        "DATABASE_URL is required. Set it in your .env (local) or prod EnvironmentFile."
-    )
+    raise RuntimeError("DATABASE_URL is required. Set it in your .env")
 
 DATABASES = {
     "default": dj_database_url.parse(
         DATABASE_URL,
-        conn_max_age=config("DB_CONN_MAX_AGE", default=120, cast=int),  # keep-alive
-        ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),  # set True if your PG needs SSL
+        conn_max_age=config("DB_CONN_MAX_AGE", default=120, cast=int),
+        ssl_require=config("DB_SSL_REQUIRE", default=False, cast=bool),
     )
 }
-# Auto-recycle bad/stale connections
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True
+# Optionally rollback on view exceptions; enable if you want stricter safety:
+DATABASES["default"]["ATOMIC_REQUESTS"] = config("DB_ATOMIC_REQUESTS", default=False, cast=bool)
 
-# --- Email (Hostinger/Titan), same keys for local & prod ---
+# ------------------------------------------------------------------------------
+# Email
+# ------------------------------------------------------------------------------
 EMAIL_BACKEND = config("EMAIL_BACKEND", default="django.core.mail.backends.smtp.EmailBackend")
-
-EMAIL_HOST = config("EMAIL_HOST", default="smtp.hostinger.com")   # Titan: smtp.titan.email
-EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)          # 587 (TLS) or 465 (SSL)
-EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)  # if 465 -> set TLS False and SSL True
+EMAIL_HOST = config("EMAIL_HOST", default="smtp.hostinger.com")     # Titan: smtp.titan.email
+EMAIL_PORT = config("EMAIL_PORT", default=587, cast=int)
+EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 EMAIL_USE_SSL = config("EMAIL_USE_SSL", default=False, cast=bool)
-
 EMAIL_HOST_USER = config("EMAIL_HOST_USER", default="support@yourdomain.com")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD", default="")
 DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
-SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)  # for error emails
+SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 EMAIL_SUBJECT_PREFIX = config("EMAIL_SUBJECT_PREFIX", default="[GoAstrion] ")
 EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=20, cast=int)
 
 # Link used inside password reset emails (set per environment)
 FRONTEND_RESET_URL = config("FRONTEND_RESET_URL", default="https://goastrion.com/reset-password")
-
-AUTH_USER_MODEL = "accounts.User"
-
-
-# ------------------------------------------------------------------------------
-# Password validation
-# ------------------------------------------------------------------------------
-AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
-        "OPTIONS": {"min_length": 4},
-    },
-]
-
-
-
 
 # ------------------------------------------------------------------------------
 # Internationalization
@@ -201,17 +202,18 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = os.getenv("TZ", "UTC")
 USE_I18N = True
 USE_TZ = True
-DEFAULT_CHARSET = "utf-8"  # explicit, Django default anyway
-
 
 # ------------------------------------------------------------------------------
-# Static files
+# Static / Media
 # ------------------------------------------------------------------------------
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# MEDIA (if/when you need it)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 # ------------------------------------------------------------------------------
-# Default primary key field type
+# Default primary key
 # ------------------------------------------------------------------------------
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
@@ -225,4 +227,22 @@ CACHES = {
     }
 }
 
-
+# ------------------------------------------------------------------------------
+# Logging (human-readable in dev, tighter in prod)
+# ------------------------------------------------------------------------------
+LOG_LEVEL = config("DJANGO_LOG_LEVEL", default=("DEBUG" if DEBUG else "INFO"))
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "dev": {"format": "[%(asctime)s] %(levelname)s %(name)s: %(message)s"},
+        "prod": {"format": "%(levelname)s %(asctime)s %(name)s %(message)s"},
+    },
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "dev" if DEBUG else "prod",
+        },
+    },
+    "root": {"handlers": ["console"], "level": LOG_LEVEL},
+}
