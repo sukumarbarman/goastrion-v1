@@ -10,5 +10,6 @@ urlpatterns = [
     path("api/astro/", include("astro.urls")),
     path("api/v1/health", health),
     path("api/contact/", include("support.urls")),
+    path("api/trading/", include("trading.urls")),
 ]
 

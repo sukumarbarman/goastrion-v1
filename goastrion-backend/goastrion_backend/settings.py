@@ -100,6 +100,7 @@ INSTALLED_APPS = [
     "accounts",
     "astro",
     "support",
+    "trading",
 ]
 
 MIDDLEWARE = [
@@ -152,6 +153,10 @@ REST_FRAMEWORK = {
     ],
     "DEFAULT_THROTTLE_RATES": {
         "contact_submit": "10/hour",
+        "trading_intraday": "60/min",
+        "trading_sectors":  "30/min",
+        "trading_week":     "30/min",
+        "trading_day_summary": "60/hour",
     },
 }
 

@@ -1,0 +1,25 @@
+
+[
+  {"model": "trading.sessionrules", "pk": 1, "fields": {"name": "NSE", "tz_str": "Asia/Kolkata", "open_1": "09:15", "close_1": "15:30", "open_2": "", "close_2": "", "holidays_calendar_key": "NSE", "pre_open_handling": "ignore"}},
+  {"model": "trading.sessionrules", "pk": 2, "fields": {"name": "MCX", "tz_str": "Asia/Kolkata", "open_1": "09:00", "close_1": "23:30", "open_2": "", "close_2": "", "holidays_calendar_key": "MCX", "pre_open_handling": "clip"}},
+
+  {"model": "trading.tradingasset", "pk": "NIFTY_50", "fields": {"name": "NIFTY 50", "kind": "index", "symbol": "NIFTY", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "BANKNIFTY", "fields": {"name": "NIFTY BANK", "kind": "index", "symbol": "BANKNIFTY", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+
+  {"model": "trading.tradingasset", "pk": "NIFTY_BANK", "fields": {"name": "NIFTY BANK (Sector)", "kind": "sector", "symbol": "NIFTYBANK", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_IT", "fields": {"name": "NIFTY IT", "kind": "sector", "symbol": "NIFTYIT", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_METAL", "fields": {"name": "NIFTY METAL", "kind": "sector", "symbol": "NIFTYMETAL", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_ENERGY", "fields": {"name": "NIFTY ENERGY", "kind": "sector", "symbol": "NIFTYENERGY", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_FMCG", "fields": {"name": "NIFTY FMCG", "kind": "sector", "symbol": "NIFTYFMCG", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_PHARMA", "fields": {"name": "NIFTY PHARMA", "kind": "sector", "symbol": "NIFTYPHARMA", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_REALTY", "fields": {"name": "NIFTY REALTY", "kind": "sector", "symbol": "NIFTYREALTY", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_PSU_BANK", "fields": {"name": "NIFTY PSU BANK", "kind": "sector", "symbol": "NIFTYPSUBANK", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "NIFTY_PVT_BANK", "fields": {"name": "NIFTY PRIVATE BANK", "kind": "sector", "symbol": "NIFTYPVTBANK", "exchange": "NSE", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}},
+
+  {"model": "trading.tradingasset", "pk": "MCX_CRUDE", "fields": {"name": "Crude Oil", "kind": "commodity", "symbol": "CRUDEOIL", "exchange": "MCX", "tz": "Asia/Kolkata", "session_rules": 2, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "MCX_NATGAS", "fields": {"name": "Natural Gas", "kind": "commodity", "symbol": "NATGAS", "exchange": "MCX", "tz": "Asia/Kolkata", "session_rules": 2, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "MCX_GOLD", "fields": {"name": "Gold", "kind": "commodity", "symbol": "GOLD", "exchange": "MCX", "tz": "Asia/Kolkata", "session_rules": 2, "status": "active"}},
+  {"model": "trading.tradingasset", "pk": "MCX_SILVER", "fields": {"name": "Silver", "kind": "commodity", "symbol": "SILVER", "exchange": "MCX", "tz": "Asia/Kolkata", "session_rules": 2, "status": "active"}},
+
+  {"model": "trading.tradingasset", "pk": "BTC_USD", "fields": {"name": "Bitcoin", "kind": "crypto", "symbol": "BTC-USD", "exchange": "CRYPTO", "tz": "Asia/Kolkata", "session_rules": 1, "status": "active"}}
+]
