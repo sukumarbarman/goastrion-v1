@@ -30,7 +30,7 @@ export default function Hero() {
             <h1 id="hero-title" className="text-4xl md:text-5xl font-bold leading-tight text-white">
               {t("hero.headline", {
                 default:
-                  "Find ShubhDin (Auspicious Dates) & Free Vedic Birth Chart — Saturn & Sade Sati insights",
+                  "Know Your Today !!!",
               })}
             </h1>
 
@@ -38,11 +38,11 @@ export default function Hero() {
             <p className="mt-4 text-lg md:text-xl text-slate-300 max-w-xl">
               {t("hero.subline", {
                 default:
-                  "Plan job change, marriage or property with data-backed windows from your natal chart. Fast, private, IST-optimized.",
+                  "See supportive windows and avoid risky slots.",
               })}
             </p>
 
-            {/* Support line with internal keyword links */}
+            {/* Support line with internal keyword links
             <p className="mt-2 text-sm md:text-base text-slate-400 max-w-xl">
               {t("hero.support.before", { default: "Start with a free" })}{" "}
               <Link href="/chart" className="underline underline-offset-4 hover:text-cyan-300">
@@ -53,7 +53,7 @@ export default function Hero() {
                 {t("hero.support.saturn", { default: "Saturn/Sade Sati" })}
               </Link>
             </p>
-
+            */}
             {/* Buttons */}
             <div className="mt-6 flex gap-3">
               <Link

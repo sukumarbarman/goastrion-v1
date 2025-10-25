@@ -16,7 +16,9 @@ const enCore = {
     saturn: "Saturn",
     vimshottari: "Vimshottari",
   },
-
+    contact: {
+    thanks: "Thanks! We'll get back to you soon.",
+  },
 about: {
   title: "About GoAstrion",
   subtitle: "Clarity for students and professionals—without the jargon",
@@ -112,10 +114,10 @@ about: {
       },
 
   hero: {
-      "headline": "Find ShubhDin (Auspicious Dates) & Free Vedic Birth Chart — Saturn & Sade Sati insights",
-    "subline": "Plan job change, marriage or property with data‑backed windows from your natal chart. Fast, private, IST‑optimized.",
+      "headline": "Know Your Today !!!",
+    "subline": "See supportive windows and avoid risky slots.",
     "support": {"before": "Start with a free", "chart": "birth chart", "shubhdin": "ShubhDin (good dates)", "saturn": "Saturn/Sade Sati"},
-    "createBtn": "Create Your Chart",
+    "createBtn": "Show my best time",
     "sampleBtn": "See Sample Report",
     "badgeSecure": "Secure", "badgePrivate": "Private", "badgeFast": "Fast"
   },
@@ -147,12 +149,12 @@ about: {
         },
          "shubhdin": {
             "badge": "ShubhDin · Good Day",
-              "title": "Find your Shubh Din — feel the timing click",
-              "sub": "Get auspicious date windows (ShubhDin) from your Vedic birth chart — optimized for job change, interviews, study, launches, travel and calmer days.",
+              "title": "Pick the Right Month, Not Just a Date",
+              "sub": "Data-backed Vedic windows for commitments—marriage, job Change, home purchase, study plans",
               "pt1": "Smart windows from your birth details (IST/UTC handled)",
               "pt2": "Saturn/Moon context with gentle, actionable timing notes",
-              "pt3": "Optional Vimshottari MD/AD for longer trends",
-              "cta": "Check my ShubhDin",
+              "pt3": "Extend with Vimshottari MD/AD for trend alignment",
+              "cta": "Plan my year",
               "learn": "Learn more",
               "how": "How it works",
               "tz": "India: choose IST (UTC+05:30). Outside India: convert your birth time to UTC and choose UTC.",

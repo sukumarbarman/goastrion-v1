@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     # Local apps
     "accounts",
     "astro",
+    "support",
 ]
 
 MIDDLEWARE = [
@@ -136,11 +137,8 @@ WSGI_APPLICATION = "goastrion_backend.wsgi.application"
 # ------------------------------------------------------------------------------
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": (
-        ["astro.renderers.UTF8JSONRenderer"]
-        if not DEBUG
-        else [
+        ["astro.renderers.UTF8JSONRenderer"] if not DEBUG else [
             "astro.renderers.UTF8JSONRenderer",
-            # Uncomment to enable browsable API in dev:
             # "rest_framework.renderers.BrowsableAPIRenderer",
         ]
     ),
@@ -148,7 +146,13 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    # Default permissions are per-view (e.g., Chart views use IsAuthenticated)
+    # ADD:
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.ScopedRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "contact_submit": "10/hour",
+    },
 }
 
 SIMPLE_JWT = {
@@ -199,6 +203,9 @@ DEFAULT_FROM_EMAIL = config("DEFAULT_FROM_EMAIL", default=EMAIL_HOST_USER)
 SERVER_EMAIL = config("SERVER_EMAIL", default=DEFAULT_FROM_EMAIL)
 EMAIL_SUBJECT_PREFIX = config("EMAIL_SUBJECT_PREFIX", default="[GoAstrion] ")
 EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=20, cast=int)
+CONTACT_NOTIFY_TO = config("CONTACT_NOTIFY_TO", default="support@goastrion.com")
+DEFAULT_SUPPORT_EMAIL = config("DEFAULT_SUPPORT_EMAIL", default="support@goastrion.com")
+
 
 # Link used inside password reset emails
 FRONTEND_RESET_URL = config("FRONTEND_RESET_URL", default="https://goastrion.com/reset-password")
