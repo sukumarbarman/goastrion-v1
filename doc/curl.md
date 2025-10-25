@@ -99,3 +99,8 @@ curl -s -X POST "http://127.0.0.1:8000/api/v1/daily" -H "Content-Type: applicati
 // localised
 
 curl -s -X POST "http://127.0.0.1:8000/api/v1/daily"   -H "Content-Type: application/json"   -H "Accept-Language: bn"   -d '{"datetime":"1856-07-10T00:00:00Z","lat":44.5600,"lon":15.2700,"tz":"Asia/Kolkata"}' | jq .
+
+
+curl -X POST http://127.0.0.1:8000/api/contact/submit \
+  -H 'Content-Type: application/json' \
+  -d '{"kind":"feedback","name":"Ankit","email":"ankit.barman14@gmail.com","subject":"UI","message":"Sticky CTA on ShubhDin.","path":"/shubhdin"}'

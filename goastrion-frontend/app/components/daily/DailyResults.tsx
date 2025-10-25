@@ -10,10 +10,18 @@ type KeyArgs = Record<string, string | number>;
 /* --------------------------- Types from API --------------------------- */
 
 type Window = { start?: string; end?: string; reason?: string };
+type PanchangWindow = { start?: string; end?: string };
+type Panchang = {
+  rahu?: PanchangWindow;
+  yama?: PanchangWindow;
+  gulika?: PanchangWindow;
+  abhijit?: PanchangWindow;
+};
 type Windows = {
   best?: Window | Record<string, never>;
   green?: Array<{ start: string; end: string }>;
   caution?: Array<{ start: string; end: string }>;
+  panchang?: Panchang;
 };
 
 type Remedies = {
@@ -53,9 +61,19 @@ type ActionItem = {
   reason?: string;
   /** server i18n support */
   key?: string;
-  args?: KeyArgs; // ← align with i18n var typing
+  args?: KeyArgs;
 };
 type Actions = { do?: ActionItem[]; dont?: ActionItem[] };
+
+type DailyFocus = {
+  travel?: { avoid?: Array<{ start: string; end: string }> };
+  communication?: { best?: Array<{ start: string; end: string }>; avoid?: Array<{ start: string; end: string }> };
+  trading?: {
+    market_hours?: { start?: string; end?: string };
+    best?: Array<{ start: string; end: string }>;
+    avoid?: Array<{ start: string; end: string }>;
+  };
+};
 
 export type DailyPayload = {
   date: string;
@@ -68,6 +86,7 @@ export type DailyPayload = {
   why?: Why;
   why_brief?: string;
   actions?: Actions;
+  daily_focus?: DailyFocus;
 };
 
 /* ------------------------------ UI bits ------------------------------ */
@@ -166,7 +185,7 @@ const CAT_TO_KEY: Record<string, string> = {
   finance: "finance",
   health: "health",
   tech: "tech",
-  /** NEW: map planet-driven caution bucket */
+  /** planet-driven caution bucket */
   msp: "msp",
 };
 
@@ -261,13 +280,7 @@ function buildGoodTimes(
       ? data.windows.best
       : undefined;
 
-  // If we have a best window, build a normalized span string that respects ascii/en-dash.
-  const spanSep = ascii ? "-" : "–";
-  const bestSpan =
-    best?.start && best?.end
-      ? `${dash(best.start, ascii)} ${spanSep} ${dash(best.end, ascii)}`
-      : "";
-
+  // We avoid duplicating exact span in bullets now.
   const doItems = (data.actions?.do || []) as ActionItem[];
 
   const fromActionsLocalized =
@@ -293,10 +306,38 @@ function buildGoodTimes(
     6
   );
 
-  // Avoid duplicating a bullet that already contains the exact best span.
-  const filtered = merged.filter((b) => (bestSpan ? !b.includes(bestSpan) : true));
+  return { best, bullets: merged };
+}
 
-  return { best, bullets: filtered, bestLine: "" };
+/** Pick a single travel-avoid range:
+ * 1) Prefer Panchang.Rahu; else
+ * 2) earliest daily_focus.travel.avoid; else
+ * 3) first DONT_AVOID_TRAVEL_WINDOW action/text.
+ */
+function pickTravelAvoid(data: DailyPayload): { start?: string; end?: string } | null {
+  const rahu = data.windows?.panchang?.rahu;
+  if (rahu?.start && rahu?.end) return { start: rahu.start, end: rahu.end };
+
+  const avoids = data.daily_focus?.travel?.avoid || [];
+  if (avoids.length) {
+    // earliest by start string
+    const sorted = [...avoids].filter(w => w.start && w.end).sort((a, b) => (a.start > b.start ? 1 : -1));
+    if (sorted[0]) return { start: sorted[0].start, end: sorted[0].end };
+  }
+
+  const fromAction = (data.actions?.dont || []).find(
+    d => d.key === "DONT_AVOID_TRAVEL_WINDOW" || /^Avoid travel\s+\d{2}:\d{2}/i.test(d.text || "")
+  );
+  if (fromAction?.window?.start && fromAction?.window?.end)
+    return { start: fromAction.window.start, end: fromAction.window.end };
+
+  // Try to parse times from text fallback "Avoid travel 09:00-10:30."
+  if (fromAction?.text) {
+    const m = /avoid travel\s+(\d{2}:\d{2})\s*[–-]\s*(\d{2}:\d{2})/i.exec(fromAction.text);
+    if (m) return { start: m[1], end: m[2] };
+  }
+
+  return null;
 }
 
 /* ------------------------------ Component ----------------------------- */
@@ -315,7 +356,6 @@ export default function DailyResults({
   const { t, tOr } = useI18n();
   const [showWhy, setShowWhy] = useState(false);
 
-  // Use dobLine in an accessible (non-visual) way to keep prop useful and lint-clean.
   const srDobLine = dobLine ? <span className="sr-only">{dobLine}</span> : null;
 
   const energyVal = data.overview?.energy ?? 0;
@@ -327,10 +367,10 @@ export default function DailyResults({
 
   const cautionWindows = data.windows?.caution ?? [];
   const cautionWhen = formatCautionWindows(cautionWindows, asciiFallback);
-
   const cautionTopics = buildCautionTopics(t, data.actions?.dont, data.overview?.summary);
   const andWord = t("daily.ui.and");
   const avoidWord = t("daily.ui.avoid");
+
   const cautionSentence = cautionWhen
     ? `${avoidWord} ${cautionWhen}${
         cautionTopics.length ? ` — ${joinWithAnd(cautionTopics, andWord)}.` : "."
@@ -369,6 +409,15 @@ export default function DailyResults({
     const tail = addons.map((a) => a.trim().replace(/\s*\.*\s*$/, ".")).join(" ");
     return [base, tail].filter(Boolean).join(" ");
   }, [data.remedies?.optional_key, data.remedies?.optional_args, data.remedies?.optional, t, tOr]);
+
+  const travelAvoid = pickTravelAvoid(data);
+  const travelAvoidText =
+    travelAvoid?.start && travelAvoid?.end
+      ? t("daily.phrases.DONT_AVOID_TRAVEL_WINDOW", {
+          start: dash(travelAvoid.start, asciiFallback),
+          end: dash(travelAvoid.end, asciiFallback),
+        } as KeyArgs)
+      : "";
 
   return (
     <div className="grid gap-6">
@@ -410,41 +459,80 @@ export default function DailyResults({
           </div>
         </Card>
 
-        {/* Caution */}
+        {/* Caution (single sentence + travel line) */}
         <Card tone="warn">
           <SectionTitle>{t("daily.ui.sections.caution")}</SectionTitle>
           <div className="text-sm text-amber-100">⚠️ {dash(cautionSentence, asciiFallback)}</div>
 
-          {cautionTopics.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {cautionTopics.map((tpc, i) => (
-                <span
-                  key={`ct-${i}`}
-                  className="rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-100 px-2 py-0.5 text-xs"
-                >
-                  {dash(tpc, asciiFallback)}
-                </span>
-              ))}
-            </div>
-          )}
+          {travelAvoidText ? (
+            <div className="mt-2 text-sm text-amber-100">✈️ {dash(travelAvoidText, asciiFallback)}</div>
+          ) : null}
+        </Card>
 
-          <div className="mt-3">
-            <div className="text-xs text-amber-200 mb-1">{t("daily.ui.avoidWindows")}</div>
-            <div className="flex flex-wrap gap-1.5">
-              {(data.windows?.caution || []).map((w, i) => (
-                <span
-                  key={`cw-${i}`}
-                  className="rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-100 px-2 py-0.5 text-xs"
-                >
-                  {w.start} {asciiFallback ? "-" : "–"} {w.end}
-                </span>
-              ))}
-              {!data.windows?.caution?.length && <span className="text-amber-200/70">—</span>}
+        {/* Panchang (explanation + four rows) */}
+        <Card className="md:col-span-2">
+          <SectionTitle>{t("daily.ui.panchang.title")}</SectionTitle>
+          <p className="text-slate-300 text-sm mb-3">{t("daily.ui.panchang.desc")}</p>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
+            {/* Rahu */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="text-slate-400 text-xs mb-1">{t("daily.ui.panchang.rahuLabel")}</div>
+              <div className="text-amber-200 font-medium">
+                {data.windows?.panchang?.rahu?.start && data.windows?.panchang?.rahu?.end
+                  ? `${dash(data.windows.panchang.rahu.start, asciiFallback)} ${asciiFallback ? "-" : "–"} ${dash(
+                      data.windows.panchang.rahu.end,
+                      asciiFallback
+                    )}`
+                  : "—"}
+              </div>
+              <div className="text-amber-300 text-xs mt-0.5">{t("daily.ui.panchang.cautious")}</div>
+            </div>
+
+            {/* Yama */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="text-slate-400 text-xs mb-1">{t("daily.ui.panchang.yamaLabel")}</div>
+              <div className="text-amber-200 font-medium">
+                {data.windows?.panchang?.yama?.start && data.windows?.panchang?.yama?.end
+                  ? `${dash(data.windows.panchang.yama.start, asciiFallback)} ${asciiFallback ? "-" : "–"} ${dash(
+                      data.windows.panchang.yama.end,
+                      asciiFallback
+                    )}`
+                  : "—"}
+              </div>
+              <div className="text-amber-300 text-xs mt-0.5">{t("daily.ui.panchang.cautious")}</div>
+            </div>
+
+            {/* Gulika */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="text-slate-400 text-xs mb-1">{t("daily.ui.panchang.gulikaLabel")}</div>
+              <div className="text-amber-200 font-medium">
+                {data.windows?.panchang?.gulika?.start && data.windows?.panchang?.gulika?.end
+                  ? `${dash(data.windows.panchang.gulika.start, asciiFallback)} ${asciiFallback ? "-" : "–"} ${dash(
+                      data.windows.panchang.gulika.end,
+                      asciiFallback
+                    )}`
+                  : "—"}
+              </div>
+              <div className="text-amber-300 text-xs mt-0.5">{t("daily.ui.panchang.cautious")}</div>
+            </div>
+
+            {/* Abhijit */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-3">
+              <div className="text-slate-400 text-xs mb-1">{t("daily.ui.panchang.abhijitLabel")}</div>
+              <div className="text-emerald-200 font-medium">
+                {data.windows?.panchang?.abhijit?.start && data.windows?.panchang?.abhijit?.end
+                  ? `${dash(data.windows.panchang.abhijit.start, asciiFallback)} ${
+                      asciiFallback ? "-" : "–"
+                    } ${dash(data.windows.panchang.abhijit.end, asciiFallback)}`
+                  : "—"}
+              </div>
+              <div className="text-emerald-300 text-xs mt-0.5">{t("daily.ui.panchang.auspicious")}</div>
             </div>
           </div>
         </Card>
 
-        {/* Remedies */}
+        {/* Remedies (with Wear included) */}
         <Card className="md:col-span-2">
           <SectionTitle>{t("daily.ui.sections.remedies")}</SectionTitle>
           <div className="grid sm:grid-cols-4 gap-4 text-slate-200">
@@ -472,7 +560,7 @@ export default function DailyResults({
               )}
             </div>
 
-            {/* Puja (now localized deity label) */}
+            {/* Puja */}
             <div className="rounded-xl bg-white/5 border border-white/10 p-4">
               <div className="text-slate-400 text-xs mb-1">{t("daily.ui.remedies.puja")}</div>
               <div className="font-medium">
@@ -503,19 +591,27 @@ export default function DailyResults({
             )}
           </div>
 
+          {/* Optional (bulleted)
           {optionalText && (
             <div className="text-slate-400 text-sm mt-3">
-              {t("daily.ui.remedies.optionalPrefix")} {optionalText}
+              {t("daily.ui.remedies.optionalPrefix")}
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                {optionalText
+                  .split(".")
+                  .map((s) => s.trim())
+                  .filter(Boolean)
+                  .map((s, i) => (
+                    <li key={`opt-${i}`}>{s.endsWith(".") ? s : `${s}.`}</li>
+                  ))}
+              </ul>
             </div>
-          )}
+          )} */}
           {data.remedies?.disclaimer && (
             <div className="text-slate-500 text-xs mt-1">{t("daily.ui.remedies.disclaimer")}</div>
           )}
-
-          {/* ❌ Removed the “Copy plan” button as requested */}
         </Card>
 
-        {/* Debug / Why */}
+        {/* Debug / Why (collapsible) */}
         {data.why && (
           <Card className="md:col-span-2">
             <button

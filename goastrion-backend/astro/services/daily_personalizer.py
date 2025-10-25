@@ -1,7 +1,9 @@
 # goastrion-backend/astro/services/daily_personalizer.py
 from __future__ import annotations
+
 from datetime import datetime, timezone, timedelta, date
 from typing import Any, Dict, List, Optional, Tuple
+import re
 
 # ---- shared helpers/constants live in daily_core.py (same package) ----
 from .daily_core import (
@@ -20,11 +22,24 @@ from .daily_core import (
     _compose_dos_donts,
 )
 
+# Optional helper import for formatting time blocks (fallback below if missing)
+try:
+    from .daily_core import _fmt_block_hhmm_pair as _fmt_block_hhmm_pair_core  # type: ignore
+except Exception:
+    _fmt_block_hhmm_pair_core = None  # type: ignore
+
 # Optional Panchang (if available in your utils)
 try:
     from ..utils.panchang import dayparts_rahu_yama_gulika  # noqa: F401
 except Exception:  # pragma: no cover
     dayparts_rahu_yama_gulika = None  # noqa: F401
+
+# Optional: timezone auto-detection by lat/lon
+try:
+    from timezonefinder import TimezoneFinder  # pip install timezonefinder
+    _TF = TimezoneFinder()
+except Exception:
+    _TF = None
 
 
 # ---------------------- small optional "puja" suggestions ---------------------- #
@@ -245,8 +260,44 @@ def _disclaimer_needed(energy: int, caution_count: int) -> bool:
     return False
 
 
-# ---------------------- main assembly ---------------------- #
+# --------- Summary polish: always output human-readable 'Do:' lines ----------
 
+def _is_keyish(s: Optional[str]) -> bool:
+    return bool(isinstance(s, str) and re.fullmatch(r"[A-Z0-9_]{6,}", s))
+
+def _label_from_key(key: str) -> str:
+    label = (key or "").upper()
+    for rm in ("DO_", "DONT_", "_WINDOW"):
+        label = label.replace(rm, "")
+    return label.replace("_", " ").title()
+
+def _render_action_line(action: Dict[str, Any]) -> str:
+    txt  = action.get("text")
+    key  = (action.get("key") or "")
+    args = action.get("args") or {}
+    start = args.get("start") or ""
+    end   = args.get("end") or ""
+    # If action.text looks like a real sentence, use it; else build from key/args
+    if isinstance(txt, str) and txt.strip() and not _is_keyish(txt):
+        return f"Do: {txt.strip()}"
+    label = _label_from_key(key or "Do")
+    if start and end:
+        return f"Do: {label} {start}-{end}."
+    return f"Do: {label}."
+
+def _force_humanize_actions_do(actions: Dict[str, List[Dict[str, Any]]]) -> None:
+    """Ensure actions['do'][i]['text'] is always a human sentence."""
+    for a in actions.get("do", []):
+        txt = a.get("text")
+        if not isinstance(txt, str) or not txt.strip() or _is_keyish(txt):
+            key  = (a.get("key") or "")
+            args = a.get("args") or {}
+            label = _label_from_key(key or "Do")
+            st, en = args.get("start", ""), args.get("end", "")
+            a["text"] = (f"{label} {st}-{en}." if (st and en) else label).strip()
+
+
+# ---------------------- main assembly ---------------------- #
 def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Builds the daily payload from inputs. Phrasing kept simple & clear for all users.
@@ -258,7 +309,6 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
       - summary_cap, dos_cap, donts_cap
       - include_disclaimer (bool)  # force-enable disclaimer if True
     """
-    tz = _tz(str(data.get("tz", "Asia/Kolkata")))
 
     # Optional caps for summary and Do/Don't
     summary_cap = int(data.get("summary_cap", 5))
@@ -287,6 +337,16 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
     dt_aw, lat, lon = parse_birth_or_legacy(data)
     if not (-90 <= float(lat) <= 90 and -180 <= float(lon) <= 180):
         raise DailyError("lat/lon out of range")
+
+    # Resolve time zone: use provided tz, else auto-guess from lat/lon, else default
+    tz_str_in = str(data.get("tz") or "").strip()
+    tz_guess: Optional[str] = None
+    if not tz_str_in and _TF:
+        try:
+            tz_guess = _TF.timezone_at(lat=float(lat), lng=float(lon))
+        except Exception:
+            tz_guess = None
+    tz = _tz(tz_str_in or tz_guess or "Asia/Kolkata")
 
     # Natal + dasha context
     dt_naive_utc = dt_aw.replace(tzinfo=None)
@@ -324,6 +384,33 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
         tz=tz, lat=lat, lon=lon, natal_pts=natal_pts, day=day_override
     )
 
+    # ---------------------- Panchang (optional) ---------------------- #
+    panchang_ui: Dict[str, Dict[str, str]] = {}
+    if dayparts_rahu_yama_gulika is not None:
+        try:
+            dp = dayparts_rahu_yama_gulika(
+                (day_override or datetime.now(tz).date()),
+                float(lat), float(lon), tz
+            )
+            def _mk(dpair: Optional[Tuple[datetime, datetime]]) -> Optional[Dict[str, str]]:
+                if not dpair:
+                    return None
+                s, e = dpair
+                if _fmt_block_hhmm_pair_core:
+                    return _fmt_block_hhmm_pair_core(s, e)  # -> {"start":"HH:MM","end":"HH:MM"}
+                # Fallback local formatter
+                return {
+                    "start": s.astimezone(tz).strftime("%H:%M"),
+                    "end":   e.astimezone(tz).strftime("%H:%M"),
+                }
+            if isinstance(dp, dict):
+                if dp.get("rahu"):    panchang_ui["rahu"]    = _mk(dp.get("rahu")) or {}
+                if dp.get("yama"):    panchang_ui["yama"]    = _mk(dp.get("yama")) or {}
+                if dp.get("gulika"):  panchang_ui["gulika"]  = _mk(dp.get("gulika")) or {}
+                if dp.get("abhijit"): panchang_ui["abhijit"] = _mk(dp.get("abhijit")) or {}
+        except Exception:
+            panchang_ui = {}
+
     # Energy with contextual bonuses
     energy = _energy_score(support, stress, md, ad, reason, best_win if best_win else None)
 
@@ -343,7 +430,7 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
     if isinstance(focus, dict) and "trading" in focus and isinstance(focus["trading"], dict):
         focus["trading"]["avoid"] = _dedupe_wins(focus["trading"].get("avoid"))
 
-    # Compose Do/Don't with simplified phrasing (already returns i18n keys per action)
+    # Compose Do/Don't
     actions = _compose_dos_donts(
         bundle=bundle,
         focus=focus,
@@ -354,7 +441,8 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
         cap_dont=donts_cap,
     )
 
-    # Enrich Don’ts to add planet-driven variety
+    # Humanize any key-like lines so UI gets readable text, and enrich don'ts
+    _force_humanize_actions_do(actions)
     actions["dont"] = _enrich_donts(actions.get("dont", []), msp)
 
     # ---------------------- headline ---------------------- #
@@ -372,46 +460,35 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
         headline_i18n.append({"key": "HEADLINE_AVOID_TRAVEL_WINDOW", "args": {"start": w["start"], "end": w["end"]}})
 
     if reason not in ("supportive timing", ""):
-        # keep raw reason and also key to let translators decide phrasing
         headline_bits.append(reason.replace(" → ", " ").replace(" -> ", " "))
         headline_i18n.append({"key": "HEADLINE_REASON_FREEFORM", "args": {"reason": reason}})
     headline = "; ".join(headline_bits) or f"Energy {energy}/100 — steady progress"
     if not headline_bits:
         headline_i18n.append({"key": "HEADLINE_ENERGY_STEADY_PROGRESS", "args": {"energy": energy}})
 
-    # ---------------------- overview (Do-only to avoid duplication with Caution) ---- #
-    def _lines_from_actions(a: Dict[str, List[Dict[str, Any]]], cap: int) -> List[str]:
-        return [f"Do: {it['text']}" for it in a.get("do", [])][:cap]
-
-    summary = _lines_from_actions(actions, summary_cap)
-    # i18n mirror of summary lines: use action keys/args (frontend can add its own "Do:" label)
+    # ---------------------- overview (Do-only lines) ---------------------- #
+    summary = [_render_action_line(it) for it in actions.get("do", [])][:summary_cap]
     summary_i18n = [{"key": it.get("key", ""), "args": it.get("args", {})} for it in actions.get("do", [])][:summary_cap]
 
-    # ---------------------- remedies (context-aware & practical) ---------------------- #
+    # ---------------------- remedies ---------------------- #
     wear_color = COLOR.get(tsp or "", "green")
 
-    # Mantra keyed by stress planet; keep secular_alt
     say_text = MANTRA.get(msp or "", "Om Budhaya Namah")
     say_obj = {"text": say_text, "secular_alt": "11 slow breaths",
                "key": "REMEDY_SAY_MANTRA", "args": {"planet": msp or "", "text": say_text}}
-
     if secular:
-        # We still keep text to allow UI to choose secular_alt if desired
         say_obj["text"] = say_text
 
-    # Optional suggestion: dynamic + with requested add-ons
     period = _day_period_from_best(best_win)
     has_travel_caution = bool(caution_wins)
     optional_base = _optional_by_context(msp, energy, period, secular, has_travel_caution)
     optional = _append_optional_addons(optional_base, msp, has_travel_caution)
 
-    # Puja: lightweight suggestion based on msp (frontend shows it)
     puja = {**_PUJA.get(msp or "", {})}
     if puja:
         puja["key"] = "REMEDY_PUJA_SUGGESTION"
         puja["args"] = {"planet": msp or "", "deity": puja.get("deity", ""), "suggestion": puja.get("suggestion", "")}
 
-    # Prefer the next green within 20m visually
     now_local = datetime.now(tz)
     if green_wins:
         def _to_dt(hhmm: str) -> datetime:
@@ -428,10 +505,8 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
     why_brief = f"{reason}; MD: {why_brief_md}, AD: {why_brief_ad}"
     why_brief_i18n = {"key": "WHY_BRIEF_REASON_MD_AD", "args": {"reason": reason, "md": why_brief_md, "ad": why_brief_ad}}
 
-    # Disclaimer only on tougher days (or if forced)
     disclaimer_flag = force_disclaimer or _disclaimer_needed(energy, len(caution_wins or []))
 
-    # Domain highlights (text + i18n hints)
     if best_win:
         hl1_text = f"Client meeting? Try {best_win['start']}-{best_win['end']}. Keep it simple."
         hl1_i18n = {"key": "DOMAIN_CLIENT_MEETING_TRY_WINDOW", "args": {"start": best_win["start"], "end": best_win["end"]}}
@@ -446,51 +521,52 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
         "date": today_iso,
         "tz": str(tz),
         "headline": headline,
-        "headline_i18n": headline_i18n,  # NEW
+        "headline_i18n": headline_i18n,
         "overview": {
             "summary": summary,
-            "summary_i18n": summary_i18n,  # NEW
+            "summary_i18n": summary_i18n,
             "energy": energy
         },
         "windows": {
             "best": {**best_win, "reason": reason} if best_win else {},
             "green": green_wins,
-            "caution": caution_wins
+            "caution": caution_wins,
+            "panchang": panchang_ui,
         },
         "daily_focus": {
             **focus,
-            # Add i18n keys for notes so UI can translate
             "communication_note_key": "FOCUS_COMM_NOTE",
             "travel_note_key": "FOCUS_TRAVEL_NOTE",
             "trading_note_key": "FOCUS_TRADING_NOTE",
         },
         "actions": actions,
         "domain_highlights": [hl1_text, hl2_text][:2],
-        "domain_highlights_i18n": [hl1_i18n, hl2_i18n][:2],  # NEW
+        "domain_highlights_i18n": [hl1_i18n, hl2_i18n][:2],
         "remedies": {
             "wear": wear_color,
-            "wear_key": "REMEDY_WEAR_COLOR",  # NEW
+            "wear_key": "REMEDY_WEAR_COLOR",
             "wear_args": {"color": wear_color},
-            "say": say_obj,                   # has key/args inside
+            "say": say_obj,
             "do": {
                 "label": "Client call",
-                "label_key": "REMEDY_DO_LABEL_CLIENT_CALL",   # NEW
+                "label_key": "REMEDY_DO_LABEL_CLIENT_CALL",
                 "window": best_win or (green_wins[0] if green_wins else {}),
                 "note": "keep it simple",
-                "note_key": "REMEDY_DO_NOTE_KEEP_SIMPLE",     # NEW
+                "note_key": "REMEDY_DO_NOTE_KEEP_SIMPLE",
             },
             "optional": optional,
-            "optional_key": "REMEDY_OPTIONAL_DYNAMIC",        # NEW
+            "optional_key": "REMEDY_OPTIONAL_DYNAMIC",
             "optional_args": {
                 "msp": msp or "",
                 "period": _day_period_from_best(best_win),
                 "has_travel_caution": bool(caution_wins),
                 "energy": energy,
-                "text": optional,  # <-- add this line
+                "text": optional,
             },
             "puja": puja,
             "disclaimer": bool(disclaimer_flag),
-            "disclaimer_key": "DISCLAIMER_GENERAL",           # NEW
+            "disclaimer_key": "DISCLAIMER_GENERAL",
+            "disclaimer_text": "This is general guidance. Use your discretion for big decisions.",
         },
         "why": {
             "tsp": tsp, "msp": msp,
@@ -500,7 +576,7 @@ def assemble_daily(data: Dict[str, Any]) -> Dict[str, Any]:
             "tags_stress":  why.get("tags_stress", []),
         },
         "why_brief": why_brief,
-        "why_brief_i18n": why_brief_i18n,                    # NEW
+        "why_brief_i18n": why_brief_i18n,
     }
 
     # ---------------------- ASCII fallback (UI-safe) ---------------------- #

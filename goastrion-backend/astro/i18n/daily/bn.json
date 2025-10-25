@@ -63,7 +63,7 @@
     "DO_STUDY_30MIN": "৩০ মিনিট পড়াশোনা। একটি কঠিন টপিক রিভিউ করুন।",
     "DO_ADMIN_CLEAR_SMALL": "আজ ১–২টি ছোট অ্যাডমিন কাজ সেরে ফেলুন।",
     "DO_FOLLOWUP_SHORT": "{time}-এর মধ্যে ছোট ফলো-আপ পাঠান।",
-    "DO_WALK_20MIN": "১৫–২০ মিনিট মবিলিটি বা brisk walk।",
+    "DO_WALK_20MIN": "১৫–২০ মিনিট মবিলিটি বা ব্রিস্ক ওয়াক।",
     "DONT_AVOID_SENSITIVE_CONVOS_WINDOW": "সংবেদনশীল আলাপ এড়িয়ে চলুন {start}-{end}।",
     "DONT_AVOID_TRAVEL_WINDOW": "ভ্রমণ এড়িয়ে চলুন {start}-{end}।",
     "DONT_AVOID_TRADING_WINDOW": "ট্রেডিং এড়িয়ে চলুন {start}-{end}।",
@@ -72,11 +72,34 @@
   },
   "optional": {
     "Rahu": {
-      "morning": "সোশ্যাল ১০টার আগে নয়; প্রথম ৩০-মিনিট একক কাজে দিন।",
-      "afternoon": "২টি বিরক্তিকর চ্যাট ৪ঘণ্টা মিউট করুন।",
+      "morning": "সোশ্যাল ১০টার আগে নয়; প্রথম ৩০-মিনিট একক কাজে দিন।",
+      "afternoon": "২টি বিরক্তিকর চ্যাট ৪ ঘণ্টা মিউট করুন।",
       "evening": "ডিজিটাল সানসেট: ৯টার পর স্ক্রল নয়।",
       "night": "ঘুমের আগে এয়ারপ্লেন-মোড; কৃতজ্ঞতার ১ লাইন লিখুন।",
       "generic": "৫টি জিনিস ডিক্লাটার; গসিপ লুপ এড়ান।"
     }
-  }
+  },
+
+  "HEADLINE_GOOD_FOR_CONVERSATIONS_WINDOW": "আলাপের জন্য ভালো {start}-{end}",
+  "HEADLINE_AVOID_TRAVEL_WINDOW": "ভ্রমণ এড়িয়ে চলুন {start}-{end}",
+  "HEADLINE_REASON_FREEFORM": "{reason}",
+  "HEADLINE_ENERGY_STEADY_PROGRESS": "শক্তি {energy}/100 — স্থির অগ্রগতি",
+
+  "DOMAIN_CLIENT_MEETING_TRY_WINDOW": "ক্লায়েন্ট মিটিং? চেষ্টা করুন {start}-{end}। সরল রাখুন।",
+  "DOMAIN_SEND_WARM_NOTE": "একজন ক্লায়েন্টকে উষ্ণ নোট পাঠান। একটি স্পষ্ট পরবর্তী ধাপ জিজ্ঞেস করুন।",
+  "DOMAIN_FOLLOWUP_INVOICES": "দুপুরের আগে ইনভয়েসে ভদ্র ফলো-আপ দিন। স্পষ্ট থাকুন।",
+
+  "FOCUS_COMM_NOTE": "অফিসিয়াল ও ব্যক্তিগত আলাপের জন্য সেরা সময় ব্যবহার করুন।",
+  "FOCUS_TRAVEL_NOTE": "এড়ানোর সময়ে অপ্রয়োজনীয় ভ্রমণ বিলম্ব করুন।",
+  "FOCUS_TRADING_NOTE": "শৃঙ্খলা বজায় রাখুন; চিহ্নিত সময়ে ট্রেড এড়ান।",
+
+  "REMEDY_WEAR_COLOR": "আজকের রং: {color}",
+  "REMEDY_SAY_MANTRA": "{planet}: {text} জপ করুন",
+  "REMEDY_DO_LABEL_CLIENT_CALL": "ক্লায়েন্ট কল",
+  "REMEDY_DO_NOTE_KEEP_SIMPLE": "সরল রাখুন",
+  "REMEDY_PUJA_SUGGESTION": "{deity}: {suggestion}",
+  "REMEDY_OPTIONAL_DYNAMIC": "{text}",
+
+  "DISCLAIMER_GENERAL": "এটি সাধারণ নির্দেশিকা। বড় সিদ্ধান্তে নিজ বিচার প্রয়োগ করুন।",
+  "WHY_BRIEF_REASON_MD_AD": "{reason}; MD: {md}, AD: {ad}"
 }

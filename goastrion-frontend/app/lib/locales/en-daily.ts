@@ -8,7 +8,7 @@ const enDaily = {
   navbar: { daily: "YourDay" },
 
   daily: {
-    // ✅ moved here (was top-level before)
+    // Used as dynamic add-ons for optional remedies
     optionalAddons: {
       travel: "Leave 10-min early; confirm route",
       detox: "10-min digital detox",
@@ -40,6 +40,20 @@ const enDaily = {
       green: "Green",
       caution: "Caution",
       wear: "Wear",
+
+      // NEW: Panchang block
+      panchang: {
+        title: "Panchang",
+        desc:
+          "Panchang lists traditional daily time windows from the Vedic almanac. Rahu Kalam, Yamaganda, and Gulika are generally considered cautious periods for starting new tasks or travel, while Abhijit is often an auspicious (good) window for important actions.",
+        rahuLabel: "Rahu Kalam",
+        yamaLabel: "Yamaganda",
+        gulikaLabel: "Gulika",
+        abhijitLabel: "Abhijit",
+        cautious: "Cautious",
+        auspicious: "Auspicious",
+      },
+
       energy: {
         label: "Energy",
         caption: "How easy it feels to push today",
@@ -50,6 +64,7 @@ const enDaily = {
           peak: "Energy {val}: peak — launch, negotiate, or present; block distractions.",
         },
       },
+
       sections: { goodTimes: "Good times", caution: "Caution", remedies: "Remedies" },
       remedies: {
         wear: "Wear",
@@ -61,6 +76,7 @@ const enDaily = {
         disclaimer: "This is guidance, not a substitute for professional advice.",
         copyPlan: "Copy plan",
       },
+
       debug: {
         title: "Why (debug)",
         hide: "Hide",
@@ -72,11 +88,13 @@ const enDaily = {
         supportPct: "Support %",
         stressPct: "Stress %",
       },
+
       avoidWindows: "Avoid windows",
       avoid: "Avoid",
       and: "and",
       sensitiveConversations: "sensitive conversations",
       travel: "travel",
+
       topics: {
         sensitiveConversations: "sensitive conversations",
         travel: "travel",
@@ -91,6 +109,7 @@ const enDaily = {
         doomscroll: "doomscrolling and impulsive posts",
         msp: "over-commitment and late-night work",
       },
+
       deities: {
         Shani: "Shani",
         Durga: "Durga",
@@ -101,6 +120,7 @@ const enDaily = {
         Surya: "Surya",
         Ganesha: "Ganesha",
       },
+
       yourDay: "Your Day",
     },
 
@@ -109,9 +129,11 @@ const enDaily = {
       HEADLINE_TRAVEL_AVOID: "Avoid travel {start}-{end}",
       HEADLINE_REASON: "{planet} {aspect} {target}",
       HEADLINE_REASON_TEXT: "{reason}",
+
       NOTE_COMM_BEST: "Use the best window for official and personal talks.",
       NOTE_TRAVEL_AVOID: "Delay non-essential travel in the avoid windows.",
       NOTE_TRADING: "Stay disciplined; avoid trades in the marked windows.",
+
       DO_TALK_MEET_WINDOW: "Talk or meet {start}-{end}.",
       DO_TRADING_PREFER_WINDOW: "If trading, prefer {start}-{end} with strict stops.",
       DO_CREATIVE_WINDOW: "Use {start}-{end} for creative work. Make a first draft.",
@@ -123,15 +145,18 @@ const enDaily = {
       DO_WALK_20MIN: "15–20 min mobility or a brisk walk.",
       DO_CONTRACTS_WINDOW: "Review contracts {start}-{end}. Read before you sign.",
       DO_FAMILY_TIME_WINDOW: "Family time {start}-{end}. Keep the phone away.",
+
       DONT_AVOID_SENSITIVE_CONVOS_WINDOW: "Avoid sensitive conversations {start}-{end}.",
       DONT_AVOID_TRAVEL_WINDOW: "Avoid travel {start}-{end}.",
       DONT_AVOID_TRADING_WINDOW: "Avoid trading {start}-{end}.",
       DONT_DRIVE_DEFENSIVE_WINDOW: "Drive carefully {start}-{end}. Avoid confrontations.",
       DONT_BLOCK_SPAM: "Ignore spam/unknown callers; block and report.",
+
       DH_CLIENT_MEETING_TRY_WINDOW_SIMPLE: "Client meeting? Try {start}-{end}. Keep it simple.",
       DH_CLIENT_WARM_NOTE: "Send a warm note to one client. Ask for a simple next step.",
       DH_INVOICES_FOLLOWUP_POLITE:
         "Follow up on pending invoices before lunch. Be polite and clear.",
+
       ASPECT_REASON: "{planet} {aspect} {target}",
       ASPECT_REASON_TEXT: "{reason}",
       REMEDY_OPTIONAL_DYNAMIC: "{text}",
