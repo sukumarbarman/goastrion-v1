@@ -111,11 +111,7 @@ function renderHeadline(
 
 /** Type guard to avoid `any` casts when checking for aborts */
 function isAbortError(e: unknown): boolean {
-  if (typeof e === "object" && e !== null && "name" in e) {
-    const n = (e as { name?: unknown }).name;
-    return n === "AbortError";
-  }
-  return false;
+  return typeof e === "object" && e !== null && (e as { name?: unknown }).name === "AbortError";
 }
 
 /* ---------- Card ---------- */
@@ -220,7 +216,7 @@ function GoalCard({ r }: { r: BackendResult }) {
 }
 
 /* ---------- Main (single-file) ---------- */
-export default function ShubhDinClient() {
+export default function ShubhDinClient({ showTitle = true }: { showTitle?: boolean }) {
   const { t, locale } = useI18n();
   const tOr = useCallback(
     (key: string, fallback: string, vars?: KeyArgs) => {
@@ -334,66 +330,84 @@ export default function ShubhDinClient() {
     if (params) void doFetch(params);
   }, [params, doFetch]);
 
-  if (!params) {
-    return (
-      <div className="text-slate-300">
-        {tOr(
-          "sd.prompt_fill_create",
-          "Please fill the Create tab first so we can read your lat/lon/tz from the saved state."
-        )}
-      </div>
-    );
-  }
-
-  // Only the table — no page-level title/toolbar to avoid duplicates
   return (
-    <section
-      className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5"
-      aria-busy={loading ? "true" : "false"}
-    >
-      {loading && (
-        <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs text-white/60">loading…</span>
-        </div>
+    <div className="px-0 md:px-0 pt-0">
+      {/* Page header (client-rendered) */}
+      {showTitle && (
+        <header className="mb-4" aria-labelledby="sd-h1">
+          <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/15 border border-cyan-400/40 px-3 py-1 text-cyan-100 text-xs font-medium">
+            {tOr("home.shubhdin.badge", "Next 2 yrs")}
+          </div>
+          <h1 id="sd-h1" className="mt-2 text-2xl md:text-3xl font-semibold text-white">
+            {tOr("sd.page.title", "ShubhDin — Next 2 yrs")}
+          </h1>
+          <p className="mt-2 text-slate-300">
+            {tOr(
+              "sd.page.sub",
+              "Pick the right month, not just a date — data-backed Vedic windows for promotions, job change, property, marriage and more."
+            )}
+          </p>
+        </header>
       )}
 
-      {err && (
-        <div className="text-sm text-red-300">
-          <div>Error: {err}</div>
-          <button
-            onClick={handleRetry}
-            className="mt-2 rounded-md border border-white/15 bg-white/10 px-3 py-1 text-white/90 hover:bg-white/20"
-          >
-            Retry
-          </button>
+      {/* Body */}
+      {!params ? (
+        <div className="text-slate-300">
+          {tOr(
+            "sd.prompt_fill_create",
+            "Please fill the Create tab first so we can read your lat/lon/tz from the saved state."
+          )}
         </div>
-      )}
-
-      {!err && resp && (
-        <div className="space-y-4">
-          {results.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {results.map((r) => (
-                <GoalCard key={r.goal} r={r} />
-              ))}
-            </div>
-          ) : (
-            <div className="text-sm text-white/80">
-              {tOr("sd.empty.goal", "No notable windows for this goal.")}
+      ) : (
+        <section
+          className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5"
+          aria-busy={loading ? "true" : "false"}
+        >
+          {loading && (
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-xs text-white/60">loading…</span>
             </div>
           )}
 
-          <div className="pt-2 text-xs text-white/50">
-            {t("sd.generated_at", {
-              dt: resp.generated_at
-                ? new Date(resp.generated_at).toLocaleString(locale)
-                : new Date().toLocaleString(locale),
-              tz: params.tzId,
-            } as KeyArgs) ||
-              `${new Date(resp.generated_at || Date.now()).toLocaleString(locale)} • TZ: ${params.tzId}`}
-          </div>
-        </div>
+          {err && (
+            <div className="text-sm text-red-300">
+              <div>Error: {err}</div>
+              <button
+                onClick={handleRetry}
+                className="mt-2 rounded-md border border-white/15 bg-white/10 px-3 py-1 text-white/90 hover:bg-white/20"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!err && resp && (
+            <div className="space-y-4">
+              {results.length > 0 ? (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {results.map((r) => (
+                    <GoalCard key={r.goal} r={r} />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-white/80">
+                  {tOr("sd.empty.goal", "No notable windows for this goal.")}
+                </div>
+              )}
+
+              <div className="pt-2 text-xs text-white/50">
+                {t("sd.generated_at", {
+                  dt: resp.generated_at
+                    ? new Date(resp.generated_at).toLocaleString(locale)
+                    : new Date().toLocaleString(locale),
+                  tz: params.tzId,
+                } as KeyArgs) ||
+                  `${new Date(resp.generated_at || Date.now()).toLocaleString(locale)} • TZ: ${params.tzId}`}
+              </div>
+            </div>
+          )}
+        </section>
       )}
-    </section>
+    </div>
   );
 }
