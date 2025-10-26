@@ -11,12 +11,8 @@ import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
 import type { DashaTimeline } from "./dasha/types";
 import { saveBirth } from "@/app/lib/birthStore";
-
-// Login-gated backend save (after chart render)
 import SaveChartButton, { type ChartPayload } from "@/app/components/SaveChartButton";
-// Saved Charts panel (from server/account)
 
-// 👉 import all persistence/timezone helpers & types from a single source of truth
 import {
   STORAGE_KEY,
   IANA_BY_TZID,
@@ -27,12 +23,13 @@ import {
   type PersistedCreateState as PersistedState,
 } from "@/app/lib/birthState";
 
-/* -------------------- Types used locally -------------------- */
+/* -------------------- Types -------------------- */
 type Dictionaries = typeof dictionaries;
 type LocaleKey = keyof Dictionaries;
 type LocaleDict = Dictionaries[LocaleKey] & {
   zodiac?: string[];
   nakshatras?: string[];
+  core?: { zodiac?: string[]; nakshatras?: string[] };
 };
 
 type ApiResp = {
@@ -42,13 +39,25 @@ type ApiResp = {
   error?: string;
 };
 
+type SummaryEntry = { id: string; label: string; value: string };
+
+/** Extend persisted state locally to keep raw values for re-localization */
+type RawPersist = {
+  summaryRaw?: Record<string, string> | null;
+  svgRaw?: string | null;
+};
+type PersistedWithRaw = PersistedState & RawPersist;
+
+/** Keep persisted `summary` type compatibility (record of label->value) */
+type PersistedSummaryType = PersistedState extends { summary: infer S } ? S : unknown;
+
 /* -------------------- Config -------------------- */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
 
-/* English baselines for value-localization */
+/* English baselines */
 const EN_ZODIAC = [
-  "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo",
-  "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+  "Aries","Taurus","Gemini","Cancer","Leo","Virgo",
+  "Libra","Scorpio","Sagittarius","Capricorn","Aquarius","Pisces"
 ];
 const EN_NAKS = [
   "Ashwini","Bharani","Krittika","Rohini","Mrigashira","Ardra","Punarvasu","Pushya","Ashlesha",
@@ -56,9 +65,10 @@ const EN_NAKS = [
   "Mula","Purva Ashadha","Uttara Ashadha","Shravana","Dhanishta","Shatabhisha","Purva Bhadrapada","Uttara Bhadrapada","Revati"
 ];
 
+/* -------------------- SVG helpers -------------------- */
 function localizeSvgPlanets(svg: string, t: (k: string) => string) {
   if (!svg) return svg;
-  const names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
+  const names = ["Sun","Moon","Mars","Mercury","Jupiter","Venus","Saturn","Rahu","Ketu"];
   const pattern = new RegExp(`>(?:${names.join("|")})<`, "g");
   const map: Record<string, string> = {
     Sun: t("planets.sun"),
@@ -71,34 +81,140 @@ function localizeSvgPlanets(svg: string, t: (k: string) => string) {
     Rahu: t("planets.rahu"),
     Ketu: t("planets.ketu"),
   };
-  return svg.replace(pattern, (m) => {
-    const raw = m.slice(1, -1);
-    return `>${map[raw] || raw}<`;
-  });
+  return svg.replace(pattern, (m) => `>${map[m.slice(1, -1)] || m.slice(1, -1)}<`);
 }
-
 function makeSvgResponsive(svg: string) {
   if (!svg) return svg;
   let out = svg.replace(/<svg([^>]*?)\s(width|height)="[^"]*"/gi, "<svg$1");
-  if (!/viewBox=/.test(out)) {
-    out = out.replace(/<svg([^>]*)>/i, '<svg$1 viewBox="0 0 600 600">');
-  }
-  out = out.replace(
+  if (!/viewBox=/.test(out)) out = out.replace(/<svg([^>]*)>/i, '<svg$1 viewBox="0 0 600 600">');
+  return out.replace(
     /<svg([^>]*)>/i,
     '<svg$1 style="max-width:100%;height:auto;display:block" preserveAspectRatio="xMidYMid meet">'
   );
-  return out;
 }
 
-/* ------------------------------------------------------------------ */
-/* -------------------------- Component ------------------------------ */
-/* ------------------------------------------------------------------ */
+/* -------------------- i18n helpers -------------------- */
+function resolveLocaleKey(raw: string): LocaleKey {
+  const keys = Object.keys(dictionaries) as LocaleKey[];
+  if ((keys as string[]).includes(raw)) return raw as LocaleKey;
+  const base = raw.split(/[-_]/)[0];
+  return (keys.find((k) => k === base) || "en") as LocaleKey;
+}
+function normalizeArray(a: unknown, expectedLen?: number): string[] | undefined {
+  if (Array.isArray(a)) return expectedLen && a.length !== expectedLen ? undefined : (a as string[]);
+  if (a && typeof a === "object") {
+    const vals = Object.values(a as Record<string, unknown>).filter((v): v is string => typeof v === "string");
+    return !expectedLen || vals.length === expectedLen ? vals : undefined;
+  }
+  return undefined;
+}
+function getLocaleArrays(locale: string) {
+  const locKey = resolveLocaleKey(locale);
+  const dict = dictionaries[locKey] as LocaleDict;
+  const zodiac = normalizeArray(dict.zodiac, 12) ?? normalizeArray(dict.core?.zodiac, 12) ?? EN_ZODIAC;
+  const naks = normalizeArray(dict.nakshatras, 27) ?? normalizeArray(dict.core?.nakshatras, 27) ?? EN_NAKS;
+  return { zodiac, naks };
+}
+function normalizeName(s: unknown) {
+  return String(s).toLowerCase().replace(/\s*\(.*?\)\s*/g, "").replace(/[-_]/g, " ").replace(/\s+/g, " ").trim();
+}
+function findIndexInsensitive(val: string, base: string[]) {
+  const needle = normalizeName(val);
+  return base.findIndex((s) => normalizeName(s) === needle);
+}
+function degToIdx(deg: string) {
+  const n = parseFloat(String(deg).replace(/[^\d.\-]/g, ""));
+  if (!Number.isFinite(n)) return -1;
+  return Math.floor((((n % 360) + 360) % 360) / 30);
+}
+function mapSignName(val: string, locale: string) {
+  const { zodiac } = getLocaleArrays(locale);
+  const n = Number(val);
+  if (Number.isInteger(n) && n >= 0 && n <= 11) return zodiac[n];
+  const idx = findIndexInsensitive(val, EN_ZODIAC);
+  return idx >= 0 ? zodiac[idx] : val;
+}
+function mapNakName(val: string, locale: string) {
+  const { naks } = getLocaleArrays(locale);
+  const idx = findIndexInsensitive(val, EN_NAKS);
+  return idx >= 0 ? naks[idx] : val;
+}
+const KEY_ALIASES: Record<string, string[]> = {
+  lagna_sign: ["lagna_sign", "asc_sign", "ascendant_sign", "rising_sign"],
+  sun_sign:   ["sun_sign", "sun_sign_name", "sun_rashi"],
+  moon_sign:  ["moon_sign", "moon_sign_name", "moon_rashi"],
+  moon_nakshatra: ["moon_nakshatra", "moon_nak", "chandra_nakshatra"],
+  lagna_deg:  ["lagna_deg", "asc_deg", "ascendant_deg", "rising_deg", "lagna_degree"],
+  sun_deg:    ["sun_deg", "sun_degree"],
+  moon_deg:   ["moon_deg", "moon_degree"],
+};
+function getByAlias(obj: Record<string, string>, canon: keyof typeof KEY_ALIASES) {
+  for (const k of KEY_ALIASES[canon]) if (k in obj && typeof obj[k] === "string") return obj[k]!;
+  return undefined;
+}
+function buildSummaryEntries(raw: Record<string, string>, locale: string, t: (k: string) => string): SummaryEntry[] {
+  const { zodiac } = getLocaleArrays(locale);
+  const labelMap: Record<string, string> = {
+    lagna_sign: t("results.lagnaSign"),
+    sun_sign: t("results.sunSign"),
+    moon_sign: t("results.moonSign"),
+    moon_nakshatra: t("results.moonNakshatra"),
+    lagna_deg: t("results.lagnaDeg"),
+    sun_deg: t("results.sunDeg"),
+    moon_deg: t("results.moonDeg"),
+  };
+
+  const lagnaSignRaw = getByAlias(raw, "lagna_sign");
+  const sunSignRaw   = getByAlias(raw, "sun_sign");
+  const moonSignRaw  = getByAlias(raw, "moon_sign");
+  const lagnaDegRaw  = getByAlias(raw, "lagna_deg");
+  const sunDegRaw    = getByAlias(raw, "sun_deg");
+  const moonDegRaw   = getByAlias(raw, "moon_deg");
+  const moonNakRaw   = getByAlias(raw, "moon_nakshatra");
+
+  const entries: SummaryEntry[] = [];
+  const signTriples: Array<{ id: "lagna_sign" | "sun_sign" | "moon_sign"; label: string; name?: string; deg?: string; }> = [
+    { id: "lagna_sign", label: labelMap.lagna_sign, name: lagnaSignRaw, deg: lagnaDegRaw },
+    { id: "sun_sign",   label: labelMap.sun_sign,   name: sunSignRaw,   deg: sunDegRaw   },
+    { id: "moon_sign",  label: labelMap.moon_sign,  name: moonSignRaw,  deg: moonDegRaw  },
+  ];
+
+  for (const s of signTriples) {
+    let value = s.name ? mapSignName(s.name, locale) : "";
+    if (!value || value === s.name) {
+      const idx = s.deg ? degToIdx(s.deg) : -1;
+      if (idx >= 0) value = (zodiac[idx] ?? s.name ?? "");
+    }
+    if (value) entries.push({ id: s.id, label: s.label, value });
+  }
+
+  if (moonNakRaw) entries.push({ id: "moon_nakshatra", label: labelMap.moon_nakshatra, value: mapNakName(moonNakRaw, locale) });
+  if (lagnaDegRaw) entries.push({ id: "lagna_deg", label: labelMap.lagna_deg, value: lagnaDegRaw });
+  if (sunDegRaw)   entries.push({ id: "sun_deg",   label: labelMap.sun_deg,   value: sunDegRaw   });
+  if (moonDegRaw)  entries.push({ id: "moon_deg",  label: labelMap.moon_deg,  value: moonDegRaw  });
+
+  return entries;
+}
+
+/* Fallback: convert a label→value record to entries (no re-localization) */
+function entriesFromLabelRecord(rec: Record<string, string>): SummaryEntry[] {
+  return Object.entries(rec).map(([label, value]) => ({ id: label, label, value }));
+}
+
+/* -------------------- Component -------------------- */
 export default function CreateChartClient() {
   const { t, tOr, locale } = useI18n();
 
   const [chartName, setChartName] = useState("");
 
-  /* -------------------- form state -------------------- */
+  // raw (server) data kept for re-localization
+  const [rawSvg, setRawSvg] = useState<string | null>(null);
+  const [rawSummary, setRawSummary] = useState<Record<string, string> | null>(null);
+
+  // derived (localized) display
+  const [svg, setSvg] = useState<string | null>(null);
+  const [summary, setSummary] = useState<SummaryEntry[] | null>(null);
+
   const [dob, setDob] = useState("");
   const [tob, setTob] = useState("");
   const [tzId, setTzId] = useState<TzId>("IST");
@@ -110,8 +226,7 @@ export default function CreateChartClient() {
   const [geoLoading, setGeoLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [geoMsg, setGeoMsg] = useState<string | null>(null);
-  const [svg, setSvg] = useState<string | null>(null);
-  const [summary, setSummary] = useState<Record<string, string> | null>(null);
+
   const [vimshottari, setVimshottari] = useState<DashaTimeline | null>(null);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -123,26 +238,62 @@ export default function CreateChartClient() {
 
   /* -------- Restore on mount -------- */
   useEffect(() => {
-    const saved = loadCreateState();
-    if (saved) {
-      setChartName(saved.name || "");
-      setDob(saved.dob || "");
-      setTob(saved.tob || "");
-      setTzId(saved.tzId || "IST");
-      setPlace(saved.place || "");
-      setLat(saved.lat || "22.5726");
-      setLon(saved.lon || "88.3639");
-      setSvg(saved.svg || null);
-      setSummary(saved.summary || null);
-      setVimshottari((saved.vimshottari as DashaTimeline | null) || null);
-      setSavedAt(saved.savedAt || null);
+    const savedBase = loadCreateState();
+    if (!savedBase) return;
+    const saved = savedBase as PersistedWithRaw;
+
+    setChartName(saved.name || "");
+    setDob(saved.dob || "");
+    setTob(saved.tob || "");
+    setTzId(saved.tzId || "IST");
+    setPlace(saved.place || "");
+    setLat(saved.lat || "22.5726");
+    setLon(saved.lon || "88.3639");
+
+    const sRaw = saved.summaryRaw;
+    const vRaw = saved.svgRaw;
+
+    if (sRaw) {
+      setRawSummary(sRaw);
+      setSummary(buildSummaryEntries(sRaw, locale, t));
+    } else if (saved.summary && typeof saved.summary === "object" && !Array.isArray(saved.summary)) {
+      const rec = saved.summary as Record<string, string>;
+      setRawSummary(null);
+      setSummary(entriesFromLabelRecord(rec));
+    } else {
+      setRawSummary(null);
+      setSummary(null);
     }
+
+    if (vRaw) {
+      setRawSvg(vRaw);
+      setSvg(makeSvgResponsive(localizeSvgPlanets(vRaw, t)));
+    } else if (typeof saved.svg === "string") {
+      setRawSvg(null);
+      setSvg(saved.svg);
+    } else {
+      setRawSvg(null);
+      setSvg(null);
+    }
+
+    setVimshottari((saved.vimshottari as DashaTimeline | null) || null);
+    setSavedAt(saved.savedAt || null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  /* -------- Re-localize when language changes -------- */
+  useEffect(() => {
+    if (rawSvg) setSvg(makeSvgResponsive(localizeSvgPlanets(rawSvg, t)));
+    if (rawSummary) setSummary(buildSummaryEntries(rawSummary, locale, t));
+  }, [locale, t, rawSvg, rawSummary]);
 
   /* -------- Debounced background save on changes -------- */
   const saveTimer = useRef<number | null>(null);
   useEffect(() => {
-    const payload: PersistedState = {
+    const summaryRecord: Record<string, string> | null =
+      summary ? Object.fromEntries(summary.map((e) => [e.label, e.value])) : null;
+
+    const payload: PersistedWithRaw = {
       name: chartName,
       dob,
       tob,
@@ -150,77 +301,64 @@ export default function CreateChartClient() {
       place,
       lat,
       lon,
-      svg,
-      summary,
-      vimshottari, // PersistedCreateState allows `unknown | null`
+      svg, // localized for quick render
+      summary: summaryRecord as PersistedSummaryType, // persisted type-compatible
+      vimshottari,
       savedAt: new Date().toISOString(),
+      summaryRaw: rawSummary ?? null,
+      svgRaw: rawSvg ?? null,
     };
+
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
     saveTimer.current = window.setTimeout(() => {
       if (saveCreateState(payload)) setSavedAt(payload.savedAt!);
     }, 300);
-    return () => {
-      if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    };
-  }, [chartName, dob, tob, tzId, place, lat, lon, svg, summary, vimshottari]);
+    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
+  }, [chartName, dob, tob, tzId, place, lat, lon, svg, summary, vimshottari, rawSummary, rawSvg]);
 
   /* -------- Save on unload as a fallback -------- */
   useEffect(() => {
     const handler = () => {
-      const payload: PersistedState = {
-        name: chartName,
-        dob,
-        tob,
-        tzId,
-        place,
-        lat,
-        lon,
-        svg,
-        summary,
-        vimshottari,
+      const summaryRecord: Record<string, string> | null =
+        summary ? Object.fromEntries(summary.map((e) => [e.label, e.value])) : null;
+
+      const payload: PersistedWithRaw = {
+        name: chartName, dob, tob, tzId, place, lat, lon,
+        svg, summary: summaryRecord as PersistedSummaryType, vimshottari,
         savedAt: new Date().toISOString(),
+        summaryRaw: rawSummary ?? null,
+        svgRaw: rawSvg ?? null,
       };
       saveCreateState(payload);
     };
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [chartName, dob, tob, tzId, place, lat, lon, svg, summary, vimshottari]);
+  }, [chartName, dob, tob, tzId, place, lat, lon, svg, summary, vimshottari, rawSummary, rawSvg]);
 
   /* -------- Geocoding -------- */
-  const lookupPlace = useCallback(
-    async (raw: string) => {
-      const query = raw.trim();
-      if (!query) return;
-      if (lastQueryRef.current === query) return;
-      lastQueryRef.current = query;
+  const lookupPlace = useCallback(async (raw: string) => {
+    const query = raw.trim();
+    if (!query) return;
+    if (lastQueryRef.current === query) return;
+    lastQueryRef.current = query;
 
-      setGeoMsg(null);
-      setGeoLoading(true);
-      try {
-        const res = await fetch(
-          `${API_BASE}/api/geocode?place=${encodeURIComponent(query)}`
-        );
-        const data = (await res.json()) as {
-          address?: string;
-          lat?: number;
-          lon?: number;
-          error?: string;
-        };
-        if (!res.ok) throw new Error(data?.error || `Geocode failed (${res.status})`);
-        if (typeof data.lat === "number" && typeof data.lon === "number") {
-          setLat(String(data.lat));
-          setLon(String(data.lon));
-        }
-        setGeoMsg(data.address || t("create.locationFound"));
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : t("errors.genericGeocode");
-        setGeoMsg(msg);
-      } finally {
-        setGeoLoading(false);
+    setGeoMsg(null);
+    setGeoLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/geocode?place=${encodeURIComponent(query)}`);
+      const data = (await res.json()) as { address?: string; lat?: number; lon?: number; error?: string; };
+      if (!res.ok) throw new Error(data?.error || `Geocode failed (${res.status})`);
+      if (typeof data.lat === "number" && typeof data.lon === "number") {
+        setLat(String(data.lat)); setLon(String(data.lon));
       }
-    },
-    [t]
-  );
+      setGeoMsg(data.address || tOr("create.locationFound", "Location found."));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : tOr("errors.genericGeocode", "Could not find that place.");
+      setGeoMsg(msg);
+    } finally {
+      setGeoLoading(false);
+    }
+  }, [tOr]);
 
   useEffect(() => {
     const q = placeTyping.trim();
@@ -236,153 +374,64 @@ export default function CreateChartClient() {
 
     const ctrl = new AbortController();
     try {
-      // Basic field checks
-      if (!dob || !tob || !lat || !lon) {
-        throw new Error(t("create.validation.missingFields"));
-      }
-      // Date sanity
+      if (!dob || !tob || !lat || !lon) throw new Error(tOr("create.validation.missingFields", "Please enter date, time, latitude and longitude."));
       const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
-      if (!m) throw new Error(t("create.validation.badDate"));
+      if (!m) throw new Error(tOr("create.validation.badDate", "Date must be YYYY-MM-DD."));
       const yr = parseInt(m[1], 10);
-      if (yr < 1000 || yr > 2099) throw new Error(t("create.validation.badYearRange"));
+      if (yr < 1000 || yr > 2099) throw new Error(tOr("create.validation.badYearRange", "Year must be between 1000 and 2099."));
+      if (!/^\d{2}:\d{2}$/.test(tob)) throw new Error(tOr("create.validation.badTime", "Enter time as HH:MM"));
 
-      // Time sanity
-      if (!/^\d{2}:\d{2}$/.test(tob)) {
-        throw new Error(t("create.validation.badTime") || "Enter time as HH:MM");
-      }
+      const latNum = parseFloat(lat); const lonNum = parseFloat(lon);
+      if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) throw new Error(tOr("create.validation.badCoords", "Latitude/Longitude must be numbers"));
+      if (latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) throw new Error(tOr("create.validation.coordsRange", "Latitude/Longitude out of range"));
 
-      // Coerce numbers + range-check
-      const latNum = parseFloat(lat);
-      const lonNum = parseFloat(lon);
-      if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) {
-        throw new Error(t("create.validation.badCoords") || "Latitude/Longitude must be numbers");
-      }
-      if (latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) {
-        throw new Error(t("create.validation.coordsRange") || "Latitude/Longitude out of range");
-      }
-
-      // Build UTC timestamp from local civil + tz
       const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
-      if (!dtIsoUtc) throw new Error(t("errors.genericGenerate"));
+      if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
 
-      // Call API
       const res = await fetch(`${API_BASE}/api/chart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
-        body: JSON.stringify({
-          datetime: dtIsoUtc,
-          lat: latNum,
-          lon: lonNum,
-          tz_offset_hours: tzHours,
-        }),
+        body: JSON.stringify({ datetime: dtIsoUtc, lat: latNum, lon: lonNum, tz_offset_hours: tzHours }),
       });
 
       let data: ApiResp | null = null;
       const text = await res.text();
-      try {
-        data = text ? (JSON.parse(text) as ApiResp) : null;
-      } catch {
-        /* non-JSON error */
-      }
+      try { data = text ? (JSON.parse(text) as ApiResp) : null; } catch {}
 
       if (!res.ok) {
-        const errMsg =
-          (data?.error) ||
-          (text && text.slice(0, 200)) ||
-          `HTTP ${res.status}`;
+        const errMsg = data?.error || (text && text.slice(0, 200)) || `HTTP ${res.status}`;
         throw new Error(errMsg);
       }
 
-      // Localize SVG planet names + make responsive
-      const localizedSvg = data?.svg
-        ? makeSvgResponsive(localizeSvgPlanets(data.svg, t))
-        : "";
+      // keep raw, derive localized
+      const serverSvg = data?.svg || "";
+      const serverSummary = (data && data.summary) || {};
 
-      // Localize summary labels & values (with locale fallback)
-      const locKey = (locale in dictionaries ? locale : "en") as LocaleKey;
-      const dict = dictionaries[locKey] as LocaleDict;
-      const locZodiac = dict.zodiac;
-      const locNaks = dict.nakshatras;
+      setRawSvg(serverSvg);
+      setRawSummary(serverSummary);
 
-      const labelMap: Record<string, string> = {
-        lagna_sign: t("results.lagnaSign"),
-        sun_sign: t("results.sunSign"),
-        moon_sign: t("results.moonSign"),
-        moon_nakshatra: t("results.moonNakshatra"),
-        lagna_deg: t("results.lagnaDeg"),
-        sun_deg: t("results.sunDeg"),
-        moon_deg: t("results.moonDeg"),
-      };
-      const EN_TO_LOC_SIGN = (val: string) => {
-        const idx = EN_ZODIAC.indexOf(val);
-        return idx >= 0 && locZodiac?.[idx] ? locZodiac[idx] : val;
-      };
-      const EN_TO_LOC_NAK = (val: string) => {
-        const idx = EN_NAKS.indexOf(val);
-        return idx >= 0 && locNaks?.[idx] ? locNaks[idx] : val;
-      };
+      setSvg(serverSvg ? makeSvgResponsive(localizeSvgPlanets(serverSvg, t)) : "");
+      setSummary(buildSummaryEntries(serverSummary, locale, t));
 
-      const rawSummary = (data && data.summary) || null;
-      const localizedSummary: Record<string, string> | null = rawSummary
-        ? (() => {
-            const result: Record<string, string> = {};
-            for (const [k, v] of Object.entries(rawSummary)) {
-              let vv = v;
-              if (k === "lagna_sign" || k === "sun_sign" || k === "moon_sign")
-                vv = EN_TO_LOC_SIGN(v);
-              if (k === "moon_nakshatra") vv = EN_TO_LOC_NAK(v);
-              result[labelMap[k] ?? k] = vv;
-            }
-            return result;
-          })()
-        : null;
+      // Vimshottari
+      const vRaw = (data?.meta?.["vimshottari"] ?? null) as unknown;
+      const vDash: DashaTimeline | null =
+        typeof vRaw === "object" &&
+        vRaw !== null &&
+        "mahadashas" in (vRaw as Record<string, unknown>) &&
+        Array.isArray((vRaw as { mahadashas: unknown[] }).mahadashas) &&
+        (vRaw as { mahadashas: unknown[] }).mahadashas.length > 0
+          ? (vRaw as DashaTimeline)
+          : null;
+      setVimshottari(vDash);
 
-      setSvg(localizedSvg);
-      setSummary(localizedSummary);
-
-        // Vimshottari (guarded, no `any`)
-        const vRaw = (data?.meta?.["vimshottari"] ?? null) as unknown;
-
-        const vDash: DashaTimeline | null =
-          typeof vRaw === "object" &&
-          vRaw !== null &&
-          "mahadashas" in vRaw &&
-          Array.isArray((vRaw as { mahadashas: unknown[] }).mahadashas) &&
-          (vRaw as { mahadashas: unknown[] }).mahadashas.length > 0
-            ? (vRaw as DashaTimeline)
-            : null;
-
-        setVimshottari(vDash);
-
-
-      // Persist birth details for the Daily page
+      // Persist Daily page seed
       try {
-        saveBirth({
-          datetime: dtIsoUtc,
-          lat: latNum,
-          lon: lonNum,
-          tz: IANA_BY_TZID[tzId] || "Asia/Kolkata",
-        });
+        saveBirth({ datetime: dtIsoUtc, lat: latNum, lon: lonNum, tz: IANA_BY_TZID[tzId] || "Asia/Kolkata" });
       } catch {}
-
-      // Persist full Create state (including name)
-      const payload: PersistedState = {
-        name: chartName,
-        dob,
-        tob,
-        tzId,
-        place,
-        lat,
-        lon,
-        svg: localizedSvg,
-        summary: localizedSummary,
-        vimshottari: vDash,
-        savedAt: new Date().toISOString(),
-      };
-      if (saveCreateState(payload)) setSavedAt(payload.savedAt!);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : t("errors.genericGenerate");
+      const msg = e instanceof Error ? e.message : tOr("errors.genericGenerate", "Failed to generate chart.");
       setError(msg);
     } finally {
       setLoading(false);
@@ -391,44 +440,55 @@ export default function CreateChartClient() {
   }
 
   function onReset() {
-    setChartName("");
-    setDob("");
-    setTob("");
-    setTzId("IST");
-    setPlace("");
-    setLat("22.5726");
-    setLon("88.3639");
-    setSvg(null);
-    setSummary(null);
-    setVimshottari(null);
-    setError(null);
-    setGeoMsg(null);
-    lastQueryRef.current = null;
-    setPlaceTyping("");
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {}
+    setChartName(""); setDob(""); setTob(""); setTzId("IST"); setPlace("");
+    setLat("22.5726"); setLon("88.3639");
+    setRawSvg(null); setRawSummary(null);
+    setSvg(null); setSummary(null); setVimshottari(null);
+    setError(null); setGeoMsg(null); lastQueryRef.current = null; setPlaceTyping("");
+    try { localStorage.removeItem(STORAGE_KEY); } catch {}
     setSavedAt(null);
   }
 
   function loadLastSaved() {
-    const saved = loadCreateState();
-    if (!saved) return;
-    setChartName(saved.name || "");
-    setDob(saved.dob || "");
-    setTob(saved.tob || "");
-    setTzId(saved.tzId || "IST");
-    setPlace(saved.place || "");
-    setLat(saved.lat || "22.5726");
-    setLon(saved.lon || "88.3639");
-    setSvg(saved.svg || null);
-    setSummary(saved.summary || null);
+    const savedBase = loadCreateState();
+    if (!savedBase) return;
+    const saved = savedBase as PersistedWithRaw;
+
+    setChartName(saved.name || ""); setDob(saved.dob || ""); setTob(saved.tob || "");
+    setTzId(saved.tzId || "IST"); setPlace(saved.place || ""); setLat(saved.lat || "22.5726"); setLon(saved.lon || "88.3639");
+
+    const sRaw = saved.summaryRaw;
+    const vRaw = saved.svgRaw;
+
+    if (sRaw) {
+      setRawSummary(sRaw);
+      setSummary(buildSummaryEntries(sRaw, locale, t));
+    } else if (saved.summary && typeof saved.summary === "object" && !Array.isArray(saved.summary)) {
+      const rec = saved.summary as Record<string, string>;
+      setRawSummary(null);
+      setSummary(entriesFromLabelRecord(rec));
+    } else {
+      setRawSummary(null);
+      setSummary(null);
+    }
+
+    if (vRaw) {
+      setRawSvg(vRaw);
+      setSvg(makeSvgResponsive(localizeSvgPlanets(vRaw, t)));
+    } else if (typeof saved.svg === "string") {
+      setRawSvg(null);
+      setSvg(saved.svg);
+    } else {
+      setRawSvg(null);
+      setSvg(null);
+    }
+
     setVimshottari((saved.vimshottari as DashaTimeline | null) || null);
     setSavedAt(saved.savedAt || null);
   }
 
   function clearSavedChartOnly() {
-    const trimmed: PersistedState = {
+    const trimmed: PersistedWithRaw = {
       name: chartName,
       dob,
       tob,
@@ -437,26 +497,24 @@ export default function CreateChartClient() {
       lat,
       lon,
       svg: null,
-      summary: null,
+      summary: null as PersistedSummaryType,
       vimshottari: null,
       savedAt: new Date().toISOString(),
+      summaryRaw: null,
+      svgRaw: null,
     };
     if (saveCreateState(trimmed)) setSavedAt(trimmed.savedAt!);
-    setSvg(null);
-    setSummary(null);
-    setVimshottari(null);
+    setRawSvg(null); setRawSummary(null); setSvg(null); setSummary(null);
   }
 
-  /* -------------------- UI -------------------- */
   const birthUtcIso =
     dob && tob ? localCivilToUtcIso(dob, tob, tzId).dtIsoUtc : "";
 
-  // Build payload for backend save (only when we have fields)
   const backendChartPayload: ChartPayload | null =
     dob && tob && lat && lon
       ? {
           name: chartName || undefined,
-          birth_datetime: birthUtcIso, // UTC ISO
+          birth_datetime: birthUtcIso,
           latitude: parseFloat(lat),
           longitude: parseFloat(lon),
           timezone: IANA_BY_TZID[tzId] || "Asia/Kolkata",
@@ -478,7 +536,6 @@ export default function CreateChartClient() {
       <div className="bg-[#141A2A] rounded-2xl p-6 pb-8 border border-white/5 overflow-visible">
         {/* Form */}
         <div className="grid md:grid-cols-2 gap-4">
-          {/* Name (optional) */}
           <div className="md:col-span-2">
             <label className="block text-sm text-slate-300 mb-1">{tOr("profile.birth.name.label", "Name (optional)")}</label>
             <input
@@ -594,13 +651,17 @@ export default function CreateChartClient() {
             onClick={loadLastSaved}
             className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
             title={tOr("create.loadLastSavedTitle", "Load last saved chart & inputs")}
-          >{tOr("create.loadLastSaved", "Load last saved")}</button>
+          >
+            {tOr("create.loadLastSaved", "Load last saved")}
+          </button>
           <button
             type="button"
             onClick={clearSavedChartOnly}
             className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
             title={tOr("create.clearSavedChartTitle", "Remove saved chart (keep inputs)")}
-          >{tOr("create.clearSavedChart", "Clear saved chart")}</button>
+          >
+            {tOr("create.clearSavedChart", "Clear saved chart")}
+          </button>
 
           {savedAt && (
             <span className="basis-full text-xs text-slate-400">
@@ -631,16 +692,15 @@ export default function CreateChartClient() {
               <div className="rounded-2xl border border-white/10 bg-black/10 p-4 text-sm text-slate-200 min-w-0 overflow-visible">
                 <div className="text-white font-semibold mb-2">{t("results.title")}</div>
                 <ul className="space-y-1">
-                  {summary &&
-                    Object.entries(summary).map(([label, val]) => (
-                      <li
-                        key={label}
-                        className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-white/5 py-1"
-                      >
-                        <span className="text-slate-400 break-words">{label}</span>
-                        <span className="text-slate-200 text-right break-words">{val}</span>
-                      </li>
-                    ))}
+                  {summary?.map(({ id, label, value }) => (
+                    <li
+                      key={id}
+                      className="grid grid-cols-[1fr_auto] items-start gap-3 border-b border-white/5 py-1"
+                    >
+                      <span className="text-slate-400 break-words">{label}</span>
+                      <span className="text-slate-200 text-right break-words">{value}</span>
+                    </li>
+                  ))}
                 </ul>
               </div>
             </div>
@@ -649,32 +709,30 @@ export default function CreateChartClient() {
             <div className="mt-1 space-y-1">
               {backendChartPayload && !savedOK && (
                 <div
-                className="relative inline-block"
-                onClickCapture={(e) => {
-                  if (isSaving || savedOK) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return;
-                  }
-                  setIsSaving(true);
-                  if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
-                  // Fail-safe: auto-unlock if backend never calls onSaved
-                  saveTimerRef.current = window.setTimeout(() => setIsSaving(false), 8000);
-                }}
-              >
-                <SaveChartButton
-                  chart={backendChartPayload}
-                  label={tOr("create.saveCta", "Save to account")}
-                  onSaved={() => {
-                    setSavedOK(true);
-                    setIsSaving(false);
+                  className="relative inline-block"
+                  onClickCapture={(e) => {
+                    if (isSaving || savedOK) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      return;
+                    }
+                    setIsSaving(true);
                     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+                    // Fail-safe: auto-unlock if backend never calls onSaved
+                    saveTimerRef.current = window.setTimeout(() => setIsSaving(false), 8000);
                   }}
-                />
-                {isSaving && !savedOK && (
-                  <div className="absolute inset-0" aria-hidden="true" />
-                )}
-              </div>
+                >
+                  <SaveChartButton
+                    chart={backendChartPayload}
+                    label={tOr("create.saveCta", "Save to account")}
+                    onSaved={() => {
+                      setSavedOK(true);
+                      setIsSaving(false);
+                      if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+                    }}
+                  />
+                  {isSaving && !savedOK && <div className="absolute inset-0" aria-hidden="true" />}
+                </div>
               )}
 
               {savedOK && (
@@ -684,23 +742,17 @@ export default function CreateChartClient() {
                 </div>
               )}
 
-              {/* ✍️ helper text next to Save to account */}
               <p className="text-xs text-slate-400">
-                {tOr(
-                  "create.saveTip",
-                  "Tip: If you want to avoid entering your details again, save this chart to your account."
-                )}
+                {tOr("create.saveTip", "Tip: If you want to avoid entering your details again, save this chart to your account.")}
               </p>
             </div>
-
-
-            </>
+          </>
         )}
       </div>
+
       {/* Deep Links */}
       <div className="mt-0">
         <div className="grid md:grid-cols-3 gap-6">
-            {/* Daily */}
           <Link
             href="/daily"
             className="group rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/20 via-cyan-500/10 to-transparent p-5 hover:border-sky-300/60 focus:outline-none focus:ring-2 focus:ring-sky-300/60"
@@ -718,7 +770,6 @@ export default function CreateChartClient() {
             </div>
           </Link>
 
-          {/* ShubhDin */}
           <Link
             href="/components/shubhdin"
             className="group rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-rose-500/10 to-transparent p-5 hover:border-amber-300/60 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
@@ -735,7 +786,7 @@ export default function CreateChartClient() {
               {tOr("cards.shubhdin.cta", "Plan ShubhDin")} <span className="animate-pulse">↗</span>
             </div>
           </Link>
-          {/* Life Wheel */}
+
           <Link
             href="/domains"
             className="group rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-cyan-500/20 via-emerald-500/10 to-transparent p-5 hover:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
@@ -753,7 +804,6 @@ export default function CreateChartClient() {
             </div>
           </Link>
 
-          {/* Skills */}
           <Link
             href="/skills"
             className="group rounded-2xl border border-emerald-400/40 bg-gradient-to-br from-emerald-500/20 via-teal-500/10 to-transparent p-5 hover:border-emerald-300/60 focus:outline-none focus:ring-2 focus:ring-emerald-300/60"
@@ -771,7 +821,6 @@ export default function CreateChartClient() {
             </div>
           </Link>
 
-          {/* Saturn */}
           <Link
             href="/saturn"
             className="group rounded-2xl border border-indigo-400/40 bg-gradient-to-br from-indigo-500/20 via-sky-500/10 to-transparent p-5 hover:border-indigo-300/60 focus:outline-none focus:ring-2 focus:ring-indigo-300/60"
@@ -789,7 +838,6 @@ export default function CreateChartClient() {
             </div>
           </Link>
 
-          {/* Dasha Timeline */}
           <Link
             href="/vimshottari"
             className="group rounded-2xl border border-violet-400/40 bg-gradient-to-br from-violet-500/20 via-purple-500/10 to-transparent p-5 hover:border-violet-300/60 focus:outline-none focus:ring-2 focus:ring-violet-300/60"
@@ -806,12 +854,9 @@ export default function CreateChartClient() {
               {tOr("vimshottari.openCta", "Open Dasha Timeline")} <span className="animate-pulse">↗</span>
             </div>
           </Link>
-
-
         </div>
       </div>
 
-      {/* Ad: end-of-page */}
       <div className="mt-10">
         <AdSlot slot="4741871653" minHeight={300} />
       </div>
