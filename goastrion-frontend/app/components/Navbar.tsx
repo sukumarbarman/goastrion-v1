@@ -25,7 +25,7 @@ export default function Navbar({
 
   // Map slugs → i18n keys with safe fallbacks (English stays as-is)
   const NAV_ITEMS = [
-    { slug: "daily",        key: "navbar.daily",        fallback: "Daily" },
+    { slug: "daily",        key: "navbar.daily",        fallback: "Today" },
     { slug: "shubhdin",     key: "navbar.shubhdin",     fallback: "ShubhDin" }, // ✅ NEW
     { slug: "create",       key: "navbar.create",       fallback: "Create" },
     { slug: "saturn",       key: "navbar.saturn",       fallback: "Saturn" },
@@ -92,8 +92,9 @@ export default function Navbar({
           <div className="flex items-center gap-3 relative">
             <LanguageSwitcher />
 
-            {/* Desktop Appointment CTA */}
+            {/* Desktop Appointment CTA
             <ApptCTA />
+            */}
 
             {!user ? (
               <div className="hidden md:flex gap-3">
@@ -149,9 +150,9 @@ export default function Navbar({
       {/* Mobile panel */}
       {mobile && (
         <div className="md:hidden fixed inset-x-0 bg-[#0B1022] z-50 p-4 border-t border-white/10">
-          {/* Mobile Appointment CTA */}
+          {/* Mobile Appointment CTA
           <ApptCTA mobile />
-
+            */}
           {!user ? (
             <>
               <button

@@ -3,9 +3,7 @@ import type { DailyLocale } from "./en-daily";
 export { formatDaily } from "./en-daily";
 
 const bnDaily: DailyLocale = {
-  navbar: { daily: "আপনারদিন" },
-
-  daily: {
+    daily: {
     // ✅ same keys as en-daily.ts
     optionalAddons: {
       travel: "১০-মিনিট আগে বের হন; রুট নিশ্চিত করুন",

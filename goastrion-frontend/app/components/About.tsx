@@ -45,7 +45,7 @@ export default function AboutPage() {
           <p className="text-slate-300 max-w-3xl">
             {tf(
               "about.tagline.spotlight",
-              "Find calmer, more supportive days—then act. GoAstrion reads your chart and Saturn/Moon context to surface ShubhDin windows for studies, interviews, launches, or simply a more focused day."
+              "Find calmer, more supportive days—then act. GoAstrion reads your chart and Saturn/Moon context to plan  Next 2 yrs  for studies, interviews, launches, or simply a more focused day."
             )}
           </p>
 
@@ -84,7 +84,7 @@ export default function AboutPage() {
               href="/create"
               className="px-4 py-2 rounded-full bg-cyan-500 text-black font-medium hover:bg-cyan-400"
             >
-              {tf("about.cta.checkShubhdin", "✨ Check my ShubhDin")}
+              {tf("about.cta.checkShubhdin", "✨ Plan next 2 yrs")}
             </Link>
             <Link
               href="/faq"

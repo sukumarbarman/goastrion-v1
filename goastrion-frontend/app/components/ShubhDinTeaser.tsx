@@ -16,34 +16,34 @@ export default function ShubhDinTeaser() {
           {/* Copy */}
           <div>
             <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/15 border border-cyan-400/40 px-3 py-1 text-cyan-100 text-xs font-medium">
-              {tf("home.shubhdin.badge", "ShubhDin · Good Day")}
+              {tf("home.shubhdin.badge", "Next 2 yrs")}
             </div>
 
             <h2 id="shubhdin-title" className="mt-2 text-2xl md:text-3xl font-semibold text-white">
-              {tf("home.shubhdin.title", "Find your Shubh Din — feel the timing click")}
+              {tf("home.shubhdin.title", "Pick the Right Month, Not Just a Date")}
             </h2>
 
             <p className="mt-2 text-slate-300">
               {tf(
                 "home.shubhdin.sub",
-                "Get auspicious date windows (ShubhDin) from your Vedic birth chart — optimized for job change, interviews, study, launches, travel and calmer days."
+                "Data-backed Vedic windows for commitments—marriage, job Change, home purchase."
               )}
             </p>
 
             <ul className="mt-3 text-sm text-slate-300 space-y-1">
               <li>• {tf("home.shubhdin.pt1", "Smart windows from your birth details (IST/UTC handled)")}</li>
               <li>• {tf("home.shubhdin.pt2", "Saturn/Moon context with gentle, actionable timing notes")}</li>
-              <li>• {tf("home.shubhdin.pt3", "Optional Vimshottari MD/AD for longer trends")}</li>
+              <li>• {tf("home.shubhdin.pt3", "Extend with Vimshottari MD/AD for trend alignment")}</li>
             </ul>
 
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="/create"
                 className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
-                aria-label={tf("home.shubhdin.cta", "Check my ShubhDin")}
+                aria-label={tf("home.shubhdin.cta", "Plan next 2 yrs")}
                 prefetch
               >
-                ✨ {tf("home.shubhdin.cta", "Check my ShubhDin")}
+                ✨ {tf("home.shubhdin.cta", "Plan next 2 yrs")}
               </Link>
               <Link
                 href="/shubhdin"

@@ -31,7 +31,7 @@ export default function FaqClient() {
       a: "ShubhDin is a supportive time window suggested from your birth details and current Saturn/Moon context. Use it for focused study, interviews, launches, travel planning, or simply a calmer day to move important tasks forward.",
     },
     {
-      q: "How does GoAstrion pick ShubhDin windows?",
+      q: "How does GoAstrion plan for Next 2 yrs?",
       a: "We compute your chart in UTC or IST, then scan for lighter lunar context and clean aspects within your chosen horizon. We avoid heavy station days and highlight windows where friction is lower so small efforts compound.",
     },
     {

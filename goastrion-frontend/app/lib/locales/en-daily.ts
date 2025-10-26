@@ -5,7 +5,7 @@ export const formatDaily = (tpl: string, args: DailyArgs = {}) =>
   tpl.replace(/\{(\w+)\}/g, (_, k) => (args[k] ?? "").toString());
 
 const enDaily = {
-  navbar: { daily: "YourDay" },
+
 
   daily: {
     // Used as dynamic add-ons for optional remedies
@@ -121,7 +121,7 @@ const enDaily = {
         Ganesha: "Ganesha",
       },
 
-      yourDay: "Your Day",
+      yourDay: "Today",
     },
 
     phrases: {

@@ -756,36 +756,39 @@ export default function CreateChartClient() {
           <Link
             href="/daily"
             className="group rounded-2xl border border-sky-400/40 bg-gradient-to-br from-sky-500/20 via-cyan-500/10 to-transparent p-5 hover:border-sky-300/60 focus:outline-none focus:ring-2 focus:ring-sky-300/60"
-            aria-label={tOr("cards.daily.cta", "Open Daily")}
+            aria-label={tOr("cards.daily.cta", "Know Today")}
           >
             <div className="text-2xl">📅</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              {tOr("cards.daily.title", "Daily Timing")}
+              {tOr("cards.daily.title", "Know Today")}
             </div>
             <p className="mt-1 text-slate-300 text-sm">
-              {tOr("cards.daily.desc", "See today's supportive windows, do/don'ts, mantra & more.")}
+              {tOr("cards.daily.desc", "Make the most of today: see your supportive time windows, recommended actions and cautions, plus your focus mantra.")}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-sky-100 font-medium">
-              {tOr("cards.daily.cta", "Open Daily")} <span className="animate-pulse">↗</span>
+              {tOr("cards.daily.cta", "Know Today")} <span className="animate-pulse">↗</span>
             </div>
           </Link>
 
-          <Link
-            href="/components/shubhdin"
-            className="group rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-rose-500/10 to-transparent p-5 hover:border-amber-300/60 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
-            aria-label={tOr("cards.shubhdin.cta", "Plan ShubhDin")}
-          >
-            <div className="text-2xl">🗓️✨</div>
-            <div className="mt-2 text-white font-semibold text-lg">
-              {tOr("cards.shubhdin.title", "ShubhDin")}
-            </div>
-            <p className="mt-1 text-slate-300 text-sm">
-              {tOr("cards.shubhdin.desc", "Pick auspicious dates for interviews, purchases, travel, and more.")}
-            </p>
-            <div className="mt-3 inline-flex items-center gap-2 text-amber-100 font-medium">
-              {tOr("cards.shubhdin.cta", "Plan ShubhDin")} <span className="animate-pulse">↗</span>
-            </div>
-          </Link>
+        <Link
+          href="/components/shubhdin"
+          className="group rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-rose-500/10 to-transparent p-5 hover:border-amber-300/60 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
+          aria-label={tOr("cards.shubhdin.cta", "Plan Good Days (ShubhDin)")}
+        >
+          <div className="text-2xl">🗓️✨</div>
+          <div className="mt-2 text-white font-semibold text-lg">
+            {tOr("cards.shubhdin.title", "Next 2 yrs")}
+          </div>
+          <p className="mt-1 text-slate-300 text-sm">
+            {tOr(
+              "cards.shubhdin.desc",
+              "Plan job changes, marriage, relationships, and starting or expanding a business."
+            )}
+          </p>
+          <div className="mt-3 inline-flex items-center gap-2 text-amber-100 font-medium">
+            {tOr("cards.shubhdin.cta", "Plan Next 2 yrs")} <span className="animate-pulse">↗</span>
+          </div>
+        </Link>
 
           <Link
             href="/domains"

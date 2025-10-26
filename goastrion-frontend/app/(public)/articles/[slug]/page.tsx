@@ -25,7 +25,7 @@ async function fetchArticle(slug: string): Promise<Article | null> {
   if (slug === "example") {
     return {
       slug,
-      title: "How ShubhDin Windows Help Your Career",
+      title: "How Next 2 yrs plan help Your Career",
       description:
         "Understand auspicious-day windows and how to plan interviews, offers, and transitions.",
       html: `<p>Intro content…</p><p>More detailed content…</p><p>Conclusion…</p>`,

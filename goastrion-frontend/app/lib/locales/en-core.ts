@@ -15,7 +15,10 @@ const enCore = {
     faq: "FAQ",
     saturn: "Saturn",
     vimshottari: "Vimshottari",
-  },
+    daily: "Today",
+    shubhdin: "Next 2 yrs",
+    create: "Create",
+   },
     contact: {
     thanks: "Thanks! We'll get back to you soon.",
   },
@@ -32,7 +35,7 @@ about: {
     main:
       "GoAstrion helps students and professionals make smarter life choices with clear, practical guidance—powered by Vedic astrology.",
     spotlight:
-      "Find calmer, more supportive days—then act. GoAstrion reads your chart and Saturn/Moon context to surface ShubhDin windows for studies, interviews, launches, or simply a more focused day.",
+      "Find calmer, more supportive days—then act. GoAstrion reads your chart and Saturn/Moon context to plan Next 2 yrs  for studies, interviews, launches, or simply a more focused day.",
   },
 
   list: {
@@ -61,7 +64,7 @@ about: {
   cta: {
     start: "Get Started",
     generate: "Generate My Chart",
-    checkShubhdin: "✨ Check my ShubhDin",
+    checkShubhdin: "✨ Plan next 2 yrs",
     howItWorks: "How it works",
   },
 
@@ -84,7 +87,7 @@ about: {
         "stepLabel": "Step {{num}}",
         "1": {"title": "Enter birth details", "desc": "Date, time, and place (IST‑safe)"},
         "2": {"title": "Get chart & insights", "desc": "North‑Indian chart + Saturn & skills"},
-        "3": {"title": "See ShubhDin windows", "desc": "Job change, marriage, property and more"}
+        "3": {"title": "Plan Next 2 yrs", "desc": "Job change, marriage, property and more"}
     },
       shubhdin: {
         badge: "ShubhDin · Good Day",
@@ -93,7 +96,7 @@ about: {
         pt1: "Smart windows from your birth details (IST/UTC handled)",
         pt2: "Gentle timing notes — action over anxiety",
         pt3: "Optional MD/AD context for longer trends",
-        cta: "Check my ShubhDin",
+        cta: "Plan next 2 yrs",
         how: "How it works",
         tz: "India: choose IST (UTC+05:30). Outside India: convert your birth time to UTC and choose UTC.",
         alt: "Smiling young woman checking a calendar on her phone, hopeful about a good day"
@@ -122,6 +125,59 @@ about: {
     "badgeSecure": "Secure", "badgePrivate": "Private", "badgeFast": "Fast"
   },
 
+      /* === Cards used on Create page (Deep Links) === */
+    cards: {
+      daily: {
+        title: "Know Today",
+        desc:
+          "Make the most of today: see your supportive time windows, recommended actions and cautions, plus your focus mantra.",
+        cta: "Open Daily",
+      },
+
+      shubhdin: {
+        title: "Next 2 yrs",
+        desc:
+          "Plan job changes, marriage, relationships, and starting or expanding a business — plus interviews, launches, travel, purchases, and other key decisions — over the next 24 months.",
+        cta: "Plan Next 2 yrs",
+      },
+
+      life: {
+        title: "Life Wheel (Domains)",
+        desc:
+          "See strengths across Career, Finance, Health, Relationships and more—at a glance.",
+        cta: "Open Life Wheel",
+      },
+
+      skills: {
+        title: "Top Skills",
+        desc:
+          "Discover your standout abilities and how to use them for jobs, business or growth.",
+        cta: "See Skills",
+      },
+
+      saturn: {
+        title: "Saturn Phases",
+        desc:
+          "Track Sade Sati, transits and caution days to plan moves wisely.",
+        cta: "Open Saturn",
+      },
+    },
+
+    /* === Horizon labels (for compact badges like “Next 2 yrs”) === */
+    horizonLabels: {
+      short: {
+        next2yrs: "Next 2 yrs",
+      },
+    },
+
+    /* === VImshottari card strings used by the Dasha link === */
+    vimshottari: {
+      openCta: "Open Dasha Timeline",
+      cardTitle: "Dasha Timeline",
+      cardDesc: "See your Vimshottari sequence and key periods.",
+    },
+
+
   skills: {
         "title": "Skill Spotlight",
         "note": "<span class='text-slate-300'>Top abilities from natal placements — see where to double‑down.</span>",
@@ -148,13 +204,13 @@ about: {
         "cta": "Explore Life Wheel"
         },
          "shubhdin": {
-            "badge": "ShubhDin · Good Day",
+            "badge": "Next 2 yrs",
               "title": "Pick the Right Month, Not Just a Date",
               "sub": "Data-backed Vedic windows for commitments—marriage, job Change, home purchase, study plans",
               "pt1": "Smart windows from your birth details (IST/UTC handled)",
               "pt2": "Saturn/Moon context with gentle, actionable timing notes",
               "pt3": "Extend with Vimshottari MD/AD for trend alignment",
-              "cta": "Plan my year",
+              "cta": "Plan Next 2 yrs",
               "learn": "Learn more",
               "how": "How it works",
               "tz": "India: choose IST (UTC+05:30). Outside India: convert your birth time to UTC and choose UTC.",
@@ -177,6 +233,7 @@ about: {
     generate: "Generate",
     generating: "Generating...",
     reset: "Reset",
+    saveTip: "If you want to avoid entering your details again, save this chart to your account.",
     validation: {
       missingFields: "Please enter date, time, latitude and longitude.",
       badDate: "Please enter date as YYYY-MM-DD.",
@@ -325,7 +382,7 @@ faqPage: {
         a: "ShubhDin is a supportive time window suggested from your birth details and current Saturn/Moon context. Use it for focused study, interviews, launches, travel planning, or simply a calmer day to move important tasks forward.",
       },
       {
-        q: "How does GoAstrion pick ShubhDin windows?",
+        q: "How does GoAstrion plan for next 2 yrs?",
         a: "We compute your chart in UTC or IST, then scan for lighter lunar context and clean aspects within your chosen horizon. We avoid heavy station days and highlight windows where friction is lower so small efforts compound.",
       },
       {
