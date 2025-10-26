@@ -250,6 +250,13 @@ const bnInsights = {
 
   sd: {
     title: "শুভদিন — স্মার্ট উইন্ডোজ",
+
+    // NEW: /shubhdin page heading & subtitle
+    page: {
+      title: "শুভদিন — আগামী ২ বছর",
+      sub: "শুধু একটি তারিখ নয়, সঠিক মাস বেছে নিন — প্রমোশন, চাকরি পরিবর্তন, সম্পত্তি, বিবাহ ইত্যাদির জন্য ডেটা-সমর্থিত বৈদিক সময়-জানালা।",
+    },
+
     join: { comma: ", " },
     view: { label: "ভিউ", aria: "ভিউ মোড নির্বাচন", all: "সব লক্ষ্য", single: "একটি লক্ষ্য" },
     goal: { aria: "লক্ষ্য নির্বাচন করুন" },
@@ -263,10 +270,16 @@ const bnInsights = {
       marriage: "বিবাহ",
       new_relationship: "নতুন সম্পর্ক",
     },
+
+    // Keep existing key…
     prompt_fill_create: "দয়া করে আগে Create ট্যাব পূরণ করুন যাতে সংরক্ষিত অবস্থান থেকে lat/lon/tz পড়া যায়।",
+    // …and add alias some components use
+    fill_create_first: "দয়া করে আগে Create ট্যাব পূরণ করুন যাতে সংরক্ষিত অবস্থান থেকে lat/lon/tz পড়া যায়।",
+
     windows: { title: "সেরা উইন্ডোজ" },
     topday: { title: "শ্রেষ্ঠ দিন" },
     why: { title: "কেন এই দিনগুলো?" },
+
     caution: {
       title: "সতর্কতা",
       days: "সতর্কতার দিন(গুলি)",
@@ -275,11 +288,20 @@ const bnInsights = {
       skip_rahukaal_gulika: "রাহু/গুলিকা সময় এড়িয়ে চলুন",
       no_big_txn: "অনুগ্রহ করে এই তারিখগুলোতে বড় লেনদেন/চুক্তি চূড়ান্ত করবেন না: {dates}{more}।",
     },
+
     score: { label: "স্কোর {score}" },
+
     headline: { prefix: "সেরা উইন্ডোজ: ", span: "{start} - {end} ({days}দিন)", best_windows: "{spans}" },
-    aspect: { tag: "{p1} {name} → {p2}" },
-    generated_at: "জেনারেটেড {dt} • TZ: {tz}",
+
+    aspect: { tag: "{প১} {name} → {প২}" }, // keep English p1/p2 if your code expects {p1}/{p2}
+    // If your templates expect {p1}/{p2}, use:
+    // aspect: { tag: "{p1} {name} → {p2}" },
+
+    // Works whether caller passes {dt} or {ts}
+    generated_at: "জেনারেটেড {dt}{ts} • TZ: {tz}",
+
     empty: { goal: "এই লক্ষ্যের জন্য উল্লেখযোগ্য উইন্ডো নেই।" },
+
     explain: {
       career_houses: "ট্রানজিট + দশা ক্যারিয়ার ঘর (১০ম/৬ষ্ঠ) সমর্থন করছে।",
       leverage_date: "{date}-এর কাছে অ্যাপ্রেইজাল কথা বার্তা করুন।",

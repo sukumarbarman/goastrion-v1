@@ -1,7 +1,7 @@
+// goastrion-frontend/app/shubhdin/ShubhDinClient.tsx
 "use client";
 
-import React, { useEffect, useMemo, useState, useCallback } from "react";
-
+import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useI18n } from "@/app/lib/i18n";
 
 type TzId = "IST" | "UTC";
@@ -55,11 +55,16 @@ function localCivilToUtcIso(dob: string, tob: string, tzId: TzId) {
   return new Date(`${dob}T${tob}:00${offset}`).toISOString();
 }
 function ensureDate(d: string) {
-  try { return new Date(d); } catch { return null as unknown as Date; }
+  try {
+    return new Date(d);
+  } catch {
+    // @ts-expect-error sentinel null-ish date
+    return null as Date;
+  }
 }
 function fmtLocalDate(d: string, locale?: string) {
   const dt = ensureDate(d);
-  if (!dt) return d;
+  if (!dt || isNaN(dt.getTime())) return d;
   return dt.toLocaleDateString(locale, { year: "numeric", month: "short", day: "2-digit" });
 }
 function renderItemsT(
@@ -104,6 +109,15 @@ function renderHeadline(
   return r.headline;
 }
 
+/** Type guard to avoid `any` casts when checking for aborts */
+function isAbortError(e: unknown): boolean {
+  if (typeof e === "object" && e !== null && "name" in e) {
+    const n = (e as { name?: unknown }).name;
+    return n === "AbortError";
+  }
+  return false;
+}
+
 /* ---------- Card ---------- */
 function GoalCard({ r }: { r: BackendResult }) {
   const { t, locale } = useI18n();
@@ -124,9 +138,7 @@ function GoalCard({ r }: { r: BackendResult }) {
     <div className="rounded-2xl border border-white/10 bg-black/15 p-4">
       <div className="mb-1 flex items-center justify-between">
         <div className="text-white font-semibold capitalize">
-          {t(`sd.goals.${r.goal}`) !== `sd.goals.${r.goal}`
-            ? t(`sd.goals.${r.goal}`)
-            : r.goal.replace(/_/g, " ")}
+          {t(`sd.goals.${r.goal}`) !== `sd.goals.${r.goal}` ? t(`sd.goals.${r.goal}`) : r.goal.replace(/_/g, " ")}
         </div>
       </div>
 
@@ -181,7 +193,9 @@ function GoalCard({ r }: { r: BackendResult }) {
         <div className="mb-3">
           <div className="mb-1 text-sm font-medium text-amber-300">{t("sd.caution.title")}</div>
           <ul className="list-disc pl-5 space-y-1 text-sm text-amber-100">
-            {cautions.map((c, i) => <li key={`c-${i}`}>{c}</li>)}
+            {cautions.map((c, i) => (
+              <li key={`c-${i}`}>{c}</li>
+            ))}
             {cautionDays.length > 0 && (
               <li key="cdays">
                 {t("sd.caution.days")}: {cautionDays.map((d) => fmtLocalDate(d, locale)).join(", ")}
@@ -195,7 +209,9 @@ function GoalCard({ r }: { r: BackendResult }) {
         <div>
           <div className="mb-1 text-sm font-medium text-slate-300">{t("sd.why.title")}</div>
           <ul className="list-disc pl-5 space-y-1 text-sm text-slate-200">
-            {explain.map((s, i) => <li key={`e-${i}`}>{s}</li>)}
+            {explain.map((s, i) => (
+              <li key={`e-${i}`}>{s}</li>
+            ))}
           </ul>
         </div>
       )}
@@ -207,13 +223,12 @@ function GoalCard({ r }: { r: BackendResult }) {
 export default function ShubhDinClient() {
   const { t, locale } = useI18n();
   const tOr = useCallback(
-      (key: string, fallback: string, vars?: KeyArgs) => {
-        const out = t(key, vars);
-        return out === key ? fallback : out;
-      },
-      [t]
-    );
-
+    (key: string, fallback: string, vars?: KeyArgs) => {
+      const out = t(key, vars);
+      return out === key ? fallback : out;
+    },
+    [t]
+  );
 
   // params loaded once from Create
   const [params, setParams] = useState<{
@@ -227,6 +242,7 @@ export default function ShubhDinClient() {
   const [resp, setResp] = useState<BackendResponse | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
   // 1) Read saved Create inputs (single run — avoids update depth loops)
   useEffect(() => {
@@ -234,29 +250,35 @@ export default function ShubhDinClient() {
       const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
       if (!raw) return;
       const saved = JSON.parse(raw) as {
-        dob?: string; tob?: string; tzId?: TzId; lat?: string; lon?: string;
+        dob?: string;
+        tob?: string;
+        tzId?: TzId;
+        lat?: string | number;
+        lon?: string | number;
       };
-      if (saved?.dob && saved?.tob && saved?.tzId && saved?.lat && saved?.lon) {
+      if (saved?.dob && saved?.tob && saved?.tzId && saved?.lat != null && saved?.lon != null) {
         const datetime = localCivilToUtcIso(saved.dob, saved.tob, saved.tzId);
-        const lat = parseFloat(saved.lat);
-        const lon = parseFloat(saved.lon);
+        const lat = parseFloat(String(saved.lat));
+        const lon = parseFloat(String(saved.lon));
         if (Number.isFinite(lat) && Number.isFinite(lon)) {
           setParams({ datetime, lat, lon, tzId: saved.tzId });
         }
       }
-    } catch { /* ignore */ }
+    } catch (e) {
+      console.warn("[ShubhDinClient] failed to parse saved state:", e);
+    }
   }, []);
 
-  // 2) Fetch once params are known
-  useEffect(() => {
-    if (!params) return;
+  const doFetch = useCallback(
+    async (p: { datetime: string; lat: number; lon: number; tzId: TzId }) => {
+      const { datetime, lat, lon, tzId } = p;
+      const tz_offset_hours = TZ_HOURS[tzId];
+      const horizon_months = 24;
 
-    const { datetime, lat, lon, tzId } = params;
-    const tz_offset_hours = TZ_HOURS[tzId];
-    const horizon_months = 24;
+      fetchAbortRef.current?.abort();
+      const controller = new AbortController();
+      fetchAbortRef.current = controller;
 
-    let abort = false;
-    (async () => {
       try {
         setLoading(true);
         setErr(null);
@@ -273,53 +295,92 @@ export default function ShubhDinClient() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
+          signal: controller.signal,
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const json = (await res.json()) as BackendResponse;
-        if (!abort) setResp(json);
-      } catch (e: unknown) {
-        if (!abort) setErr(e instanceof Error ? e.message : "Failed to load");
-      } finally {
-        if (!abort) setLoading(false);
-      }
-    })();
 
-    return () => { abort = true; };
-  }, [params]);
+        if (!res.ok) {
+          const msg = `HTTP ${res.status}`;
+          console.error("[/api/shubhdin] fetch failed:", msg);
+          throw new Error(msg);
+        }
+
+        const json = (await res.json()) as BackendResponse;
+        setResp(json);
+      } catch (e: unknown) {
+        if (isAbortError(e)) return;
+        const msg = e instanceof Error ? e.message : "Failed to load";
+        console.error("[/shubhdin] error:", e);
+        setErr(msg);
+        setResp(null);
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  // 2) Fetch once params are known (and on retry)
+  useEffect(() => {
+    if (!params) return;
+    void doFetch(params);
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, [params, doFetch]);
 
   const results = useMemo(() => resp?.results ?? [], [resp]);
+
+  const handleRetry = useCallback(() => {
+    if (params) void doFetch(params);
+  }, [params, doFetch]);
 
   if (!params) {
     return (
       <div className="text-slate-300">
         {tOr(
-          "sd.fill_create_first",
+          "sd.prompt_fill_create",
           "Please fill the Create tab first so we can read your lat/lon/tz from the saved state."
         )}
-
       </div>
     );
   }
 
   // Only the table — no page-level title/toolbar to avoid duplicates
   return (
-    <section className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5">
+    <section
+      className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-5"
+      aria-busy={loading ? "true" : "false"}
+    >
       {loading && (
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs text-white/60">loading…</span>
         </div>
       )}
 
-      {err && <div className="text-sm text-red-300">Error: {err}</div>}
+      {err && (
+        <div className="text-sm text-red-300">
+          <div>Error: {err}</div>
+          <button
+            onClick={handleRetry}
+            className="mt-2 rounded-md border border-white/15 bg-white/10 px-3 py-1 text-white/90 hover:bg-white/20"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {!err && resp && (
         <div className="space-y-4">
           {results.length > 0 ? (
             <div className="grid md:grid-cols-2 gap-4">
-              {results.map((r) => <GoalCard key={r.goal} r={r} />)}
+              {results.map((r) => (
+                <GoalCard key={r.goal} r={r} />
+              ))}
             </div>
           ) : (
-            <div className="text-sm text-white/80">{/* no windows */}</div>
+            <div className="text-sm text-white/80">
+              {tOr("sd.empty.goal", "No notable windows for this goal.")}
+            </div>
           )}
 
           <div className="pt-2 text-xs text-white/50">

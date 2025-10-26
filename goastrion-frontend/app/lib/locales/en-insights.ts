@@ -250,23 +250,37 @@ const enInsights = {
 
   sd: {
     title: "ShubhDin — Smart Windows",
+
+    // NEW: page-level heading & subtitle for /shubhdin
+    page: {
+      title: "ShubhDin — Next 2 yrs",
+      sub: "Pick the right month, not just a date — data-backed Vedic windows for promotions, job change, property, marriage and more.",
+    },
+
     join: { comma: ", " },
     view: { label: "View", aria: "Select view mode", all: "All goals", single: "Single goal" },
     goal: { aria: "Select goal" },
+
     goals: {
       job_change: "Job change",
       promotion: "Promotion",
       business_start: "Business start",
-      business_expand: "Business expand",
+      business_expand: "Business expansion",
       startup: "Startup",
       property: "Property / Home",
       marriage: "Marriage",
       new_relationship: "New relationship",
     },
+
+    // keep existing key…
     prompt_fill_create: "Please fill the Create tab first so we can read your lat/lon/tz from the saved state.",
+    // …and alias some components use
+    fill_create_first: "Please fill the Create tab first so we can read your lat/lon/tz from the saved state.",
+
     windows: { title: "Best windows" },
     topday: { title: "Top day" },
     why: { title: "Why these days?" },
+
     caution: {
       title: "Caution",
       days: "Caution day(s)",
@@ -275,11 +289,18 @@ const enInsights = {
       skip_rahukaal_gulika: "Skip Rahu/Gulika windows",
       no_big_txn: "Please don't finalize deals or make large transactions on: {dates}{more}.",
     },
+
     score: { label: "Score {score}" },
+
     headline: { prefix: "Best windows: ", span: "{start} - {end} ({days}d)", best_windows: "{spans}" },
+
     aspect: { tag: "{p1} {name} -> {p2}" },
-    generated_at: "Generated {dt} • TZ: {tz}",
+
+    // Works for both callers: some pass {dt}, others pass {ts}
+    generated_at: "Generated {dt}{ts} • TZ: {tz}",
+
     empty: { goal: "No notable windows for this goal." },
+
     explain: {
       career_houses: "Transit + dasha support career houses (10th/6th).",
       leverage_date: "Leverage appraisal talks near {date}.",
@@ -317,12 +338,10 @@ const enInsights = {
     nextADShort: "Next AD",
 
     summary: {
-      // readable one-liners
       readable: "You're in {md} Mahadasha, {ad} Antardasha.",
       prevReadable: "Last AD in {md} Mahadasha: {ad}.",
       nextReadable: "First AD in {md} Mahadasha will be: {ad}.",
 
-      // labels
       themesLabel: "Themes",
       adviceLabel: "Advice",
       goodFor: "Good for",
