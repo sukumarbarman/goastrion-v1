@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, type SVGProps } from "react";
+import { useEffect, useState, type SVGProps } from "react";
 import { motion } from "framer-motion";
 import { useI18n } from "@/app/lib/i18n";
 import { deriveDailyPayloadFromActive } from "@/app/lib/chartStore";
@@ -27,28 +27,70 @@ function ArrowRightIcon(props: SVGProps<SVGSVGElement>) {
   );
 }
 
+type BirthPayload = NonNullable<ReturnType<typeof deriveDailyPayloadFromActive>>;
+
 export default function DailyQuickView() {
   const { tOr } = useI18n();
 
-  // Decide whether to show the CTA card or the “add birth” prompt.
-  const birth = useMemo(
-    () => deriveDailyPayloadFromActive() || deriveDailyPayloadFromCreate(),
-    []
+  // undefined => before mount (SSR and first client render are identical)
+  const [birth, setBirth] = useState<BirthPayload | null | undefined>(undefined);
+
+  useEffect(() => {
+    // Read from client storage only after mount to avoid SSR/CSR mismatch
+    const b = deriveDailyPayloadFromActive() || deriveDailyPayloadFromCreate();
+    setBirth(b ?? null);
+  }, []);
+
+  // Shared, stable header (identical HTML on SSR and first client render)
+  const Header = (
+    <div className="flex items-center gap-2">
+      <span className="text-white font-semibold">
+        {tOr("profile.daily.title", "Know Your Day")}
+      </span>
+      <span className="text-[10px] uppercase tracking-wider rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-300">
+        {
+          // While hydrating (birth === undefined), render a fixed label so SSR == client-first-render
+          birth === undefined
+            ? tOr("common.personalized", "Personalized")
+            : birth
+            ? tOr("common.personalized", "Personalized")
+            : tOr("common.new", "New")
+        }
+      </span>
+    </div>
   );
 
+  // Use ONE background style in all states to avoid className diffs during hydration
+  const Background = (
+    <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(600px_200px_at_10%_-10%,rgba(34,211,238,0.18),transparent),radial-gradient(500px_160px_at_90%_120%,rgba(16,185,129,0.14),transparent)]" />
+  );
+
+  // Skeleton while hydrating — SSR == client-first-render
+  if (birth === undefined) {
+    return (
+      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5">
+        {Background}
+        <div className="relative">
+          {Header}
+          <div className="mt-2 grid grid-cols-3 gap-2 text-sm animate-pulse">
+            <div className="h-4 bg-white/10 rounded col-span-2" />
+            <div className="h-4 bg-white/10 rounded" />
+            <div className="h-4 bg-white/10 rounded w-2/3" />
+            <div className="h-4 bg-white/10 rounded w-1/2" />
+          </div>
+          <div className="mt-4 h-9 w-40 bg-white/10 rounded-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // If no saved birth details
   if (!birth) {
     return (
       <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5">
-        <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-cyan-500/10 via-emerald-400/5 to-transparent" />
+        {Background}
         <div className="relative">
-          <div className="flex items-center gap-2">
-            <span className="text-white font-semibold">
-              {tOr("profile.daily.title", "Know Your Day")}
-            </span>
-            <span className="text-[10px] uppercase tracking-wider rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-300">
-              {tOr("common.new", "New")}
-            </span>
-          </div>
+          {Header}
           <p className="mt-2 text-slate-300 text-sm leading-relaxed">
             {tOr("profile.daily.empty", "Add birth details to see your Daily.")}
           </p>
@@ -66,21 +108,13 @@ export default function DailyQuickView() {
     );
   }
 
-  // CTA-only card (no preview data here)
+  // Have details — CTA-only card
   return (
     <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5">
-      {/* Soft gradient glow */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(600px_200px_at_10%_-10%,rgba(34,211,238,0.18),transparent),radial-gradient(500px_160px_at_90%_120%,rgba(16,185,129,0.14),transparent)]" />
-
+      {Background}
       <div className="relative">
-        <div className="flex items-center gap-2">
-          <span className="text-white font-semibold">{"Know Your Day"}</span>
-          <span className="text-[10px] uppercase tracking-wider rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-300">
-            {tOr("common.personalized", "Personalized")}
-          </span>
-        </div>
+        {Header}
 
-        {/* Punchy copy */}
         <p className="mt-2 text-slate-200 text-sm leading-relaxed">
           <span aria-hidden>✨</span>{" "}
           <span className="opacity-90">
@@ -91,7 +125,6 @@ export default function DailyQuickView() {
           </span>
         </p>
 
-        {/* Micro benefits (chips) */}
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
           <span className="rounded-full bg-emerald-500/15 border border-emerald-400/40 px-3 py-1">
             ✅ {tOr("daily.best", "Best hours")}
@@ -104,9 +137,7 @@ export default function DailyQuickView() {
           </span>
         </div>
 
-        {/* CTAs */}
         <div className="mt-4 flex flex-wrap gap-2">
-          {/* Primary: animated click cue */}
           <Link
             href="/daily"
             onClick={() =>
@@ -130,7 +161,6 @@ export default function DailyQuickView() {
             </motion.span>
           </Link>
 
-          {/* Secondary: subtle arrow nudge on hover */}
           <Link
             href="/daily?date=tomorrow"
             onClick={() =>

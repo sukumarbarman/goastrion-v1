@@ -2,6 +2,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/app/lib/i18n";
 import { getActive, type SavedChart } from "@/app/lib/chartStore";
 import { loadCreateState, type PersistedCreateState } from "@/app/lib/birthState";
@@ -16,14 +17,55 @@ function pickBirth(): BirthSource | null {
 
 export default function BirthDetailsCard() {
   const { tOr } = useI18n();
-  const b = pickBirth();
 
-  if (!b) {
+  // undefined = not mounted yet (SSR + first client pass use the same markup)
+  const [birth, setBirth] = useState<BirthSource | null | undefined>(undefined);
+
+  useEffect(() => {
+    // Read from client storage only after mount to avoid SSR/CSR mismatch
+    setBirth(pickBirth());
+  }, []);
+
+  const Header = (
+    <div className="flex items-center justify-between mb-2">
+      <div className="text-white font-semibold">
+        {tOr("profile.birth.title", "Birth details")}
+      </div>
+
+      {/* Keep the right side stable during hydration:
+         - while birth === undefined (SSR/first client render), render a placeholder
+         - once mounted, show the real action */}
+      {birth ? (
+        <Link href="/create" className="text-sm text-cyan-300 hover:underline">
+          {tOr("profile.account.actions.editBirth", "Edit birth details")}
+        </Link>
+      ) : (
+        <span className="text-sm text-transparent select-none">Edit</span>
+      )}
+    </div>
+  );
+
+  // Skeleton while hydrating (SSR markup == client first render)
+  if (birth === undefined) {
     return (
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div className="text-white font-semibold mb-2">
-          {tOr("profile.birth.title", "Birth details")}
+        {Header}
+        <div className="mt-3 grid md:grid-cols-2 gap-x-6 gap-y-2 text-sm animate-pulse">
+          <div className="h-4 bg-white/10 rounded w-1/2" />
+          <div className="h-4 bg-white/10 rounded w-2/3" />
+          <div className="h-4 bg-white/10 rounded w-1/3" />
+          <div className="h-4 bg-white/10 rounded w-1/2" />
+          <div className="h-4 bg-white/10 rounded w-1/4" />
         </div>
+      </div>
+    );
+  }
+
+  // No saved birth details
+  if (!birth) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        {Header}
         <p className="text-sm text-slate-400 mb-3">
           {tOr("profile.birth.status.missing", "Birth details missing")}
         </p>
@@ -37,22 +79,16 @@ export default function BirthDetailsCard() {
     );
   }
 
-  const name = b.name ?? "—";
-  const tzId = b.tzId ?? "IST";
-  const dob = b.dob ?? "—";
-  const tob = b.tob ?? "—";
-  const place = b.place ?? "—";
+  // Have details
+  const name = birth.name ?? "—";
+  const tzId = birth.tzId ?? "IST";
+  const dob = birth.dob ?? "—";
+  const tob = birth.tob ?? "—";
+  const place = birth.place ?? "—";
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <div className="flex items-center justify-between">
-        <div className="text-white font-semibold">
-          {tOr("profile.birth.title", "Birth details")}
-        </div>
-        <Link href="/create" className="text-sm text-cyan-300 hover:underline">
-          {tOr("profile.account.actions.editBirth", "Edit birth details")}
-        </Link>
-      </div>
+      {Header}
       <div className="mt-3 grid md:grid-cols-2 gap-x-6 gap-y-2 text-sm">
         <div>
           <span className="text-slate-400">

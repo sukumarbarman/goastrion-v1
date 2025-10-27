@@ -90,6 +90,21 @@ function readUser(): AuthUser | null {
   }
 }
 
+// ---- NEW: lightweight auth flag cookie so middleware/SSR can detect login
+function setAuthFlagCookie(on: boolean, days = 14) {
+  if (typeof document === "undefined") return;
+  const base = "Path=/; SameSite=Lax";
+  const isHttps =
+    typeof window !== "undefined" && window.location?.protocol === "https:";
+  const secure = isHttps ? "; Secure" : "";
+  if (on) {
+    const maxAge = `; Max-Age=${60 * 60 * 24 * days}`;
+    document.cookie = `ga_auth=1; ${base}${maxAge}${secure}`;
+  } else {
+    document.cookie = `ga_auth=; ${base}; Max-Age=0${secure}`;
+  }
+}
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -102,6 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRefreshToken(null);
     writeTokens(null, null);
     writeUser(null);
+    setAuthFlagCookie(false); // NEW
   }, []);
 
   const doRefresh = useCallback(
@@ -118,6 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAccessToken(newAccess);
         setRefreshToken(newRefresh);
         writeTokens(newAccess, newRefresh);
+        setAuthFlagCookie(true); // NEW
         return newAccess;
       } catch {
         clearAuth();
@@ -141,12 +158,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const me = await apiGet<AuthUser>(AUTH_ENDPOINTS.me, access);
           setUser(me);
           writeUser(me);
+          setAuthFlagCookie(true); // NEW
         } else if (refresh) {
           const newAccess = await doRefresh(refresh);
           if (newAccess) {
             const me = await apiGet<AuthUser>(AUTH_ENDPOINTS.me, newAccess);
             setUser(me);
             writeUser(me);
+            setAuthFlagCookie(true); // NEW
           } else {
             clearAuth();
           }
@@ -159,6 +178,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const me = await apiGet<AuthUser>(AUTH_ENDPOINTS.me, newAccess);
             setUser(me);
             writeUser(me);
+            setAuthFlagCookie(true); // NEW
           } catch {
             clearAuth();
           }
@@ -196,6 +216,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRefreshToken(p.refresh || null);
       writeUser(p.user);
       writeTokens(p.access, p.refresh || null);
+      setAuthFlagCookie(true); // NEW
     };
 
     return {

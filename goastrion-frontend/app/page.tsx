@@ -1,8 +1,6 @@
-// =========================
-// app/page.tsx — Home (Clean version, uses ClientShell wrapper)
-// =========================
-
-"use client";
+// app/page.tsx — Home (SSR guard, Next.js async cookies)
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import Hero from "./components/Hero";
 import Steps from "./components/Steps";
@@ -12,13 +10,23 @@ import ShubhDinTeaser from "./components/ShubhDinTeaser";
 import DomainsTeaser from "./components/DomainsTeaser";
 import StructuredData from "./components/StructuredData";
 
-export default function HomePage() {
+// Optional: ensure no static caching if you want
+// export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const c = await cookies(); // <- await is required in Next 15+
+
+  const authed =
+    c.get("ga_auth")?.value === "1" ||
+    c.has("access") ||
+    c.has("refresh") ||
+    c.has("sessionid");
+
+  if (authed) redirect("/profile");
+
   return (
     <>
-      {/* --- SEO / Schema --- */}
       <StructuredData />
-
-      {/* --- Main Hero & Homepage Sections --- */}
       <Hero />
       <ShubhDinTeaser />
       <Steps />
