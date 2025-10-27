@@ -13,8 +13,18 @@ import { log } from "@/app/lib/history";
 function ClickIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 12l6 6m-6-6v8m0-8l-2.5 2.5M7 3l1.5 3M3 7l3 1.5M17 3l-1.5 3M21 7l-3 1.5" />
-      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M9.5 10.5L12 12" />
+      <path
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 12l6 6m-6-6v8m0-8l-2.5 2.5M7 3l1.5 3M3 7l3 1.5M17 3l-1.5 3M21 7l-3 1.5"
+      />
+      <path
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M9.5 10.5L12 12"
+      />
     </svg>
   );
 }
@@ -22,7 +32,12 @@ function ClickIcon(props: SVGProps<SVGSVGElement>) {
 function ArrowRightIcon(props: SVGProps<SVGSVGElement>) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" {...props}>
-      <path strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M5 12h14M13 5l7 7-7 7" />
+      <path
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5 12h14M13 5l7 7-7 7"
+      />
     </svg>
   );
 }
@@ -43,20 +58,21 @@ export default function DailyQuickView() {
 
   // Shared, stable header (identical HTML on SSR and first client render)
   const Header = (
-    <div className="flex items-center gap-2">
-      <span className="text-white font-semibold">
-        {tOr("profile.daily.title", "Know Your Day")}
-      </span>
-      <span className="text-[10px] uppercase tracking-wider rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-slate-300">
-        {
-          // While hydrating (birth === undefined), render a fixed label so SSR == client-first-render
-          birth === undefined
-            ? tOr("common.personalized", "Personalized")
-            : birth
-            ? tOr("common.personalized", "Personalized")
-            : tOr("common.new", "New")
-        }
-      </span>
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <h3 className="text-sm font-semibold text-white tracking-wide">
+          {tOr("profile.daily.title", "Daily quick view")}
+        </h3>
+        <p className="text-xs text-slate-400">
+          {tOr("profile.daily.subtitle", "Personalized windows from your saved birth details")}
+        </p>
+      </div>
+      <Link
+        href="/create"
+        className="shrink-0 inline-flex items-center rounded-full border border-white/10 px-3 py-1.5 text-xs text-slate-200 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/20"
+      >
+        {tOr("profile.account.actions.editBirth", "Edit birth")}
+      </Link>
     </div>
   );
 
@@ -68,17 +84,21 @@ export default function DailyQuickView() {
   // Skeleton while hydrating — SSR == client-first-render
   if (birth === undefined) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5">
+      <div
+        role="region"
+        aria-label={tOr("profile.daily.region", "Daily quick view")}
+        className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5 md:p-6"
+      >
         {Background}
         <div className="relative">
           {Header}
-          <div className="mt-2 grid grid-cols-3 gap-2 text-sm animate-pulse">
+          <div className="mt-4 grid grid-cols-3 gap-2 text-sm animate-pulse">
             <div className="h-4 bg-white/10 rounded col-span-2" />
             <div className="h-4 bg-white/10 rounded" />
+            <div className="h-4 bg-white/10 rounded w-3/4 col-span-2" />
             <div className="h-4 bg-white/10 rounded w-2/3" />
-            <div className="h-4 bg-white/10 rounded w-1/2" />
           </div>
-          <div className="mt-4 h-9 w-40 bg-white/10 rounded-full" />
+          <div className="mt-5 h-9 w-40 bg-white/10 rounded-full" />
         </div>
       </div>
     );
@@ -87,17 +107,21 @@ export default function DailyQuickView() {
   // If no saved birth details
   if (!birth) {
     return (
-      <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5">
+      <div
+        role="region"
+        aria-label={tOr("profile.daily.region", "Daily quick view")}
+        className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5 md:p-6"
+      >
         {Background}
         <div className="relative">
           {Header}
-          <p className="mt-2 text-slate-300 text-sm leading-relaxed">
+          <p className="mt-3 text-slate-300 text-sm leading-relaxed">
             {tOr("profile.daily.empty", "Add birth details to see your Daily.")}
           </p>
-          <div className="mt-3">
+          <div className="mt-4">
             <Link
               href="/create"
-              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-slate-950 font-semibold hover:bg-cyan-400"
+              className="inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-slate-950 font-semibold hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
             >
               {tOr("profile.account.actions.editBirth", "Add birth details")}
               <span aria-hidden>↗</span>
@@ -108,36 +132,19 @@ export default function DailyQuickView() {
     );
   }
 
-  // Have details — CTA-only card
+  // Have details — CTA + badges
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5">
+    <div
+      role="region"
+      aria-label={tOr("profile.daily.region", "Daily quick view")}
+      className="relative overflow-hidden rounded-2xl border border-white/10 bg-black/20 p-5 md:p-6"
+    >
       {Background}
       <div className="relative">
         {Header}
 
-        <p className="mt-2 text-slate-200 text-sm leading-relaxed">
-          <span aria-hidden>✨</span>{" "}
-          <span className="opacity-90">
-            Unlock your <span className="text-white font-medium">best hours</span>, the
-            <span className="text-white font-medium"> go-bold moments</span>, and
-            <span className="text-white font-medium"> caution windows</span> for today.
-            Tap below for your personal timing map.
-          </span>
-        </p>
-
-        <div className="mt-3 flex flex-wrap gap-2 text-xs">
-          <span className="rounded-full bg-emerald-500/15 border border-emerald-400/40 px-3 py-1">
-            ✅ {tOr("daily.best", "Best hours")}
-          </span>
-          <span className="rounded-full bg-cyan-500/15 border border-cyan-400/40 px-3 py-1">
-            ⚡ {tOr("daily.goBold", "Go-bold moments")}
-          </span>
-          <span className="rounded-full bg-rose-500/15 border border-rose-400/40 px-3 py-1">
-            ⚠️ {tOr("daily.caution", "Caution windows")}
-          </span>
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-2">
+        {/* CTA row */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
           <Link
             href="/daily"
             onClick={() =>
@@ -149,7 +156,7 @@ export default function DailyQuickView() {
             }
             className="group inline-flex items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-slate-950 font-semibold hover:bg-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
           >
-            {tOr("profile.daily.cta.open", "Know Your Day")}
+            {tOr("profile.daily.cta.open", "Know today")}
             <motion.span
               aria-hidden
               className="inline-flex"
@@ -173,8 +180,24 @@ export default function DailyQuickView() {
             className="group inline-flex items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-slate-200 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-white/20"
           >
             {tOr("profile.daily.cta.tomorrow", "Plan tomorrow")}
-            <ArrowRightIcon aria-hidden className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            <ArrowRightIcon
+              aria-hidden
+              className="h-4 w-4 transition-transform group-hover:translate-x-1"
+            />
           </Link>
+        </div>
+
+        {/* Badge row */}
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          <span className="rounded-full bg-emerald-500/15 border border-emerald-400/40 px-3 py-1 text-emerald-200">
+            ✅ {tOr("daily.best", "Best hours")}
+          </span>
+          <span className="rounded-full bg-cyan-500/15 border border-cyan-400/40 px-3 py-1 text-cyan-200">
+            ⚡ {tOr("daily.goBold", "Go-bold moments")}
+          </span>
+          <span className="rounded-full bg-rose-500/15 border border-rose-400/40 px-3 py-1 text-rose-200">
+            ⚠️ {tOr("daily.caution", "Caution windows")}
+          </span>
         </div>
       </div>
     </div>

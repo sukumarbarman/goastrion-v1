@@ -89,7 +89,7 @@ export default function ChartSummaryPreview() {
           >
             {tOr(
               "profile.results.preview.actions.openCreate",
-              "Open in Create"
+              "Open Details"
             )}
           </Link>
         </div>
@@ -141,7 +141,7 @@ export default function ChartSummaryPreview() {
         >
           {tOr(
             "profile.results.preview.actions.openCreate",
-            "Open in Create"
+            "Open Details"
           )}
         </Link>
         <button
