@@ -1,3 +1,4 @@
+//goastrion-frontend/app/components/Dashboard.tsx
 import Container from "./Container";
 
 export default function Dashboard() {

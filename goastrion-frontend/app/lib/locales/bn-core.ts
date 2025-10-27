@@ -19,6 +19,13 @@ const bnCore = {
     shubhdin: "আগামী ২ বছর",
     create: "তৈরি করুন",
   },
+    footer: {
+    navLabel: "ফুটার লিংক",
+    guides: "গাইড",
+    about: "আমাদের সম্পর্কে",
+    contact: "যোগাযোগ",
+    terms: "শর্তাবলী",
+  },
 
   contact: {
     thanks: "ধন্যবাদ! আমরা খুব শীঘ্রই আপনার সাথে যোগাযোগ করবো।",

@@ -19,6 +19,14 @@ const enCore = {
     shubhdin: "Next 2 yrs",
     create: "Create",
    },
+   footer: {
+      guides: "Guides",
+      about: "About",
+      contact: "Contact",
+      terms: "Terms",
+    },
+
+
     contact: {
     thanks: "Thanks! We'll get back to you soon.",
   },

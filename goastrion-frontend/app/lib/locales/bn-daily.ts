@@ -72,7 +72,7 @@ const bnDaily: DailyLocale = {
         copyPlan: "প্ল্যান কপি করুন",
       },
       debug: {
-        title: "কেন (ডিবাগ)",
+        title: "কেন",
         hide: "লুকান",
         show: "দেখান",
         tspmsp: "সর্বোচ্চ সমর্থন (tsp) / সর্বোচ্চ চাপ (msp)",

@@ -78,7 +78,7 @@ const enDaily = {
       },
 
       debug: {
-        title: "Why (debug)",
+        title: "Why",
         hide: "Hide",
         show: "Show",
         tspmsp: "Top Support (tsp) / Top Stress (msp)",
