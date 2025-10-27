@@ -127,6 +127,14 @@ function degToIdx(deg: string) {
   if (!Number.isFinite(n)) return -1;
   return Math.floor((((n % 360) + 360) % 360) / 30);
 }
+function formatDegMod30(val: string): string {
+  const num = parseFloat(String(val).replace(/[^\d.\-]/g, ""));
+  if (!Number.isFinite(num)) return val; // fall back if not numeric
+  const norm = ((num % 360) + 360) % 360; // [0, 360)
+  const rem = norm % 30;                  // in-sign degrees
+  return `${rem.toFixed(2)}°`;
+}
+
 function mapSignName(val: string, locale: string) {
   const { zodiac } = getLocaleArrays(locale);
   const n = Number(val);
@@ -189,9 +197,9 @@ function buildSummaryEntries(raw: Record<string, string>, locale: string, t: (k:
   }
 
   if (moonNakRaw) entries.push({ id: "moon_nakshatra", label: labelMap.moon_nakshatra, value: mapNakName(moonNakRaw, locale) });
-  if (lagnaDegRaw) entries.push({ id: "lagna_deg", label: labelMap.lagna_deg, value: lagnaDegRaw });
-  if (sunDegRaw)   entries.push({ id: "sun_deg",   label: labelMap.sun_deg,   value: sunDegRaw   });
-  if (moonDegRaw)  entries.push({ id: "moon_deg",  label: labelMap.moon_deg,  value: moonDegRaw  });
+    if (lagnaDegRaw) entries.push({ id: "lagna_deg", label: labelMap.lagna_deg, value: formatDegMod30(lagnaDegRaw) });
+    if (sunDegRaw)   entries.push({ id: "sun_deg",   label: labelMap.sun_deg,   value: formatDegMod30(sunDegRaw)   });
+    if (moonDegRaw)  entries.push({ id: "moon_deg",  label: labelMap.moon_deg,  value: formatDegMod30(moonDegRaw)  });
 
   return entries;
 }
