@@ -55,28 +55,17 @@ function readTokens() {
 
 function writeTokens(access: string | null, refresh: string | null) {
   if (typeof window === "undefined") return;
+  if (access) localStorage.setItem(LS_KEYS.access, access);
+  else localStorage.removeItem(LS_KEYS.access);
 
-  if (access) {
-    localStorage.setItem(LS_KEYS.access, access);
-  } else {
-    localStorage.removeItem(LS_KEYS.access);
-  }
-
-  if (refresh) {
-    localStorage.setItem(LS_KEYS.refresh, refresh);
-  } else {
-    localStorage.removeItem(LS_KEYS.refresh);
-  }
+  if (refresh) localStorage.setItem(LS_KEYS.refresh, refresh);
+  else localStorage.removeItem(LS_KEYS.refresh);
 }
 
 function writeUser(u: AuthUser | null) {
   if (typeof window === "undefined") return;
-
-  if (u) {
-    localStorage.setItem(LS_KEYS.user, JSON.stringify(u));
-  } else {
-    localStorage.removeItem(LS_KEYS.user);
-  }
+  if (u) localStorage.setItem(LS_KEYS.user, JSON.stringify(u));
+  else localStorage.removeItem(LS_KEYS.user);
 }
 
 function readUser(): AuthUser | null {
@@ -90,19 +79,30 @@ function readUser(): AuthUser | null {
   }
 }
 
-// ---- NEW: lightweight auth flag cookie so middleware/SSR can detect login
+/* ---------- Auth-flag cookie for middleware/SSR to detect login ---------- */
+function cookieBaseAttrs(): string {
+  const attrs = ["Path=/", "SameSite=Lax"];
+  if (typeof window !== "undefined" && window.location.protocol === "https:") {
+    attrs.push("Secure");
+  }
+  // No Domain attribute → cookie stays on current host (safer; works for goastrion.com).
+  return attrs.join("; ");
+}
+
 function setAuthFlagCookie(on: boolean, days = 14) {
   if (typeof document === "undefined") return;
-  const base = "Path=/; SameSite=Lax";
-  const isHttps =
-    typeof window !== "undefined" && window.location?.protocol === "https:";
-  const secure = isHttps ? "; Secure" : "";
+  const base = cookieBaseAttrs();
   if (on) {
-    const maxAge = `; Max-Age=${60 * 60 * 24 * days}`;
-    document.cookie = `ga_auth=1; ${base}${maxAge}${secure}`;
+    const maxAge = 60 * 60 * 24 * days;
+    document.cookie = `ga_auth=1; ${base}; Max-Age=${maxAge}`;
   } else {
-    document.cookie = `ga_auth=; ${base}; Max-Age=0${secure}`;
+    document.cookie = `ga_auth=; ${base}; Max-Age=0`;
   }
+}
+
+function readAuthFlagFromCookies(): boolean {
+  if (typeof document === "undefined") return false;
+  return document.cookie.split("; ").some((c) => c.startsWith("ga_auth=1"));
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
@@ -117,14 +117,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRefreshToken(null);
     writeTokens(null, null);
     writeUser(null);
-    setAuthFlagCookie(false); // NEW
+    setAuthFlagCookie(false);
   }, []);
 
   const doRefresh = useCallback(
     async (refresh: string | null): Promise<string | null> => {
       if (!refresh) return null;
       try {
-        // NOTE: provide the body type explicitly
         const data = await apiPost<{ access: string; refresh?: string }, { refresh: string }>(
           AUTH_ENDPOINTS.refresh,
           { refresh }
@@ -134,7 +133,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setAccessToken(newAccess);
         setRefreshToken(newRefresh);
         writeTokens(newAccess, newRefresh);
-        setAuthFlagCookie(true); // NEW
+        setAuthFlagCookie(true);
         return newAccess;
       } catch {
         clearAuth();
@@ -158,17 +157,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           const me = await apiGet<AuthUser>(AUTH_ENDPOINTS.me, access);
           setUser(me);
           writeUser(me);
-          setAuthFlagCookie(true); // NEW
+          setAuthFlagCookie(true);
         } else if (refresh) {
           const newAccess = await doRefresh(refresh);
           if (newAccess) {
             const me = await apiGet<AuthUser>(AUTH_ENDPOINTS.me, newAccess);
             setUser(me);
             writeUser(me);
-            setAuthFlagCookie(true); // NEW
+            setAuthFlagCookie(true);
           } else {
             clearAuth();
           }
+        } else {
+          clearAuth();
         }
       } catch {
         // try refresh once if /me failed
@@ -178,7 +179,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const me = await apiGet<AuthUser>(AUTH_ENDPOINTS.me, newAccess);
             setUser(me);
             writeUser(me);
-            setAuthFlagCookie(true); // NEW
+            setAuthFlagCookie(true);
           } catch {
             clearAuth();
           }
@@ -192,11 +193,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // bootstrap once
 
+  // Keep ga_auth in sync across tabs (logout/login elsewhere)
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || ![LS_KEYS.access, LS_KEYS.refresh, LS_KEYS.user].includes(e.key)) return;
+      const has =
+        !!localStorage.getItem(LS_KEYS.access) || !!localStorage.getItem(LS_KEYS.refresh);
+      setAuthFlagCookie(has);
+    };
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", onStorage);
+      return () => window.removeEventListener("storage", onStorage);
+    }
+  }, []);
+
   const value = useMemo<AuthContextType>(() => {
     const logout = async () => {
       try {
         if (accessToken) {
-          // Provide an explicit empty body type for consistency
           await apiPost<unknown, Record<string, never>>(AUTH_ENDPOINTS.logout, {}, accessToken);
         }
       } catch {
@@ -216,7 +230,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRefreshToken(p.refresh || null);
       writeUser(p.user);
       writeTokens(p.access, p.refresh || null);
-      setAuthFlagCookie(true); // NEW
+      setAuthFlagCookie(true);
     };
 
     return {
