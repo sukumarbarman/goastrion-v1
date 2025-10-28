@@ -36,20 +36,15 @@ async function fetchArticle(slug: string): Promise<Article | null> {
   return null;
 }
 
-// ---- Static params (optional, if you pre-render)
-// export async function generateStaticParams() {
-//   const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/articles`);
-//   const list = (await res.json()) as Array<{ slug: string }>;
-//   return list.map(({ slug }) => ({ slug }));
-// }
-
 // ---- SEO
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  // NOTE: Next 15 may type `params` as a Promise — await it:
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const article = await fetchArticle(params.slug);
+  const { slug } = await params;
+  const article = await fetchArticle(slug);
   if (!article) return {};
 
   const title = article.title ?? "Article";
@@ -89,9 +84,11 @@ export async function generateMetadata({
 export default async function ArticlePage({
   params,
 }: {
-  params: { slug: string };
+  // NOTE: same here — await the params
+  params: Promise<{ slug: string }>;
 }) {
-  const article = await fetchArticle(params.slug);
+  const { slug } = await params;
+  const article = await fetchArticle(slug);
   if (!article) notFound();
 
   return (
