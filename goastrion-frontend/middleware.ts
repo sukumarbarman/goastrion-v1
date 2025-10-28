@@ -13,7 +13,7 @@ export function middleware(req: NextRequest) {
 
   if (authed) {
     const url = req.nextUrl.clone();
-    url.pathname = "/profile";
+    url.pathname = "/daily";   // 🔁 changed from "/profile" → "/daily"
     return NextResponse.redirect(url);
   }
   return NextResponse.next();
