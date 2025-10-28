@@ -1,4 +1,5 @@
 // app/context/AuthContext.tsx
+//new
 "use client";
 
 import {
@@ -85,7 +86,6 @@ function cookieBaseAttrs(): string {
   if (typeof window !== "undefined" && window.location.protocol === "https:") {
     attrs.push("Secure");
   }
-  // No Domain attribute → cookie stays on current host (safer; works for goastrion.com).
   return attrs.join("; ");
 }
 
@@ -98,11 +98,6 @@ function setAuthFlagCookie(on: boolean, days = 14) {
   } else {
     document.cookie = `ga_auth=; ${base}; Max-Age=0`;
   }
-}
-
-function readAuthFlagFromCookies(): boolean {
-  if (typeof document === "undefined") return false;
-  return document.cookie.split("; ").some((c) => c.startsWith("ga_auth=1"));
 }
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
