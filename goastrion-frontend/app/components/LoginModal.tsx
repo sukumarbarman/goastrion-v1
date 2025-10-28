@@ -135,10 +135,12 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
         }
       }
 
-      login({ user, access, refresh });
-      window.dispatchEvent(new Event("auth:logged_in"));
-      router.replace("/profile");
-      onClose();
+    login({ user, access, refresh });
+    window.dispatchEvent(new Event("auth:logged_in"));
+    router.replace("/daily");   // changed from /profile → /daily
+    onClose();
+
+
     } catch (e) {
       setError(readServerError(e));
     } finally {
