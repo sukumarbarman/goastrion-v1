@@ -1,267 +1,157 @@
-// app/components/AuthModals.tsx
+// app/components/LoginModal.tsx
 "use client";
-import type React from "react";
-import { useRef, useState, useEffect } from "react";
-import Field from "./Field";
-import { AUTH_ENDPOINTS } from "@/app/lib/authEndpoints";
-import { useAuth, type AuthUser } from "@/app/context/AuthContext";
 
-type Mode = "login" | "signup";
+import { useEffect, useState, KeyboardEvent } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { apiPost, ApiError } from "../lib/apiClient";
+import { useAuth } from "../context/AuthContext";
+import { AUTH_ENDPOINTS } from "../lib/authEndpoints";
+import SignupModal from "./SignupModal";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
-export default function AuthModals({
-  open,
-  mode,
-  onClose,
-}: {
-  open: boolean;
-  mode: Mode;
-  onClose: () => void;
-}) {
-  const dialogRef = useRef<HTMLDivElement | null>(null);
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0, left: 0, top: 0 });
+type User = { id: number; username: string; email: string; [k: string]: unknown };
+type LoginSuccess = { user: User; access: string; refresh?: string };
+type LoginBody = { identifier: string; password: string };
 
-  // Use the real login method from AuthContext (not setUser)
-  const { login } = useAuth();
-
-  // form state
-  const [name, setName] = useState("");
-  const [identifier, setIdentifier] = useState(""); // username or email
+export default function LoginModal({ onClose }: { onClose: () => void }) {
+  const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [err, setErr] = useState("");
+  const [error, setError] = useState<string>("");
+  const [loading, setLoading] = useState(false);
 
-  // Center the dialog when it opens
-  useEffect(() => {
-    if (!open) return;
-    setPos({ x: 0, y: 0 });
-    setErr("");
-    setPassword("");
-  }, [open]);
+  // nested
+  const [showSignup, setShowSignup] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
-  // Mouse handlers
-  const onMouseDownHeader = (e: React.MouseEvent) => {
-    if (!dialogRef.current) return;
-    setDragging(true);
-    dragStart.current = { x: e.clientX, y: e.clientY, left: pos.x, top: pos.y };
-    document.body.style.userSelect = "none";
-  };
-  const onMouseMove = (e: MouseEvent) => {
-    if (!dragging) return;
-    const dx = e.clientX - dragStart.current.x;
-    const dy = e.clientY - dragStart.current.y;
-    setPos({ x: dragStart.current.left + dx, y: dragStart.current.top + dy });
-  };
-  const onMouseUp = () => {
-    if (!dragging) return;
-    setDragging(false);
-    document.body.style.userSelect = "";
-  };
+  const { login } = useAuth();
+  const canSubmit = identifier.trim() && password && !loading;
 
-  // Touch handlers
-  const onTouchStartHeader = (e: React.TouchEvent) => {
-    const t = e.touches[0];
-    setDragging(true);
-    dragStart.current = { x: t.clientX, y: t.clientY, left: pos.x, top: pos.y };
-    document.body.style.userSelect = "none";
-  };
-  const onTouchMove = (e: TouchEvent) => {
-    if (!dragging) return;
-    const t = e.touches[0];
-    const dx = t.clientX - dragStart.current.x;
-    const dy = t.clientY - dragStart.current.y;
-    setPos({ x: dragStart.current.left + dx, y: dragStart.current.top + dy });
-  };
-  const onTouchEnd = () => {
-    if (!dragging) return;
-    setDragging(false);
-    document.body.style.userSelect = "";
-  };
-
-  useEffect(() => {
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("touchend", onTouchEnd);
-    return () => {
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
-      window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("touchend", onTouchEnd);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dragging]);
-
-  if (!open) return null;
-
-  async function doLogin() {
-    setErr("");
-    setSubmitting(true);
+  async function handleLogin() {
+    if (!canSubmit) return;
+    setLoading(true);
+    setError("");
     try {
-      const res = await fetch(AUTH_ENDPOINTS.login, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identifier, password }),
-        cache: "no-store",
+      const data = await apiPost<LoginSuccess, LoginBody>(AUTH_ENDPOINTS.login, {
+        identifier,
+        password,
       });
-      const data: {
-        success?: boolean;
-        error?: string;
-        detail?: string;
-        access?: string;
-        refresh?: string | null;
-        user?: unknown;
-      } = await res.json().catch(() => ({} as const));
-
-      if (!res.ok || !data?.success || !data.access || !data.user) {
-        const msg =
-          data?.error ||
-          data?.detail ||
-          "Login failed. Check your username/email and password.";
-        throw new Error(msg);
-      }
-
-      // Route through AuthContext so tokens + user are set consistently
-      login({
-        user: data.user as AuthUser,
-        access: data.access,
-        refresh: data.refresh ?? null,
-      });
-
-      // Notify listeners (SaveChartButton waits for this)
-      window.dispatchEvent(new Event("auth:logged_in"));
+      login({ user: data.user, access: data.access, refresh: data.refresh });
       onClose();
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function doSignup() {
-    setErr("");
-    setSubmitting(true);
-    try {
-      // 1) register
-      const r = await fetch(AUTH_ENDPOINTS.register, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: name, email: identifier, password }),
-        cache: "no-store",
-      });
-      if (!r.ok) {
-        const dj: { error?: string } = await r.json().catch(() => ({} as const));
-        throw new Error(dj?.error || "Sign up failed");
+    } catch (e) {
+      let msg = "Invalid credentials. Please try again.";
+      if (e instanceof ApiError) {
+        const d = e.data as Record<string, unknown> | null;
+        if (d && typeof d === "object") {
+          msg =
+            (typeof d.detail === "string" && d.detail) ||
+            (typeof d.message === "string" && d.message) ||
+            msg;
+        } else if (e.message) {
+          msg = e.message;
+        }
       }
-      // 2) login with same credentials
-      await doLogin();
-    } catch (e: unknown) {
-      setErr(e instanceof Error ? e.message : String(e));
-      setSubmitting(false);
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   }
 
-  const title = mode === "login" ? "Login" : "Sign Up";
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && canSubmit) {
+      e.preventDefault();
+      handleLogin();
+    }
+  }
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, []);
 
   return (
-    <div
-      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={dialogRef}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#141A2A] shadow-xl"
-        style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}
-      >
-        {/* Header / drag handle */}
-        <div
-          className="cursor-move select-none rounded-t-2xl px-6 py-4 border-b border-white/10 bg-black/20 flex items-center justify-between"
-          onMouseDown={onMouseDownHeader}
-          onTouchStart={onTouchStartHeader}
-        >
-          <div className="text-white text-lg font-semibold">{title}</div>
-          <button
-            onClick={onClose}
-            className="rounded-full border border-white/10 px-3 py-1.5 text-sm text-slate-200 hover:border-white/20"
-          >
-            Close
-          </button>
-        </div>
+    <AnimatePresence>
+      {!showSignup && !showForgot && (
+        <motion.div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true">
+          <motion.div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-gray-800"
+            initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
+            <h2 className="text-lg font-semibold mb-4 text-center">Log In</h2>
 
-        {/* Body */}
-        <div className="p-6">
-          {mode === "signup" && (
-            <Field
-              label="Name"
-              placeholder="Your name"
-              value={name}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setName(e.target.value)
-              }
-            />
-          )}
-          <div className="mt-2">
-            <Field
-              label={mode === "signup" ? "Email" : "Username or Email"}
-              placeholder={
-                mode === "signup" ? "you@example.com" : "alice or you@example.com"
-              }
+            {error && (
+              <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {error}
+                <div className="mt-2 flex items-center justify-between text-xs">
+                  <button onClick={() => setShowSignup(true)} className="font-medium underline underline-offset-2">
+                    Need an account? Sign up
+                  </button>
+                  <button onClick={() => setShowForgot(true)} className="font-medium underline underline-offset-2">
+                    Forgot password?
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <label className="block text-sm mb-1">Email or Username</label>
+            <input
+              type="text"
+              placeholder="you@example.com or username"
+              className="border w-full p-2 mb-3 rounded outline-none focus:ring-2 focus:ring-cyan-300"
               value={identifier}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setIdentifier(e.target.value)
-              }
+              onChange={(e) => setIdentifier(e.target.value)}
+              onKeyDown={onKeyDown}
+              autoComplete="username email"
             />
-          </div>
-          <div className="mt-2">
-            <Field
-              label="Password"
-              placeholder="••••••••"
+
+            <label className="block text-sm mb-1">Password</label>
+            <input
               type="password"
+              placeholder="••••••••"
+              className="border w-full p-2 mb-1 rounded outline-none focus:ring-2 focus:ring-cyan-300"
               value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                setPassword(e.target.value)
-              }
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyDown={onKeyDown}
+              autoComplete="current-password"
             />
-          </div>
 
-          {err && (
-            <div className="mt-3 text-sm rounded-md bg-red-600/20 border border-red-500/40 text-red-200 px-3 py-2">
-              {err}
+            <div className="mt-1 mb-3 text-right">
+              <button type="button" onClick={() => setShowForgot(true)}
+                className="text-xs text-gray-600 hover:text-gray-800 underline underline-offset-2">
+                Forgot password?
+              </button>
             </div>
-          )}
 
-          <div className="mt-4 flex justify-end gap-2">
             <button
-              onClick={onClose}
-              className="rounded-full border border-white/10 px-4 py-2 text-slate-200"
+              onClick={handleLogin}
+              disabled={!canSubmit}
+              className="bg-cyan-600 text-white w-full py-2 rounded-lg hover:bg-cyan-500 transition disabled:opacity-60 disabled:cursor-not-allowed"
             >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+
+            <div className="mt-3 text-sm text-center">
+              <span className="text-gray-500">No account? </span>
+              <button onClick={() => setShowSignup(true)}
+                className="text-cyan-700 hover:text-cyan-800 font-medium underline underline-offset-2">
+                Sign up
+              </button>
+            </div>
+
+            <button onClick={onClose} className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700">
               Cancel
             </button>
-            {mode === "login" ? (
-              <button
-                onClick={doLogin}
-                disabled={submitting}
-                className="rounded-full bg-cyan-500 px-4 py-2 text-slate-950 font-semibold hover:bg-cyan-400 disabled:opacity-60"
-              >
-                {submitting ? "Signing in…" : "Continue"}
-              </button>
-            ) : (
-              <button
-                onClick={doSignup}
-                disabled={submitting}
-                className="rounded-full bg-cyan-500 px-4 py-2 text-slate-950 font-semibold hover:bg-cyan-400 disabled:opacity-60"
-              >
-                {submitting ? "Creating…" : "Create account"}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {showSignup && (
+        <SignupModal
+          onClose={() => { setShowSignup(false); onClose(); }}
+          onOpenLogin={() => setShowSignup(false)}
+        />
+      )}
+
+      {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
+    </AnimatePresence>
   );
 }

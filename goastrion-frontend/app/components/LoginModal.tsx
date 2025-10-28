@@ -1,17 +1,47 @@
-// app/components/LoginModal.tsx
 "use client";
 
 import { useEffect, useState, KeyboardEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { apiPost, ApiError } from "../lib/apiClient";
+import { apiPost, apiGet, ApiError } from "../lib/apiClient";
 import { useAuth } from "../context/AuthContext";
 import { AUTH_ENDPOINTS } from "../lib/authEndpoints";
 import SignupModal from "./SignupModal";
 import ForgotPasswordModal from "./ForgotPasswordModal";
+import { useRouter } from "next/navigation";
 
-type User = { id: number; username: string; email: string; [k: string]: unknown };
-type LoginSuccess = { user: User; access: string; refresh?: string };
+type User = { id?: number; username?: string; email?: string; [k: string]: unknown };
 type LoginBody = { identifier: string; password: string };
+
+// --- helpers
+function extractTokens(resp: any) {
+  return {
+    access:
+      resp?.access ??
+      resp?.token ??
+      resp?.access_token ??
+      resp?.jwt ??
+      resp?.tokens?.access ??
+      null,
+    refresh:
+      resp?.refresh ??
+      resp?.refresh_token ??
+      resp?.tokens?.refresh ??
+      null,
+  };
+}
+function readServerError(err: unknown): string {
+  if (err instanceof ApiError) {
+    const d = err.data as Record<string, unknown> | null;
+    if (d && typeof d === "object") {
+      if (typeof d.detail === "string") return d.detail;
+      if (Array.isArray((d as any).non_field_errors) && (d as any).non_field_errors[0]) return (d as any).non_field_errors[0];
+      if (Array.isArray((d as any).identifier) && (d as any).identifier[0]) return (d as any).identifier[0];
+      if (Array.isArray((d as any).password) && (d as any).password[0]) return (d as any).password[0];
+    }
+    if (err.message) return err.message;
+  }
+  return "Invalid credentials. Please try again.";
+}
 
 export default function LoginModal({ onClose }: { onClose: () => void }) {
   const [identifier, setIdentifier] = useState("");
@@ -19,11 +49,12 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
-  // nested
   const [showSignup, setShowSignup] = useState(false);
   const [showForgot, setShowForgot] = useState(false);
 
   const { login } = useAuth();
+  const router = useRouter();
+
   const canSubmit = identifier.trim() && password && !loading;
 
   async function handleLogin() {
@@ -31,26 +62,27 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
     setLoading(true);
     setError("");
     try {
-      const data = await apiPost<LoginSuccess, LoginBody>(AUTH_ENDPOINTS.login, {
-        identifier,
-        password,
-      });
-      login({ user: data.user, access: data.access, refresh: data.refresh });
-      onClose();
-    } catch (e) {
-      let msg = "Invalid credentials. Please try again.";
-      if (e instanceof ApiError) {
-        const d = e.data as Record<string, unknown> | null;
-        if (d && typeof d === "object") {
-          msg =
-            (typeof d.detail === "string" && d.detail) ||
-            (typeof d.message === "string" && d.message) ||
-            msg;
-        } else if (e.message) {
-          msg = e.message;
+      const body: LoginBody = { identifier: identifier.trim(), password };
+      const resp = await apiPost<any, LoginBody>(AUTH_ENDPOINTS.login, body);
+
+      const { access, refresh } = extractTokens(resp);
+      if (!access) throw new Error("Login succeeded but no access token returned.");
+
+      let user: User | undefined = resp?.user;
+      if (!user) {
+        try {
+          user = await apiGet<User>(AUTH_ENDPOINTS.me, access);
+        } catch {
+          user = { username: body.identifier };
         }
       }
-      setError(msg);
+
+      login({ user, access, refresh });
+      window.dispatchEvent(new Event("auth:logged_in"));
+      router.replace("/profile");
+      onClose();
+    } catch (e) {
+      setError(readServerError(e));
     } finally {
       setLoading(false);
     }
@@ -72,10 +104,15 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
   return (
     <AnimatePresence>
       {!showSignup && !showForgot && (
-        <motion.div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="dialog" aria-modal="true">
-          <motion.div className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-gray-800"
-            initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}>
+        <motion.div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          role="dialog" aria-modal="true"
+        >
+          <motion.div
+            className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-gray-800"
+            initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+          >
             <h2 className="text-lg font-semibold mb-4 text-center">Log In</h2>
 
             {error && (
@@ -107,7 +144,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
             <input
               type="password"
               placeholder="••••••••"
-              className="border w-full p-2 mb-1 rounded outline-none focus:ring-2 focus:ring-cyan-300"
+              className="border w-full p-1.5 mb-1 rounded outline-none focus:ring-2 focus:ring-cyan-300"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               onKeyDown={onKeyDown}
@@ -115,8 +152,11 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
             />
 
             <div className="mt-1 mb-3 text-right">
-              <button type="button" onClick={() => setShowForgot(true)}
-                className="text-xs text-gray-600 hover:text-gray-800 underline underline-offset-2">
+              <button
+                type="button"
+                onClick={() => setShowForgot(true)}
+                className="text-xs text-gray-600 hover:text-gray-800 underline underline-offset-2"
+              >
                 Forgot password?
               </button>
             </div>
@@ -131,8 +171,10 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
 
             <div className="mt-3 text-sm text-center">
               <span className="text-gray-500">No account? </span>
-              <button onClick={() => setShowSignup(true)}
-                className="text-cyan-700 hover:text-cyan-800 font-medium underline underline-offset-2">
+              <button
+                onClick={() => setShowSignup(true)}
+                className="text-cyan-700 hover:text-cyan-800 font-medium underline underline-offset-2"
+              >
                 Sign up
               </button>
             </div>
