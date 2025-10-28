@@ -38,12 +38,12 @@ export type InsightsResponse = {
   };
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = "";
 
 export async function fetchInsights(payload: {
   datetime: string; lat: number; lon: number; tz_offset_hours?: number;
 }): Promise<InsightsResponse> {
-  const res = await fetch(`${API_BASE}/api/insights`, {
+  await fetch(`/api/insights`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

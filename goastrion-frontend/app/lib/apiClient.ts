@@ -1,11 +1,13 @@
 // app/lib/apiClient.ts
 // app/lib/apiClient.ts
 
+// AFTER
 const RAW_BASE =
-  process.env.NEXT_PUBLIC_API_BASE ??
-  process.env.NEXT_PUBLIC_BACKEND_URL ??
-  process.env.BACKEND_URL ??
-  "http://127.0.0.1:8000";
+  typeof window === "undefined"
+    ? (process.env.BACKEND_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL ?? "")
+    : "";
+const BASE_URL = RAW_BASE ? RAW_BASE.replace(/\/$/, "") : "";
+
 
 const BASE_URL = RAW_BASE.replace(/\/$/, "");
 

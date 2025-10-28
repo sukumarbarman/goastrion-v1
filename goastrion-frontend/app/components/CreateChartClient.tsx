@@ -52,7 +52,7 @@ type PersistedWithRaw = PersistedState & RawPersist;
 type PersistedSummaryType = PersistedState extends { summary: infer S } ? S : unknown;
 
 /* -------------------- Config -------------------- */
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = "";
 
 /* English baselines */
 const EN_ZODIAC = [
@@ -396,7 +396,7 @@ export default function CreateChartClient() {
       const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
       if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
 
-      const res = await fetch(`${API_BASE}/api/chart`, {
+      await fetch(`/api/chart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,

@@ -41,7 +41,7 @@ type BirthLike = {
   person?: { name?: string | null } | null;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "http://127.0.0.1:8000";
+const API_BASE = "";
 
 function formatDobLocal(dtISO: string, tz?: string) {
   try {
