@@ -11,6 +11,7 @@ from datetime import timedelta
 from dotenv import load_dotenv
 from decouple import config, Csv
 import dj_database_url
+# from corsheaders.defaults import default_headers  # <- only needed if you add custom headers
 
 # ------------------------------------------------------------------------------
 # Paths & .env loading
@@ -72,6 +73,10 @@ _csrf_from_old = config("DJANGO_CSRF_TRUSTED", default="", cast=Csv())
 CSRF_TRUSTED_ORIGINS = _csrf_from_new or _csrf_from_old
 
 CORS_ALLOW_CREDENTIALS = True
+
+# If you ever send a custom header (e.g., Accept-Language) from the frontend,
+# uncomment the import at top and the block below.
+# CORS_ALLOW_HEADERS = list(default_headers) + ["accept-language"]
 
 # ------------------------------------------------------------------------------
 # App-level config dir (your Aspect/Domain JSON, etc.)
@@ -147,7 +152,6 @@ REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    # ADD:
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.ScopedRateThrottle",
     ],
@@ -211,7 +215,6 @@ EMAIL_TIMEOUT = config("EMAIL_TIMEOUT", default=20, cast=int)
 CONTACT_NOTIFY_TO = config("CONTACT_NOTIFY_TO", default="support@goastrion.com")
 DEFAULT_SUPPORT_EMAIL = config("DEFAULT_SUPPORT_EMAIL", default="support@goastrion.com")
 
-
 # Link used inside password reset emails
 FRONTEND_RESET_URL = config("FRONTEND_RESET_URL", default="https://goastrion.com/reset-password")
 
@@ -226,12 +229,10 @@ USE_TZ = True
 # ------------------------------------------------------------------------------
 # Static / Media
 # ------------------------------------------------------------------------------
-# Static / Media
-STATIC_URL = "/static/"      # ← make it absolute (not "static/")
+STATIC_URL = "/static/"      # absolute URL path
 STATIC_ROOT = BASE_DIR / "staticfiles"
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
-
 
 # ------------------------------------------------------------------------------
 # Default primary key
