@@ -1,3 +1,4 @@
+// app/components/LoginModal.tsx
 "use client";
 
 import { useEffect, useState, KeyboardEvent } from "react";
@@ -9,37 +10,91 @@ import SignupModal from "./SignupModal";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import { useRouter } from "next/navigation";
 
-type User = { id?: number; username?: string; email?: string; [k: string]: unknown };
+type User = {
+  id?: number;
+  username?: string;
+  email?: string;
+  [k: string]: unknown;
+};
+
 type LoginBody = { identifier: string; password: string };
 
-// --- helpers
-function extractTokens(resp: any) {
-  return {
-    access:
-      resp?.access ??
-      resp?.token ??
-      resp?.access_token ??
-      resp?.jwt ??
-      resp?.tokens?.access ??
-      null,
-    refresh:
-      resp?.refresh ??
-      resp?.refresh_token ??
-      resp?.tokens?.refresh ??
-      null,
-  };
+type TokenBag = {
+  access?: string;
+  token?: string;
+  access_token?: string;
+  jwt?: string;
+
+  refresh?: string;
+  refresh_token?: string;
+
+  tokens?: {
+    access?: string;
+    refresh?: string;
+  } | null;
+};
+
+type LoginResponse = Partial<{
+  user: User;
+  detail: string;
+  message: string;
+}> &
+  TokenBag;
+
+type ErrorPayload = Partial<{
+  detail: string;
+  message: string;
+  non_field_errors: string[];
+  identifier: string[];
+  password: string[];
+}>;
+
+function extractTokens(resp: TokenBag | null | undefined): {
+  access: string | null;
+  refresh: string | null;
+} {
+  if (!resp || typeof resp !== "object") return { access: null, refresh: null };
+
+  const access =
+    (typeof resp.access === "string" && resp.access) ||
+    (typeof resp.token === "string" && resp.token) ||
+    (typeof resp.access_token === "string" && resp.access_token) ||
+    (typeof resp.jwt === "string" && resp.jwt) ||
+    (resp.tokens &&
+      typeof resp.tokens === "object" &&
+      typeof resp.tokens.access === "string" &&
+      resp.tokens.access) ||
+    null;
+
+  const refresh =
+    (typeof resp.refresh === "string" && resp.refresh) ||
+    (typeof resp.refresh_token === "string" && resp.refresh_token) ||
+    (resp.tokens &&
+      typeof resp.tokens === "object" &&
+      typeof resp.tokens.refresh === "string" &&
+      resp.tokens.refresh) ||
+    null;
+
+  return { access, refresh };
 }
+
 function readServerError(err: unknown): string {
   if (err instanceof ApiError) {
-    const d = err.data as Record<string, unknown> | null;
+    const d = err.data as unknown;
     if (d && typeof d === "object") {
-      if (typeof d.detail === "string") return d.detail;
-      if (Array.isArray((d as any).non_field_errors) && (d as any).non_field_errors[0]) return (d as any).non_field_errors[0];
-      if (Array.isArray((d as any).identifier) && (d as any).identifier[0]) return (d as any).identifier[0];
-      if (Array.isArray((d as any).password) && (d as any).password[0]) return (d as any).password[0];
+      const p = d as ErrorPayload;
+      return (
+        p.detail ||
+        p.message ||
+        p.non_field_errors?.[0] ||
+        p.identifier?.[0] ||
+        p.password?.[0] ||
+        err.message
+      );
     }
-    if (err.message) return err.message;
+    return err.message;
   }
+  if (err instanceof Error) return err.message;
   return "Invalid credentials. Please try again.";
 }
 
@@ -55,7 +110,7 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
   const { login } = useAuth();
   const router = useRouter();
 
-  const canSubmit = identifier.trim() && password && !loading;
+  const canSubmit = identifier.trim() !== "" && password !== "" && !loading;
 
   async function handleLogin() {
     if (!canSubmit) return;
@@ -63,12 +118,15 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
     setError("");
     try {
       const body: LoginBody = { identifier: identifier.trim(), password };
-      const resp = await apiPost<any, LoginBody>(AUTH_ENDPOINTS.login, body);
+      const resp = await apiPost<LoginResponse, LoginBody>(
+        AUTH_ENDPOINTS.login,
+        body
+      );
 
       const { access, refresh } = extractTokens(resp);
       if (!access) throw new Error("Login succeeded but no access token returned.");
 
-      let user: User | undefined = resp?.user;
+      let user: User | undefined = resp.user;
       if (!user) {
         try {
           user = await apiGet<User>(AUTH_ENDPOINTS.me, access);
@@ -98,7 +156,9 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, []);
 
   return (
@@ -106,12 +166,17 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
       {!showSignup && !showForgot && (
         <motion.div
           className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          role="dialog" aria-modal="true"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          role="dialog"
+          aria-modal="true"
         >
           <motion.div
             className="bg-white rounded-2xl shadow-2xl p-6 w-[90%] max-w-sm text-gray-800"
-            initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            exit={{ scale: 0.9 }}
           >
             <h2 className="text-lg font-semibold mb-4 text-center">Log In</h2>
 
@@ -119,10 +184,16 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
               <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
                 {error}
                 <div className="mt-2 flex items-center justify-between text-xs">
-                  <button onClick={() => setShowSignup(true)} className="font-medium underline underline-offset-2">
+                  <button
+                    onClick={() => setShowSignup(true)}
+                    className="font-medium underline underline-offset-2"
+                  >
                     Need an account? Sign up
                   </button>
-                  <button onClick={() => setShowForgot(true)} className="font-medium underline underline-offset-2">
+                  <button
+                    onClick={() => setShowForgot(true)}
+                    className="font-medium underline underline-offset-2"
+                  >
                     Forgot password?
                   </button>
                 </div>
@@ -179,7 +250,10 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
               </button>
             </div>
 
-            <button onClick={onClose} className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700">
+            <button
+              onClick={onClose}
+              className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700"
+            >
               Cancel
             </button>
           </motion.div>
@@ -188,12 +262,17 @@ export default function LoginModal({ onClose }: { onClose: () => void }) {
 
       {showSignup && (
         <SignupModal
-          onClose={() => { setShowSignup(false); onClose(); }}
+          onClose={() => {
+            setShowSignup(false);
+            onClose();
+          }}
           onOpenLogin={() => setShowSignup(false)}
         />
       )}
 
-      {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
+      {showForgot && (
+        <ForgotPasswordModal onClose={() => setShowForgot(false)} />
+      )}
     </AnimatePresence>
   );
 }
