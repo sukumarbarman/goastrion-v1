@@ -39,6 +39,23 @@ type ApiResp = {
   error?: string;
 };
 
+type GeocodeResp = {
+  address?: string;
+  lat?: number | string;
+  lon?: number | string;
+  error?: string;
+};
+
+function parseJsonSafe<T>(text: string): T | null {
+  const t = text.trim();
+  if (!t || !(t.startsWith("{") || t.startsWith("["))) return null;
+  try {
+    return JSON.parse(t) as T;
+  } catch {
+    return null;
+  }
+}
+
 type SummaryEntry = { id: string; label: string; value: string };
 
 /** Extend persisted state locally to keep raw values for re-localization */
@@ -52,7 +69,9 @@ type PersistedWithRaw = PersistedState & RawPersist;
 type PersistedSummaryType = PersistedState extends { summary: infer S } ? S : unknown;
 
 /* -------------------- Config -------------------- */
-const API_BASE = "";
+// Keep geocode calls relative so nginx forwards to backend.
+// Try both legacy and v1 routes, accept the first that returns JSON.
+const GEOCODE_PATHS = ["/api/geocode", "/api/v1/geocode"];
 
 /* English baselines */
 const EN_ZODIAC = [
@@ -129,9 +148,9 @@ function degToIdx(deg: string) {
 }
 function formatDegMod30(val: string): string {
   const num = parseFloat(String(val).replace(/[^\d.\-]/g, ""));
-  if (!Number.isFinite(num)) return val; // fall back if not numeric
-  const norm = ((num % 360) + 360) % 360; // [0, 360)
-  const rem = norm % 30;                  // in-sign degrees
+  if (!Number.isFinite(num)) return val;
+  const norm = ((num % 360) + 360) % 360;
+  const rem = norm % 30;
   return `${rem.toFixed(2)}°`;
 }
 
@@ -197,9 +216,9 @@ function buildSummaryEntries(raw: Record<string, string>, locale: string, t: (k:
   }
 
   if (moonNakRaw) entries.push({ id: "moon_nakshatra", label: labelMap.moon_nakshatra, value: mapNakName(moonNakRaw, locale) });
-    if (lagnaDegRaw) entries.push({ id: "lagna_deg", label: labelMap.lagna_deg, value: formatDegMod30(lagnaDegRaw) });
-    if (sunDegRaw)   entries.push({ id: "sun_deg",   label: labelMap.sun_deg,   value: formatDegMod30(sunDegRaw)   });
-    if (moonDegRaw)  entries.push({ id: "moon_deg",  label: labelMap.moon_deg,  value: formatDegMod30(moonDegRaw)  });
+  if (lagnaDegRaw) entries.push({ id: "lagna_deg", label: labelMap.lagna_deg, value: formatDegMod30(lagnaDegRaw) });
+  if (sunDegRaw)   entries.push({ id: "sun_deg",   label: labelMap.sun_deg,   value: formatDegMod30(sunDegRaw)   });
+  if (moonDegRaw)  entries.push({ id: "moon_deg",  label: labelMap.moon_deg,  value: formatDegMod30(moonDegRaw)  });
 
   return entries;
 }
@@ -309,8 +328,8 @@ export default function CreateChartClient() {
       place,
       lat,
       lon,
-      svg, // localized for quick render
-      summary: summaryRecord as PersistedSummaryType, // persisted type-compatible
+      svg,
+      summary: summaryRecord as PersistedSummaryType,
       vimshottari,
       savedAt: new Date().toISOString(),
       summaryRaw: rawSummary ?? null,
@@ -343,7 +362,7 @@ export default function CreateChartClient() {
     return () => window.removeEventListener("beforeunload", handler);
   }, [chartName, dob, tob, tzId, place, lat, lon, svg, summary, vimshottari, rawSummary, rawSvg]);
 
-  /* -------- Geocoding -------- */
+  /* -------- Geocoding (robust, JSON-safe) -------- */
   const lookupPlace = useCallback(async (raw: string) => {
     const query = raw.trim();
     if (!query) return;
@@ -353,16 +372,60 @@ export default function CreateChartClient() {
     setGeoMsg(null);
     setGeoLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/geocode?place=${encodeURIComponent(query)}`);
-      const data = (await res.json()) as { address?: string; lat?: number; lon?: number; error?: string; };
-      if (!res.ok) throw new Error(data?.error || `Geocode failed (${res.status})`);
-      if (typeof data.lat === "number" && typeof data.lon === "number") {
-        setLat(String(data.lat)); setLon(String(data.lon));
+      for (const base of GEOCODE_PATHS) {
+        try {
+          const url = `${base}?place=${encodeURIComponent(query)}`;
+          const res = await fetch(url, { headers: { Accept: "application/json" }, cache: "no-store" });
+          const text = await res.text();
+
+          // Parse JSON safely; if it looks like HTML or plain-text, handle below
+          const data = parseJsonSafe<GeocodeResp>(text);
+
+          if (!data) {
+            // HTML page (e.g., 404 or a redirect landing) or plain text error
+            if (/^\s*</.test(text)) {
+              if (res.status === 404) throw new Error("not-found");
+              throw new Error(`HTML_${res.status || "ERR"}`);
+            }
+            throw new Error(text.slice(0, 160));
+          }
+
+          if (!res.ok) {
+            const msg = (typeof data.error === "string" && data.error) || `HTTP ${res.status}`;
+            throw new Error(msg);
+          }
+
+          const latNum = typeof data.lat === "string" ? parseFloat(data.lat) : data.lat;
+          const lonNum = typeof data.lon === "string" ? parseFloat(data.lon) : data.lon;
+
+          if (typeof latNum === "number" && Number.isFinite(latNum) && typeof lonNum === "number" && Number.isFinite(lonNum)) {
+            setLat(String(latNum));
+            setLon(String(lonNum));
+            setGeoMsg(data.address || tOr("create.locationFound", "Location found."));
+            setGeoLoading(false);
+            return; // success
+          } else {
+            throw new Error("invalid-coords");
+          }
+        } catch {
+          // try next path
+        }
       }
-      setGeoMsg(data.address || tOr("create.locationFound", "Location found."));
+
+      // If both endpoints failed:
+      const hint = tOr("errors.genericGeocode", "Could not find that place.");
+      const suffix = query.toLowerCase().includes("durgapur")
+        ? " Try “Durgapur, West Bengal” or add country."
+        : " Try adding state and country.";
+      setGeoMsg(`${hint}${suffix}`);
     } catch (e) {
       const msg = e instanceof Error ? e.message : tOr("errors.genericGeocode", "Could not find that place.");
-      setGeoMsg(msg);
+      // Hide noisy internal markers
+      const friendly =
+        msg === "not-found" || msg.startsWith("HTML_") || msg === "invalid-coords"
+          ? tOr("errors.genericGeocode", "Could not find that place.")
+          : msg;
+      setGeoMsg(friendly);
     } finally {
       setGeoLoading(false);
     }
@@ -396,7 +459,7 @@ export default function CreateChartClient() {
       const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
       if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
 
-      await fetch(`/api/chart`, {
+      const res = await fetch(`/api/chart`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
@@ -648,7 +711,7 @@ export default function CreateChartClient() {
             {loading ? t("create.generating") : t("create.generate")}
           </button>
 
-          <button
+        <button
             onClick={onReset}
             className="rounded-full border border-white/10 px-5 py-2.5 text-slate-200 hover:border-white/20 shrink-0"
           >
@@ -778,25 +841,22 @@ export default function CreateChartClient() {
             </div>
           </Link>
 
-        <Link
-          href="/components/shubhdin"
-          className="group rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-rose-500/10 to-transparent p-5 hover:border-amber-300/60 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
-          aria-label={tOr("cards.shubhdin.cta", "Plan Good Days (ShubhDin)")}
-        >
-          <div className="text-2xl">🗓️✨</div>
-          <div className="mt-2 text-white font-semibold text-lg">
-            {tOr("cards.shubhdin.title", "Next 2 yrs")}
-          </div>
-          <p className="mt-1 text-slate-300 text-sm">
-            {tOr(
-              "cards.shubhdin.desc",
-              "Plan job changes, marriage, relationships, and starting or expanding a business."
-            )}
-          </p>
-          <div className="mt-3 inline-flex items-center gap-2 text-amber-100 font-medium">
-            {tOr("cards.shubhdin.cta", "Plan Next 2 yrs")} <span className="animate-pulse">↗</span>
-          </div>
-        </Link>
+          <Link
+            href="/components/shubhdin"
+            className="group rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-rose-500/10 to-transparent p-5 hover:border-amber-300/60 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
+            aria-label={tOr("cards.shubhdin.cta", "Plan Good Days (ShubhDin)")}
+          >
+            <div className="text-2xl">🗓️✨</div>
+            <div className="mt-2 text-white font-semibold text-lg">
+              {tOr("cards.shubhdin.title", "Next 2 yrs")}
+            </div>
+            <p className="mt-1 text-slate-300 text-sm">
+              {tOr("cards.shubhdin.desc", "Plan job changes, marriage, relationships, and starting or expanding a business.")}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-2 text-amber-100 font-medium">
+              {tOr("cards.shubhdin.cta", "Plan Next 2 yrs")} <span className="animate-pulse">↗</span>
+            </div>
+          </Link>
 
           <Link
             href="/domains"

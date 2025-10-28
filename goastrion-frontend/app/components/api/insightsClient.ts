@@ -1,57 +1,97 @@
 // app/components/api/insightsClient.ts
-export type AspectHit = { p1: string; p2: string; name: string };
-export type DomainHighlight = {
-  planets: string[];
-  houses: number[];
-  aspects: AspectHit[];
-};
-export type DomainInsight = {
-  key: "Career"|"Finance"|"Health"|"Marriage"|"Education";
-  score: number;           // 0–100
-  tier: "weak"|"moderate"|"strong"|"excellent";
-  chips: string[];         // e.g. "chip.house_presence.career", "chip.benefic_harmony"
-  reasons: string[];       // i18n keys (backend emits)
-  timeWindows: { title?: string; nextExact?: string|null; window?: string; source?: string }[];
-  highlights?: DomainHighlight;
-};
 
 export type SkillInsight = {
-  key: "Analytical"|"Communication"|"Leadership"|"Creativity"|"Focus"|"Entrepreneurial";
-  score: number;           // 0–100
-  chips: string[];
-  reasons: string[];
+  key: string;
+  name: string;
+  score: number; // 0–100
+  reason?: string | null;
 };
 
-export type InsightsResponse = {
-  input: { datetime: string; lat: number; lon: number; tz_offset_hours: number };
-  config: { aspectVersion: string; domainVersion: string };
-  context: {
-    lagna_deg: number; lagna_sign: string;
-    angles?: Record<string, number>;
-    planets: Record<string, number>;
-    planets_in_houses: Record<string, string[]>;
-    aspects: Array<{ p1: string; p2: string; name: string; exact: number; delta: number; score: number; applying: boolean|null }>;
-  };
-  insights: {
-    domains: DomainInsight[];
-    skills: SkillInsight[];
-  };
+export type DomainInsight = {
+  id: string;
+  title: string;
+  score: number; // 0–100
+  note?: string | null;
 };
 
-const API_BASE = "";
+export type InsightsPayload = {
+  summary?: string | null;
+  skills?: SkillInsight[];
+  domains?: DomainInsight[];
+  error?: string;
+};
 
-export async function fetchInsights(payload: {
-  datetime: string; lat: number; lon: number; tz_offset_hours?: number;
-}): Promise<InsightsResponse> {
-  await fetch(`/api/insights`, {
+type InsightsApiResp = InsightsPayload & { error?: string };
+
+const PUBLIC_BASE = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
+const INSIGHTS_ENDPOINT = PUBLIC_BASE
+  ? `${PUBLIC_BASE}/api/v1/insights`
+  : "/api/v1/insights";
+
+/** Safe JSON parse that returns null for non-JSON or invalid JSON text */
+function parseJsonSafe<T>(text: string): T | null {
+  const trimmed = text.trim();
+  if (!trimmed || !(trimmed.startsWith("{") || trimmed.startsWith("["))) return null;
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    return null;
+  }
+}
+
+export type InsightsRequest = {
+  datetime: string; // ISO
+  lat: number;
+  lon: number;
+  tz: string; // IANA, e.g., "Asia/Kolkata"
+  locale?: string; // e.g., "en"
+  persona?: string; // optional persona flag
+};
+
+/**
+ * Fetch insights from the backend.
+ * Throws an Error on non-2xx HTTP or when backend returns an error field.
+ */
+export async function fetchInsights(req: InsightsRequest): Promise<InsightsPayload> {
+  const { datetime, lat, lon, tz, locale, persona } = req;
+
+  const url =
+    `${INSIGHTS_ENDPOINT}` +
+    (locale ? `?locale=${encodeURIComponent(locale)}` : "");
+
+  const res = await fetch(url, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    headers: {
+      "Content-Type": "application/json",
+      ...(locale ? { "Accept-Language": locale } : {}),
+    },
+    body: JSON.stringify({
+      datetime,
+      lat,
+      lon,
+      tz,
+      ...(persona ? { persona } : {}),
+    }),
     cache: "no-store",
   });
+
+  const txt = await res.text();
+  const data = parseJsonSafe<InsightsApiResp>(txt);
+
   if (!res.ok) {
-    const txt = await res.text().catch(() => "");
-    throw new Error(`Insights HTTP ${res.status}: ${txt}`);
+    const snippet = txt ? ` — ${txt.slice(0, 160)}` : "";
+    const msg = (data && data.error) || `Insights HTTP ${res.status}${snippet}`;
+    throw new Error(msg);
   }
-  return res.json();
+
+  if (!data) {
+    // 2xx with empty or invalid JSON
+    throw new Error("Insights: empty response");
+  }
+
+  if (data.error) {
+    throw new Error(data.error);
+  }
+
+  return data;
 }

@@ -1,7 +1,7 @@
 // app/components/daily/DailyClient.tsx
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import DailyResults, { type DailyPayload } from "./DailyResults";
 import { loadBirth } from "@/app/lib/birthStore";
@@ -28,6 +28,8 @@ type DailyPayloadPlus = DailyPayload & {
   remedies?: Remedies;
 };
 
+type DailyApiResp = DailyPayloadPlus & { error?: string };
+
 type BirthLike = {
   datetime?: string;
   tz?: string;
@@ -41,7 +43,20 @@ type BirthLike = {
   person?: { name?: string | null } | null;
 };
 
-const API_BASE = "";
+// Prefer absolute base for local dev (NEXT_PUBLIC_API_BASE), otherwise rely on nginx proxy (/api/*) in prod
+const PUBLIC_BASE = (process.env.NEXT_PUBLIC_API_BASE || "").replace(/\/$/, "");
+const DAILY_ENDPOINT = PUBLIC_BASE ? `${PUBLIC_BASE}/api/v1/daily` : "/api/v1/daily";
+
+/** Safe JSON parse that returns null on failure or non-JSON text */
+function parseJsonSafe<T>(text: string): T | null {
+  const trimmed = text.trim();
+  if (!trimmed || !(trimmed.startsWith("{") || trimmed.startsWith("["))) return null;
+  try {
+    return JSON.parse(trimmed) as T;
+  } catch {
+    return null;
+  }
+}
 
 function formatDobLocal(dtISO: string, tz?: string) {
   try {
@@ -113,7 +128,7 @@ function SkeletonCard({ className = "" }: { className?: string }) {
 }
 
 export default function DailyClient() {
-  const { t, tx, locale } = useI18n();
+  const { t, locale } = useI18n();
 
   const [mounted, setMounted] = useState(false);
   const [birth, setBirth] = useState<BirthLike | null>(null);
@@ -121,6 +136,9 @@ export default function DailyClient() {
   const [loading, setLoading] = useState(false);
   const [payload, setPayload] = useState<DailyPayloadPlus | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Abort in-flight fetches if component unmounts or deps change
+  const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -148,16 +166,23 @@ export default function DailyClient() {
       setError(t("daily.missingBirth.title"));
       return;
     }
+
+    // Cancel any previous request
+    if (abortRef.current) abortRef.current.abort();
+    const ac = new AbortController();
+    abortRef.current = ac;
+
     setLoading(true);
     setError(null);
     setPayload(null);
+
     try {
-      const url = `${API_BASE}/api/v1/daily?locale=${encodeURIComponent(locale)}`;
+      const url = `${DAILY_ENDPOINT}?locale=${encodeURIComponent(locale)}`;
       const res = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept-Language": locale,
+          "Accept-Language": locale, // optional; backend also reads ?locale=
         },
         body: JSON.stringify({
           datetime: birth.datetime,
@@ -166,11 +191,28 @@ export default function DailyClient() {
           tz: birth.tz,
           persona: "manager",
         }),
+        cache: "no-store",
+        signal: ac.signal,
       });
-      const data: DailyPayloadPlus & { error?: string } = await res.json();
-      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+      // Safe JSON parse (avoid "Unexpected token <" when an HTML error page comes back)
+      const text = await res.text();
+      const data = parseJsonSafe<DailyApiResp>(text) ?? ({} as DailyApiResp);
+
+      if (!res.ok) {
+        const snippet = text ? text.slice(0, 160) : "";
+        const msg = data.error || `HTTP ${res.status}${snippet ? ` — ${snippet}` : ""}`;
+        throw new Error(msg);
+      }
+
+      // In rare case of empty JSON body on success, surface a friendly error
+      if (!data || Object.keys(data).length === 0) {
+        throw new Error(t("daily.ui.errorGeneric"));
+      }
+
       setPayload(data);
     } catch (e: unknown) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       setError(e instanceof Error ? e.message : t("daily.ui.errorGeneric"));
     } finally {
       setLoading(false);
@@ -180,8 +222,11 @@ export default function DailyClient() {
   useEffect(() => {
     if (!mounted || !birth?.datetime) return;
     void fetchToday();
+    return () => {
+      if (abortRef.current) abortRef.current.abort();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mounted, birth?.datetime, locale]);
+  }, [mounted, birth?.datetime, birth?.lat, birth?.lon, birth?.tz, locale]);
 
   if (!mounted) {
     return (
@@ -229,7 +274,7 @@ export default function DailyClient() {
   }
 
   return (
-    <div className="grid gap-8">
+    <div className="grid gap-8" aria-busy={loading}>
       <header className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h2 className="text-2xl md:text-3xl font-semibold tracking-tight text-white">{t("daily.title")}</h2>
@@ -241,7 +286,7 @@ export default function DailyClient() {
         </div>
       </header>
 
-      {/* Only the main content (right panel removed) */}
+      {/* Main content only */}
       <div className="grid gap-4">
         {error && (
           <div className="rounded-2xl border border-red-500/30 bg-red-500/10 text-red-200 px-3 py-2 text-sm flex items-center justify-between">
@@ -249,7 +294,8 @@ export default function DailyClient() {
             <button
               type="button"
               onClick={fetchToday}
-              className="rounded-full border border-red-500/30 px-3 py-1 text-red-100 hover:border-red-400/50"
+              disabled={loading}
+              className="rounded-full border border-red-500/30 px-3 py-1 text-red-100 hover:border-red-400/50 disabled:opacity-60"
             >
               {t("daily.ui.tryAgain")}
             </button>
