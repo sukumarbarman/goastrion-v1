@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
-    "lint": "eslint"
+    "build": "cross-env NEXT_USE_TURBOPACK=0 next build",
+    "start": "next start -p 3001 -H 127.0.0.1",
+    "lint": "eslint . --ext .ts,.tsx,.js",
+    "test": "vitest run"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -24,6 +25,7 @@
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.0",
     "autoprefixer": "^10.4.21",
+    "cross-env": "^10.1.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.2",
     "postcss": "^8.5.6",
