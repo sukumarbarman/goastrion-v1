@@ -3,20 +3,25 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(req: NextRequest) {
+  // Only handle root path ("/")
   if (req.nextUrl.pathname !== "/") return NextResponse.next();
 
   const authed =
     req.cookies.get("ga_auth")?.value === "1" ||
-    !!req.cookies.get("access")?.value ||
-    !!req.cookies.get("refresh")?.value ||
-    !!req.cookies.get("sessionid")?.value;
+    req.cookies.has("access") ||
+    req.cookies.has("refresh") ||
+    req.cookies.has("sessionid");
 
   if (authed) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/daily";   // 🔁 changed from "/profile" → "/daily"
-    return NextResponse.redirect(url);
+    // ✅ Use relative URL — avoids localhost redirect
+    return NextResponse.redirect(new URL("/daily", req.url));
+    // or even simpler:
+    // return NextResponse.redirect("/daily");
   }
+
   return NextResponse.next();
 }
 
-export const config = { matcher: ["/"] };
+export const config = {
+  matcher: ["/"],
+};
