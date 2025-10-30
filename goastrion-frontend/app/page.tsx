@@ -20,7 +20,22 @@ export default async function HomePage() {
     c.has("refresh") ||
     c.has("sessionid");
 
-  if (authed) redirect("/daily");   // 🔁 changed from "/profile" → "/daily"
+ if (authed) {
+  return (
+    <>
+      <Hero />
+      <div className="text-center mt-10">
+        <a
+          href="/daily"
+          className="inline-block bg-cyan-600 text-white px-5 py-2 rounded-lg hover:bg-cyan-500"
+        >
+          Continue to Daily Dashboard →
+        </a>
+      </div>
+    </>
+  );
+}
+
 
   return (
     <>
