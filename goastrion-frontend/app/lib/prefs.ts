@@ -1,3 +1,4 @@
+//goastrion-frontend/app/lib/prefs.ts
 "use client";
 
 export type Landing = "daily" | "profile";

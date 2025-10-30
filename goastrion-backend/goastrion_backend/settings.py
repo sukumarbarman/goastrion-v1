@@ -19,10 +19,21 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Prefer project-local .env; fall back to prod path used on the server
-dotenv_path = BASE_DIR / ".env"
-if not dotenv_path.exists():
-    dotenv_path = Path("/srv/goastrion/backend/.env")
-load_dotenv(dotenv_path, override=True)
+# Prefer project-local .env for local dev; otherwise use server config path
+dotenv_local = BASE_DIR / ".env"
+dotenv_prod = Path("/srv/goastrion/config/backend.env")
+
+if dotenv_local.exists():
+    # local development (e.g. laptop)
+    load_dotenv(dotenv_local, override=True)
+    print(f"Loaded local env: {dotenv_local}")
+elif dotenv_prod.exists():
+    # production (EC2 / systemd)
+    load_dotenv(dotenv_prod, override=True)
+    print(f"Loaded production env: {dotenv_prod}")
+else:
+    raise RuntimeError("No environment file found (.env or /srv/goastrion/config/backend.env)")
+
 
 # Give ZoneInfo a tz database on Windows/slim containers if tzdata is present
 try:
