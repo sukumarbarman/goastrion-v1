@@ -842,7 +842,7 @@ export default function CreateChartClient() {
           </Link>
 
           <Link
-            href="/components/shubhdin"
+            href="/shubhdin"
             className="group rounded-2xl border border-amber-400/40 bg-gradient-to-br from-amber-500/20 via-rose-500/10 to-transparent p-5 hover:border-amber-300/60 focus:outline-none focus:ring-2 focus:ring-amber-300/60"
             aria-label={tOr("cards.shubhdin.cta", "Plan Good Days (ShubhDin)")}
           >
