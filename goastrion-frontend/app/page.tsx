@@ -29,7 +29,7 @@ export default async function HomePage() {
           href="/daily"
           className="inline-block bg-cyan-600 text-white px-5 py-2 rounded-lg hover:bg-cyan-500"
         >
-          Continue to Daily Dashboard →
+          Continue to Today page →
         </a>
       </div>
     </>
