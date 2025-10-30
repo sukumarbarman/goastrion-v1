@@ -1,4 +1,3 @@
-//goastrion-frontend/app/api/shubhdin/route.ts
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -12,28 +11,25 @@ type Incoming = {
   lat: number | string;
   lon: number | string;
   tz_offset_hours?: number;
-  tz?: "IST" | "UTC";                // legacy support (we still map to tz_offset_hours)
+  tz?: "IST" | "UTC";
   horizon_months?: number;
   goal?: string;
-
-  // ⬇️ NEW passthroughs
-  saturn_cap_days?: number;          // Option A: backend trims Saturn horizon
-  goals?: string[];                  // optional: override goal set
-  business?: { type?: string };      // optional: for business_start copy, etc.
+  saturn_cap_days?: number;
+  goals?: string[];
+  business?: { type?: string };
 };
 
 function getTimeoutMs(url: string): number {
   const q = new URL(url).searchParams.get("timeout_ms");
   if (q && /^\d+$/.test(q)) return Math.max(1000, parseInt(q, 10));
-  if (process.env.SHUBHDIN_TIMEOUT_MS && /^\d+$/.test(process.env.SHUBHDIN_TIMEOUT_MS)) {
+  if (process.env.SHUBHDIN_TIMEOUT_MS && /^\d+$/.test(process.env.SHUBHDIN_TIMEOUT_MS))
     return Math.max(1000, parseInt(process.env.SHUBHDIN_TIMEOUT_MS, 10));
-  }
-  return 45_000;
+  return 45000;
 }
 
 function getErrorName(e: unknown): string | null {
-  if (e instanceof Error && typeof (e as Error).name === "string") return e.name;
-  if (typeof e === "object" && e !== null && "name" in e) {
+  if (e instanceof Error && typeof e.name === "string") return e.name;
+  if (typeof e === "object" && e && "name" in e) {
     const n = (e as { name?: unknown }).name;
     return typeof n === "string" ? n : null;
   }
@@ -60,8 +56,8 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
 
-    const lat = typeof b.lat === "number" ? b.lat : Number(b.lat);
-    const lon = typeof b.lon === "number" ? b.lon : Number(b.lon);
+    const lat = Number(b.lat);
+    const lon = Number(b.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
       return new Response(JSON.stringify({ error: "lat/lon must be valid numbers" }), {
         status: 400,
@@ -69,7 +65,6 @@ export async function POST(req: Request): Promise<Response> {
       });
     }
 
-    // Map tz → tz_offset_hours if needed (backend also supports tz string; we keep offset for now)
     const tzHours =
       typeof b.tz_offset_hours === "number"
         ? b.tz_offset_hours
@@ -79,29 +74,21 @@ export async function POST(req: Request): Promise<Response> {
         ? 0
         : undefined;
 
-    // Build payload with safe defaults + NEW passthroughs
     const payload: Record<string, unknown> = {
-      datetime: b.datetime,                   // UTC ISO
+      datetime: b.datetime,
       lat,
       lon,
-      tz_offset_hours: tzHours,               // optional
+      tz_offset_hours: tzHours,
       horizon_months: typeof b.horizon_months === "number" ? b.horizon_months : 24,
       goal: typeof b.goal === "string" ? b.goal : "general",
     };
 
-    // ⬇️ Add optional fields only if present/valid
-    if (typeof b.saturn_cap_days === "number" && b.saturn_cap_days > 0) {
+    if (typeof b.saturn_cap_days === "number" && b.saturn_cap_days > 0)
       payload.saturn_cap_days = Math.floor(b.saturn_cap_days);
-    }
-    if (Array.isArray(b.goals) && b.goals.every(g => typeof g === "string")) {
+    if (Array.isArray(b.goals) && b.goals.every(g => typeof g === "string"))
       payload.goals = b.goals;
-    }
-    if (b.business && typeof b.business === "object") {
-      const type = (b.business as Incoming["business"])?.type;
-      if (typeof type === "string" && type.trim()) {
-        payload.business = { type: type.trim().toLowerCase() };
-      }
-    }
+    if (b.business?.type && typeof b.business.type === "string")
+      payload.business = { type: b.business.type.trim().toLowerCase() };
 
     if (debug) {
       console.log("[/api/shubhdin] upstream URL:", url);
@@ -117,8 +104,8 @@ export async function POST(req: Request): Promise<Response> {
       signal: ctrl.signal,
     });
 
-    const contentType = upstream.headers.get("content-type") || "application/json";
     const text = await upstream.text();
+    const contentType = upstream.headers.get("content-type") || "application/json";
 
     if (!upstream.ok) {
       console.error("[/api/shubhdin] backend error", {
@@ -133,7 +120,7 @@ export async function POST(req: Request): Promise<Response> {
       status: upstream.status,
       headers: { "Content-Type": contentType, "Cache-Control": "no-store" },
     });
-  } catch (err: unknown) {
+  } catch (err) {
     console.error("[/api/shubhdin] proxy error →", err);
     const name = getErrorName(err);
     const msg = err instanceof Error ? err.message : String(err);
@@ -161,4 +148,3 @@ export async function GET(): Promise<Response> {
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
 }
-
