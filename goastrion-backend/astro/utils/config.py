@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Tuple, Optional
 
 
-_CFG_ENV = "GOASTRION_CFG_DIR"
+_CFG_ENV = "GOASTRION_CONFIG_DIR"
 
 
 # ------------------------- path helpers ------------------------- #
