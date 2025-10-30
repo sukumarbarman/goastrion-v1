@@ -148,33 +148,70 @@ export default function Navbar({
       </Container>
 
       {/* Mobile panel */}
-      {mobile && (
-        <div className="md:hidden fixed inset-x-0 bg-[#0B1022] z-50 p-4 border-t border-white/10">
-          {/* Mobile Appointment CTA
-          <ApptCTA mobile />
-            */}
-          {!user ? (
-            <>
-              <button
-                onClick={onOpenLogin}
-                className="block w-full bg-cyan-500 text-slate-950 font-semibold py-2 rounded-lg mb-2"
-              >
-                {loginLabel}
-              </button>
-              <button
-                onClick={onOpenSignup}
-                className="block w-full border border-cyan-400 text-cyan-300 py-2 rounded-lg"
-              >
-                {signupLabel}
-              </button>
-            </>
-          ) : (
-            <button onClick={logout} className="block w-full bg-red-500 text-white py-2 rounded-lg">
-              {logoutLbl}
-            </button>
-          )}
-        </div>
-      )}
+{/* Mobile panel */}
+{mobile && (
+  <div className="md:hidden fixed inset-x-0 bg-[#0B1022] z-50 p-4 border-t border-white/10 space-y-3">
+    {/* Links */}
+    <nav className="flex flex-col space-y-2 text-slate-300 text-base">
+      {NAV_ITEMS.map(({ slug, key, fallback }) => (
+        <Link
+          key={slug}
+          href={`/${slug}`}
+          className="block px-2 py-2 rounded-lg hover:bg-white/10 hover:text-white transition"
+          onClick={() => setMobile(false)}
+        >
+          {tOr(key, fallback)}
+        </Link>
+      ))}
+    </nav>
+
+    <hr className="border-white/10 my-3" />
+
+    {/* Auth buttons */}
+    {!user ? (
+      <>
+        <button
+          onClick={() => {
+            onOpenLogin();
+            setMobile(false);
+          }}
+          className="block w-full bg-cyan-500 text-slate-950 font-semibold py-2 rounded-lg mb-2"
+        >
+          {loginLabel}
+        </button>
+        <button
+          onClick={() => {
+            onOpenSignup();
+            setMobile(false);
+          }}
+          className="block w-full border border-cyan-400 text-cyan-300 py-2 rounded-lg"
+        >
+          {signupLabel}
+        </button>
+      </>
+    ) : (
+      <>
+        <Link
+          href="/profile"
+          className="block w-full bg-cyan-600 text-white text-center py-2 rounded-lg mb-2"
+          onClick={() => setMobile(false)}
+        >
+          {profileLbl}
+        </Link>
+        <button
+          onClick={() => {
+            logout();
+            setMobile(false);
+          }}
+          className="block w-full bg-red-500 text-white py-2 rounded-lg"
+        >
+          {logoutLbl}
+        </button>
+      </>
+    )}
+  </div>
+)}
+
     </header>
   );
 }
