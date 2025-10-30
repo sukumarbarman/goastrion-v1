@@ -2,9 +2,13 @@
   "name": "goastrion-frontend",
   "version": "0.1.0",
   "private": true,
-  "scripts": {
-    "build": "next build",
-    "start": "NODE_ENV=production next start -p 3001"
+
+   "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "NEXT_USE_TURBOPACK=0 next build",
+    "start": "next start -p 3001 -H 127.0.0.1",
+    "lint": "eslint . --ext .ts,.tsx,.js",
+    "test": "vitest run"
   },
 
   "dependencies": {
