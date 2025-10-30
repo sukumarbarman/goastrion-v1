@@ -3,12 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "cross-env NEXT_USE_TURBOPACK=0 next build",
-    "start": "next start -p 3001 -H 127.0.0.1",
-    "lint": "eslint . --ext .ts,.tsx,.js",
-    "test": "vitest run"
+    "build": "next build",
+    "start": "NODE_ENV=production next start -p 3001"
   },
+
   "dependencies": {
     "clsx": "^2.1.1",
     "framer-motion": "^12.23.24",
