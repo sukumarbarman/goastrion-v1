@@ -152,6 +152,7 @@ export default function Navbar({
                       className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 transition"
                       onClick={() => setDropdown(false)}
                     >
+                    {/*
                       <Settings size={16} /> Edit Profile
                     </Link>
                     <Link
@@ -159,6 +160,8 @@ export default function Navbar({
                       className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 transition"
                       onClick={() => setDropdown(false)}
                     >
+                   */}
+
                       <BarChart2 size={16} /> Saved Charts
                     </Link>
                     <Link
@@ -166,6 +169,8 @@ export default function Navbar({
                       className="flex items-center gap-2 px-4 py-2 hover:bg-white/10 transition"
                       onClick={() => setDropdown(false)}
                     >
+
+
                       <Clock size={16} /> History
                     </Link>
 
@@ -176,6 +181,8 @@ export default function Navbar({
                       onClick={() => setDropdown(false)}
                       className="flex items-center gap-2 w-full text-left px-4 py-2 hover:bg-white/10 transition"
                     >
+
+
                       <X size={16} /> Hide Menu
                     </button>
                     <button

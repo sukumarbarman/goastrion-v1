@@ -13,6 +13,9 @@ export default function sitemap() {
     "/guides",
     "/saturn",
     "/dasha",
+    '/daily',
+    '/shubhdin',
+    '/dasha'
   ];
 
   return routes.map((path) => ({

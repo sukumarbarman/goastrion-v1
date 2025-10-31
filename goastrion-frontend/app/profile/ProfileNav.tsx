@@ -8,7 +8,7 @@ type Item = { href: string; label: string; exact?: boolean };
 const ITEMS: Item[] = [
   { href: "/profile", label: "Overview", exact: true },
   { href: "/profile/charts", label: "Saved Charts" },
-  { href: "/profile/settings", label: "Settings" },
+
   { href: "/profile/history", label: "History" },
 ];
 

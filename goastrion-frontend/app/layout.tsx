@@ -1,4 +1,3 @@
-//goastrion-frontend/app/layout.tsx
 import "./globals.css";
 import ClientShell from "./ClientShell";
 import { I18nProvider } from "./lib/i18n";
@@ -19,19 +18,43 @@ const ENABLE_ADS = process.env.NEXT_PUBLIC_ENABLE_ADS === "true";
 
 /* ------------------------------- Metadata --------------------------------- */
 const defaultDescription =
-  "Find auspicious dates (ShubhDin) for job change, marriage, property & more. Create a free Vedic birth chart and get Saturn/Sade Sati insights in seconds.";
+  "GoAstrion — Free online Vedic astrology tool to know your good time, cautious time, and auspicious days (ShubhDin) for today and tomorrow. Instantly generate your free Vedic birth chart, explore Saturn Dasa, Vimshottari Dasha, and Life Wheel insights. Discover favorable periods for marriage, relationship, job change, or travel — all based on authentic Vedic principles.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "GoAstrion — ShubhDin, Saturn & Free Vedic Birth Chart",
+    default:
+      "GoAstrion — Free Vedic Birth Chart, ShubhDin & Astrology for Good Time Today",
     template: "%s | GoAstrion",
   },
   description: defaultDescription,
+  keywords: [
+    "GoAstrion",
+    "free Vedic astrology",
+    "Vedic birth chart online",
+    "ShubhDin calculator",
+    "good time today astrology",
+    "cautious time astrology",
+    "Saturn Dasa",
+    "Sade Sati calculator",
+    "Vimshottari Dasha",
+    "Life Wheel astrology",
+    "Skill astrology",
+    "career astrology",
+    "marriage astrology",
+    "relationship prediction",
+    "job change astrology",
+    "travel astrology",
+    "daily astrology insights",
+    "Vedic horoscope",
+    "free kundli online",
+    "Vedic astrology software",
+  ],
   openGraph: {
     type: "website",
     url: SITE_URL,
-    title: "GoAstrion — ShubhDin, Saturn & Free Vedic Birth Chart",
+    title:
+      "GoAstrion — Free Vedic Astrology, ShubhDin & Saturn Dasa Insights",
     description: defaultDescription,
     siteName: "GoAstrion",
     images: [
@@ -39,17 +62,23 @@ export const metadata: Metadata = {
         url: "/og/og-home.jpg",
         width: 1200,
         height: 630,
-        alt: "GoAstrion — ShubhDin & Saturn insights",
+        alt: "GoAstrion — Free Vedic Astrology, ShubhDin & Birth Chart",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "GoAstrion — ShubhDin, Saturn & Free Vedic Birth Chart",
+    title:
+      "GoAstrion — Know Your Good Time & Create Free Vedic Birth Chart Online",
     description: defaultDescription,
     images: ["/og/og-home.jpg"],
   },
+  alternates: { canonical: SITE_URL },
   robots: { index: true, follow: true },
+  other: {
+    slogan:
+      "Know today, tomorrow, and your good & cautious times — with GoAstrion’s free Vedic birth chart and Saturn Dasa insights.",
+  },
 };
 
 /* ----------------------------- JSON-LD Schema ----------------------------- */
@@ -59,6 +88,13 @@ const ORG = {
   name: "GoAstrion",
   url: SITE_URL,
   logo: SITE_URL + "/logo.png",
+  slogan:
+    "Know today, tomorrow, and your good & cautious times with Vedic astrology insights.",
+  sameAs: [
+    "https://www.facebook.com/GoAstrion",
+    "https://www.youtube.com/@GoAstrion",
+    "https://x.com/GoAstrion",
+  ],
 };
 
 const WEBSITE = {
@@ -69,8 +105,47 @@ const WEBSITE = {
   potentialAction: {
     "@type": "SearchAction",
     target: SITE_URL + "/search?q={query}",
-    query: "required",
+    "query-input": "required name=query",
   },
+};
+
+const FAQ = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is ShubhDin in astrology?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "ShubhDin means an auspicious day or time window calculated from your Vedic birth chart. GoAstrion instantly finds your personal ShubhDin for marriage, job change, or travel.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How can I find my good and cautious time?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "With GoAstrion, you can check your daily good and cautious times using real-time Vedic planetary analysis — free and accurate.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What is Saturn Dasa or Sade Sati?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Saturn Dasa or Sade Sati represents key karmic phases influenced by Saturn. GoAstrion shows your current and upcoming Saturn Dasa periods and how they impact life areas like career, health, and relationships.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is the Vedic birth chart on GoAstrion really free?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes! GoAstrion offers a 100% free online Vedic birth chart, with instant calculation of houses, planets, and dasa timelines — no sign-up required.",
+      },
+    },
+  ],
 };
 
 /* ------------------------------- Root Layout ------------------------------ */
@@ -127,6 +202,12 @@ export default function RootLayout({
           type="application/ld+json"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
+        />
+        <Script
+          id="ld-faq"
+          type="application/ld+json"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ) }}
         />
 
         {/* -------------------------- App Providers -------------------------- */}

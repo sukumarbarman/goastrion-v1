@@ -1,14 +1,39 @@
-// goastrion-frontend/app/lib/locales/en-daily.ts
 export type DailyArgs = Record<string, string | number | undefined>;
 
 export const formatDaily = (tpl: string, args: DailyArgs = {}) =>
   tpl.replace(/\{(\w+)\}/g, (_, k) => (args[k] ?? "").toString());
 
 const enDaily = {
+  // --------------------------
+  // Profile Quick View (merged)
+  // --------------------------
+  profile: {
+    daily: {
+      title: "Daily quick view",
+      subtitle: "Personalized windows from your saved birth details.",
+      region: "Daily quick view",
+      empty: "Add birth details to see your Daily.",
+      cta: {
+        open: "Know today",
+        tomorrow: "Plan tomorrow",
+      },
+    },
 
+    account: {
+      actions: {
+        editBirth: "Edit birth details",
+      },
+    },
+  },
 
+  history: {
+    dailyOpened: "Opened Daily (from profile)",
+  },
+
+  // --------------------------
+  // Daily Page (original)
+  // --------------------------
   daily: {
-    // Used as dynamic add-ons for optional remedies
     optionalAddons: {
       travel: "Leave 10-min early; confirm route",
       detox: "10-min digital detox",
@@ -41,7 +66,6 @@ const enDaily = {
       caution: "Caution",
       wear: "Wear",
 
-      // NEW: Panchang block
       panchang: {
         title: "Panchang",
         desc:
