@@ -17,7 +17,10 @@ export default function Footer() {
     <footer className="mt-16 bg-black/30 border-t border-white/10">
       <Container>
         {/* Link row */}
-        <nav className="py-8" aria-label={tr("footer.navLabel", "Footer links")}>
+        <nav
+          className="py-8"
+          aria-label={tr("footer.navLabel", "Footer links")}
+        >
           <ul className="flex flex-wrap items-center justify-center gap-2">
             <li>
               <Link
@@ -44,6 +47,24 @@ export default function Footer() {
                 className="inline-flex rounded-full px-4 py-2 text-sm text-slate-200/90 hover:text-white hover:bg-white/10 transition"
               >
                 {tr("footer.contact", "Contact")}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/privacy"
+                aria-label={tr("footer.privacy", "Privacy Policy")}
+                className="inline-flex rounded-full px-4 py-2 text-sm text-slate-200/90 hover:text-white hover:bg-white/10 transition"
+              >
+                {tr("footer.privacy", "Privacy")}
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/disclaimer"
+                aria-label={tr("footer.disclaimer", "Disclaimer")}
+                className="inline-flex rounded-full px-4 py-2 text-sm text-slate-200/90 hover:text-white hover:bg-white/10 transition"
+              >
+                {tr("footer.disclaimer", "Disclaimer")}
               </Link>
             </li>
             <li>

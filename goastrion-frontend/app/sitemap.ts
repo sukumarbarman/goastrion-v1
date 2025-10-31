@@ -4,7 +4,7 @@ export default function sitemap() {
   const now = new Date();
 
   const routes = [
-    "/",            // home
+    "/",             // home
     "/create",
     "/domains",
     "/skills",
@@ -13,9 +13,12 @@ export default function sitemap() {
     "/guides",
     "/saturn",
     "/dasha",
-    '/daily',
-    '/shubhdin',
-    '/dasha'
+    "/daily",
+    "/shubhdin",
+    "/privacy",
+    "/terms",
+    "/disclaimer",
+    "/contact",
   ];
 
   return routes.map((path) => ({
