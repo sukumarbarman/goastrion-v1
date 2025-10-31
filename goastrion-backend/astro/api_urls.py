@@ -15,6 +15,7 @@ urlpatterns = [
 
     # v1 endpoints
     path('v1/shubhdin/run', ShubhDinRunView.as_view(), name='shubhdin_run'),
+    path('shubhdin', ShubhDinRunView.as_view(), name='shubhdin_alias'),
     path('v1/saturn/overview', SaturnOverviewView.as_view(), name='saturn_overview'),
     path('v1/daily', DailyRemediesView.as_view(), name='daily'),
 
