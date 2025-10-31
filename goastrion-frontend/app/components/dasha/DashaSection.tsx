@@ -1,8 +1,10 @@
+// goastrion-frontend/app/components/dasha/DashaSection.tsx
 "use client";
 
 import React from "react";
 import { useI18n } from "../../lib/i18n";
 import { DashaTimeline, Period, adsForMD } from "./types";
+import AdSlot from "@/app/components/AdSlot"; // ✅ Added for AdSense integration
 
 function fmtDate(iso: string) {
   return iso?.slice(0, 10);
@@ -63,7 +65,7 @@ function MDTable({ v }: { v: DashaTimeline }) {
   );
 }
 
-/* ---- Antardasha table for a given Mahadasha ---- */
+/* ---- Antardasha table ---- */
 function ADTable({ title, md, v }: { title: string; md: Period; v: DashaTimeline }) {
   const { t } = useI18n();
   const ads = adsForMD(v, md);
@@ -102,13 +104,23 @@ function ADTable({ title, md, v }: { title: string; md: Period; v: DashaTimeline
   );
 }
 
-/* ---- Page section: Mahadasha + all Antardashas (no summaries) ---- */
+/* ---- Dasha Section (with AdSlots) ---- */
 export default function DashaSection({ v }: { v: DashaTimeline }) {
   const { t } = useI18n();
 
   return (
     <div className="mt-6 space-y-6 overflow-visible pb-8">
       <MDTable v={v} />
+
+      {/* ✅ Ad after Mahadasha table */}
+      <div className="mx-auto my-8 w-full max-w-3xl">
+        <AdSlot
+          slot="8234373966" // replace with Dasha-specific slot ID later
+          format="auto"
+          fullWidthResponsive={true}
+          minHeight={280}
+        />
+      </div>
 
       <div className="space-y-6 overflow-visible">
         {v.mahadashas.map((md, idx) => (
@@ -119,6 +131,16 @@ export default function DashaSection({ v }: { v: DashaTimeline }) {
             v={v}
           />
         ))}
+      </div>
+
+      {/* ✅ Ad after all Antardashas */}
+      <div className="mx-auto my-10 w-full max-w-3xl">
+        <AdSlot
+          slot="2982047285"
+          format="auto"
+          fullWidthResponsive={true}
+          minHeight={280}
+        />
       </div>
     </div>
   );

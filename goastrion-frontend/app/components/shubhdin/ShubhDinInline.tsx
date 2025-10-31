@@ -1,7 +1,8 @@
-//goastrion-frontend/app/components/shubhdin/ShubhDinInline.tsx
+// goastrion-frontend/app/components/shubhdin/ShubhDinInline.tsx
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../lib/i18n";
+import AdSlot from "@/app/components/AdSlot"; // ✅ Added import
 
 /* ---------- Types: backend shape ---------- */
 type BackendWindow = { start: string; end: string; duration_days?: number };
@@ -11,7 +12,6 @@ type BackendDate = {
   tags?: string[];
   tags_t?: Array<{ key: string; args?: Record<string, unknown> }>;
 };
-
 type BackendResult = {
   goal: string;
   headline?: string;
@@ -26,22 +26,18 @@ type BackendResult = {
   cautions_t?: Array<{ key: string; args?: Record<string, unknown> }>;
   caution_days?: string[];
 };
-
 type BackendResponse = {
   query_id: string;
-  generated_at: string; // UTC ISO
+  generated_at: string;
   tz?: string;
   horizon_months?: number;
   confidence_overall?: string;
   results?: BackendResult[];
 };
-
 type TzId = "IST" | "UTC";
-
-/* ---------- Local i18n arg type ---------- */
 type KeyArgs = Record<string, string | number>;
 
-/* ---------- Helpers ---------- */
+/* ---------- Helper functions ---------- */
 function ensureDate(d: string) {
   try {
     return new Date(d);
@@ -107,9 +103,7 @@ function GoalCard({ r }: { r: BackendResult }) {
 
   const explain = r.explain_t ? renderItemsT(t, r.explain_t) : r.explain ?? [];
   const cautions = r.cautions_t ? renderItemsT(t, r.cautions_t) : r.cautions ?? [];
-
   const headline = renderHeadline(t, r, locale);
-
   const dates = (r.dates ?? []).map((d) => ({
     ...d,
     tags: d.tags_t ? renderTagsT(t, d.tags_t) : d.tags ?? [],
@@ -201,30 +195,19 @@ function GoalCard({ r }: { r: BackendResult }) {
           </ul>
         </div>
       )}
-
-      {windows.length === 0 &&
-        cautions.length === 0 &&
-        explain.length === 0 &&
-        dates.length === 0 && (
-          <div className="text-sm text-white/70">{/* Optional: localized generic fallback */}</div>
-        )}
     </div>
   );
 }
 
 /* ---------- Main component ---------- */
 type Props = {
-  datetime: string;  // UTC ISO
+  datetime: string;
   lat: number;
   lon: number;
   tzId?: TzId;
   horizonMonths?: number;
   goal?: string;
-
-  // visual: default false so page can own the <h1>
   showTitle?: boolean;
-
-  // passthroughs
   variant?: "smart";
   displayMode?: "all" | "single";
   saturnCapDays?: number;
@@ -268,15 +251,11 @@ export default function ShubhDinInline({
           horizon_months: horizonMonths,
         };
         if (goal) payload.goal = goal;
-        if (typeof saturnCapDays === "number" && saturnCapDays > 0) {
+        if (typeof saturnCapDays === "number" && saturnCapDays > 0)
           payload.saturn_cap_days = Math.floor(saturnCapDays);
-        }
-        if (Array.isArray(goals) && goals.length > 0) {
-          payload.goals = goals;
-        }
-        if (typeof businessType === "string" && businessType.trim()) {
+        if (Array.isArray(goals) && goals.length > 0) payload.goals = goals;
+        if (typeof businessType === "string" && businessType.trim())
           payload.business = { type: businessType.trim().toLowerCase() };
-        }
 
         const res = await fetch("/api/shubhdin", {
           method: "POST",
@@ -308,6 +287,16 @@ export default function ShubhDinInline({
         </div>
       )}
 
+      {/* ✅ Ad: top of ShubhDin section */}
+      <div className="mx-auto my-4 w-full max-w-3xl">
+        <AdSlot
+          slot="4981524663" // replace with your ShubhDin AdSense slot ID if unique
+          format="auto"
+          fullWidthResponsive={true}
+          minHeight={280}
+        />
+      </div>
+
       {err && <div className="text-sm text-red-300">Error: {err}</div>}
 
       {!err && resp && (
@@ -319,8 +308,18 @@ export default function ShubhDinInline({
               ))}
             </div>
           ) : (
-            <div className="text-sm text-white/80">{/* Optional: t("sd.no_windows") */}</div>
+            <div className="text-sm text-white/80">{t("sd.no_windows")}</div>
           )}
+
+          {/* ✅ Ad: bottom of ShubhDin results */}
+          <div className="mx-auto my-8 w-full max-w-3xl">
+            <AdSlot
+              slot="6433372983"
+              format="auto"
+              fullWidthResponsive={true}
+              minHeight={280}
+            />
+          </div>
 
           <div className="pt-2 text-xs text-white/50">
             {t("sd.generated_at", {
