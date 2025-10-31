@@ -15,12 +15,14 @@ export const SUPPORTED_LOCALES: ReadonlyArray<Locale> = [
   "en",
   "hi",
   "bn",
+  /*
   "ta",
   "te",
   "kn",
   "es",
   "pt",
   "fr",
+  */
 ] as const;
 
 export const DEFAULT_LOCALE: Locale = "en";
@@ -29,12 +31,14 @@ export const LOCALE_LABEL: Record<Locale, string> = {
   en: "English",
   hi: "हिन्दी",
   bn: "বাংলা",
+  /*
   ta: "தமிழ்",
   te: "తెలుగు",
   kn: "ಕನ್ನಡ",
   es: "Español",
   pt: "Português",
   fr: "Français",
+  */
 } as const;
 
 /** RTL helpers (kept generic if you add Arabic/Hebrew later) */
