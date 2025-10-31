@@ -74,7 +74,7 @@ export default function DisclaimerPage() {
           reliance on information, charts, or insights is at your own risk.
           GoAstrion, its team, or affiliates shall not be held responsible or
           liable for any loss, damages, or outcomes resulting from decisions or
-          actions taken based on our platform's content.
+          actions taken based on our platform&apos;s content.
         </p>
 
         <h2 className="text-2xl font-semibold mt-8 mb-3 text-white">
