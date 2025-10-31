@@ -1,4 +1,3 @@
-// goastrion-frontend/app/shubhdin/ShubhDinClient.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -7,6 +6,26 @@ import { useI18n } from "@/app/lib/i18n";
 type TzId = "IST" | "UTC";
 const STORAGE_KEY = "ga_create_state_v1";
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0 };
+
+/* ---------- Local helper for DOB formatting ---------- */
+function formatDobTime(dob?: string, tob?: string, tzId?: string) {
+  if (!dob) return "";
+  try {
+    const dateObj = new Date(`${dob}T${tob || "00:00"}`);
+    const local = new Intl.DateTimeFormat(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(dateObj);
+    const tzLabel = tzId ? ` (${tzId})` : "";
+    return `${local}${tzLabel}`;
+  } catch {
+    return `${dob}${tob ? `, ${tob}` : ""}${tzId ? ` (${tzId})` : ""}`;
+  }
+}
 
 /* ---------- Backend types ---------- */
 type BackendWindow = { start: string; end: string; duration_days?: number };
@@ -215,7 +234,7 @@ function GoalCard({ r }: { r: BackendResult }) {
   );
 }
 
-/* ---------- Main (single-file) ---------- */
+/* ---------- Main ---------- */
 export default function ShubhDinClient({ showTitle = true }: { showTitle?: boolean }) {
   const { t, locale } = useI18n();
   const tOr = useCallback(
@@ -225,6 +244,28 @@ export default function ShubhDinClient({ showTitle = true }: { showTitle?: boole
     },
     [t]
   );
+
+  const [saved, setSaved] = useState<{
+      name?: string;
+      dob?: string;
+      tob?: string;
+      tzId?: string;
+      place?: string;
+    } | null>(null);
+
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) setSaved(JSON.parse(raw));
+    } catch {}
+  }, []);
+
+  const name = saved?.name || "";
+  const dobLine = useMemo(() => {
+    if (!saved?.dob) return "";
+    return formatDobTime(saved.dob, saved.tob, saved.tzId);
+  }, [saved]);
 
   // params loaded once from Create
   const [params, setParams] = useState<{
@@ -240,7 +281,7 @@ export default function ShubhDinClient({ showTitle = true }: { showTitle?: boole
   const [loading, setLoading] = useState(false);
   const fetchAbortRef = useRef<AbortController | null>(null);
 
-  // 1) Read saved Create inputs (single run — avoids update depth loops)
+  // 1) Read saved Create inputs
   useEffect(() => {
     try {
       const raw = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
@@ -325,14 +366,13 @@ export default function ShubhDinClient({ showTitle = true }: { showTitle?: boole
   }, [params, doFetch]);
 
   const results = useMemo(() => resp?.results ?? [], [resp]);
-
   const handleRetry = useCallback(() => {
     if (params) void doFetch(params);
   }, [params, doFetch]);
 
   return (
     <div className="px-0 md:px-0 pt-0">
-      {/* Page header (client-rendered) */}
+      {/* Page header */}
       {showTitle && (
         <header className="mb-4" aria-labelledby="sd-h1">
           <div className="inline-flex items-center gap-2 rounded-full bg-cyan-500/15 border border-cyan-400/40 px-3 py-1 text-cyan-100 text-xs font-medium">
@@ -341,6 +381,13 @@ export default function ShubhDinClient({ showTitle = true }: { showTitle?: boole
           <h1 id="sd-h1" className="mt-2 text-2xl md:text-3xl font-semibold text-white">
             {tOr("sd.page.title", "ShubhDin — Next 2 yrs")}
           </h1>
+
+          {/* ✅ Added Name + DOB */}
+          <div className="mt-2 text-xs md:text-sm text-slate-400 leading-relaxed">
+            <p>Name: {name || "___"}</p>
+            {dobLine && <p>DOB: {dobLine}</p>}
+          </div>
+
           <p className="mt-2 text-slate-300">
             {tOr(
               "sd.page.sub",

@@ -348,6 +348,34 @@ export default function SaturnPage() {
         <h1 className="text-2xl md:text-3xl font-semibold text-white">
           {tf("saturn.sadesati.title", "Saturn · Sade Sati")}
         </h1>
+
+        {/* 👇 New Name + DOB block inserted here */}
+        <div className="mt-2 text-xs md:text-sm text-slate-400 leading-relaxed">
+          {(() => {
+            try {
+              const raw = localStorage.getItem("ga_create_state_v1");
+              if (!raw) return <p>Name: —<br/>DOB: —</p>;
+              const saved = JSON.parse(raw);
+              const name = saved?.name || "___";
+              const tz = saved?.tzId === "IST" ? "Asia/Kolkata" : saved?.tzId || "UTC";
+              let dobText = "—";
+              if (saved?.dob && saved?.tob) {
+                dobText = `${saved.dob.split("-").reverse().join(" ")} ${saved.tob} (${tz})`;
+              } else if (saved?.dob) {
+                dobText = `${saved.dob} (${tz})`;
+              }
+              return (
+                <>
+                  <p>Name: {name}</p>
+                  <p>DOB: {dobText}</p>
+                </>
+              );
+            } catch {
+              return <p>Name: —<br/>DOB: —</p>;
+            }
+          })()}
+        </div>
+
         <p className="text-slate-400">
           {mode === "preview"
             ? tf("saturn.sadesati.fast_preview", "Fast preview (20 yrs from today). Load full history when ready.")

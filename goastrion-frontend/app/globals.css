@@ -79,3 +79,49 @@ svg [data-planet].highlighted ~ circle {
 .glow-active {
   animation: pulseGlow 2s ease-out infinite;
 }
+
+/* === GoAstrion Shimmer Button Animation === */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-light {
+  animation: shimmer 3s ease-in-out infinite;
+  transform: translateX(-100%);
+}
+
+/* === GoAstrion Shimmer Button Animation === */
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%) rotate(20deg);
+  }
+  50% {
+    transform: translateX(100%) rotate(20deg);
+  }
+  100% {
+    transform: translateX(100%) rotate(20deg);
+  }
+}
+
+.shimmer-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-light {
+  animation: shimmer 3s ease-in-out infinite;
+  transform: translateX(-100%) rotate(20deg);
+}
