@@ -162,24 +162,32 @@ export default function RootLayout({
         {/* -------------------- Analytics & Ads Scripts -------------------- */}
         {GA_ID && (
           <>
+            {/* --- Load GA4 --- */}
             <Script
               strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
             />
+
+            {/* --- GA4 Init with Consent Mode (analytics allowed) --- */}
             <Script id="ga4-init" strategy="afterInteractive">{`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
+
+              // Default consent: allow analytics, block ads until accepted
               gtag('consent','default',{
                 ad_storage:'denied',
-                analytics_storage:'granted',
                 ad_user_data:'denied',
-                ad_personalization:'denied'
+                ad_personalization:'denied',
+                analytics_storage:'granted'
               });
+
               gtag('js', new Date());
-              gtag('config', '${GA_ID}', { send_page_view: false });
+              // Enable automatic first pageview (important for Realtime)
+              gtag('config', '${GA_ID}');
             `}</Script>
           </>
         )}
+
 
         {ENABLE_ADS && ADS_CLIENT && (
           <Script

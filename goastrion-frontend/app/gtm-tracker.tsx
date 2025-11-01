@@ -1,4 +1,3 @@
-// app/gtm-tracker.tsx
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
@@ -6,7 +5,7 @@ import { useEffect } from "react";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID as string | undefined;
 
-// Minimal gtag signature we need (no external @types required)
+// Basic gtag signature
 type GtagFn = (
   command: "event",
   eventName: string,
@@ -14,23 +13,29 @@ type GtagFn = (
 ) => void;
 
 function getGtag(): GtagFn | undefined {
-  if (typeof window === "undefined") return undefined;
+  if (typeof window === "undefined") return;
   const maybe = (window as unknown as { gtag?: unknown }).gtag;
   return typeof maybe === "function" ? (maybe as GtagFn) : undefined;
 }
 
+// Send pageview with retry (handles slow GA load)
 function sendPageview(url: string) {
   if (!GA_ID) return;
-  const gtag = getGtag();
-  if (!gtag) return;
 
-  gtag("event", "page_view", {
-    page_location:
-      typeof window !== "undefined" ? window.location.origin + url : url,
-    page_path: url,
-    page_title: typeof document !== "undefined" ? document.title : undefined,
-    send_to: GA_ID,
-  });
+  const attempt = (retries = 5) => {
+    const gtag = getGtag();
+    if (gtag) {
+      gtag("event", "page_view", {
+        page_location: window.location.origin + url,
+        page_path: url,
+        page_title: document.title,
+        send_to: GA_ID,
+      });
+    } else if (retries > 0) {
+      setTimeout(() => attempt(retries - 1), 300);
+    }
+  };
+  attempt();
 }
 
 export default function GATracker() {
