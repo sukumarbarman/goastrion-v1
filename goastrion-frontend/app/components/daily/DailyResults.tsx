@@ -3,6 +3,7 @@
 
 import { useMemo, useState } from "react";
 import { useI18n } from "@/app/lib/i18n";
+import AdSlot from "@/app/components/AdSlot";
 
 // Match i18n var type (values are string | number)
 type KeyArgs = Record<string, string | number>;
@@ -433,6 +434,16 @@ export default function DailyResults({
         </div>
       </Card>
 
+    {/* ✅ Top AdSlot after energy gauge */}
+      <div className="mx-auto my-6 w-full max-w-3xl">
+        <AdSlot
+          slot="3237198156" // 🔁 your actual AdSense slot ID
+          format="auto"
+          fullWidthResponsive={true}
+          minHeight={280}
+        />
+      </div>
+
       {/* Two-column content */}
       <div className="grid md:grid-cols-2 gap-6">
         {/* Good times */}
@@ -468,6 +479,18 @@ export default function DailyResults({
             <div className="mt-2 text-sm text-amber-100">✈️ {dash(travelAvoidText, asciiFallback)}</div>
           ) : null}
         </Card>
+
+        {/* ✅ Mid AdSlot after the Good/Caution section */}
+          <div className="mx-auto my-10 w-full max-w-3xl">
+            <AdSlot
+              slot="2546933015"
+              format="auto"
+              fullWidthResponsive={true}
+              minHeight={280}
+            />
+         </div>
+
+
 
         {/* Panchang (explanation + four rows) */}
         <Card className="md:col-span-2">
