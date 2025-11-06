@@ -243,8 +243,6 @@ export default function CreateChartClient() {
   const [summary, setSummary] = useState<SummaryEntry[] | null>(null);
 
   const [dob, setDob] = useState("");
-  const [manualDob, setManualDob] = useState(false);
-
   const [tob, setTob] = useState("");
   const [tzId, setTzId] = useState<TzId>("IST");
   const [place, setPlace] = useState("");
@@ -620,41 +618,15 @@ export default function CreateChartClient() {
             />
           </div>
 
-
-
-        <div>
-  <label className="block text-sm text-slate-300 mb-1 flex items-center justify-between">
-    <span>{t("create.dob")}</span>
-    <button
-      type="button"
-      onClick={() => setManualDob((v) => !v)}
-      className="text-xs text-cyan-400 underline hover:text-cyan-300 transition"
-    >
-      {manualDob ? tOr("create.useCalendar", "Use Calendar") : tOr("create.typeManually", "Type Manually")}
-    </button>
-  </label>
-
-  {manualDob ? (
-    <input
-      type="text"
-      inputMode="numeric"
-      placeholder="YYYY-MM-DD"
-      pattern="\d{4}-\d{2}-\d{2}"
-      className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
-      value={dob}
-      onChange={(e) => setDob(e.target.value)}
-    />
-  ) : (
-    <input
-      type="date"
-      className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
-      value={dob}
-      onChange={(e) => setDob(e.target.value)}
-    />
-  )}
-</div>
-
-
+          <div>
+            <label className="block text-sm text-slate-300 mb-1">{t("create.dob")}</label>
+            <input
+              type="date"
+              className="w-full rounded-lg bg-black/20 border border-white/10 px-3 py-2 text-slate-200"
+              value={dob}
+              onChange={(e) => setDob(e.target.value)}
+            />
+          </div>
 
           <div>
             <label className="block text-sm text-slate-300 mb-1">{t("create.tob")}</label>
