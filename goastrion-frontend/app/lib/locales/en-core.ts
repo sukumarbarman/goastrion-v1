@@ -90,6 +90,9 @@ about: {
   },
   },
 
+
+// about end
+
     steps: {
       "heading": "How it works",
         "stepLabel": "Step {{num}}",
