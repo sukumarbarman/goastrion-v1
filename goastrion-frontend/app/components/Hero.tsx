@@ -108,7 +108,7 @@ function HeroGraphic() {
         className="absolute h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_16px_4px_rgba(255,200,87,0.45)]"
         style={{ top: "60%", left: "65%" }}
       />
-      <div className="absolute bottom-5 right-5 text-xs text-slate-400">SVG preview</div>
+
     </div>
   );
 }
