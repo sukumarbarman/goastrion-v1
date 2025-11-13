@@ -4,6 +4,7 @@
 import { useMemo, useState } from "react";
 import { useI18n } from "@/app/lib/i18n";
 import AdSlot from "@/app/components/AdSlot";
+import { DAILY_TOP_SLOT_ID, DAILY_END_SLOT_ID } from "../../constants/ads";
 
 // Match i18n var type (values are string | number)
 type KeyArgs = Record<string, string | number>;
@@ -437,7 +438,7 @@ export default function DailyResults({
     {/* ✅ Top AdSlot after energy gauge */}
       <div className="mx-auto my-6 w-full max-w-3xl">
         <AdSlot
-          slot="3237198156" // 🔁 your actual AdSense slot ID
+          slot={DAILY_TOP_SLOT_ID} // 🔁 your actual AdSense slot ID
           format="auto"
           fullWidthResponsive={true}
           minHeight={280}
@@ -483,7 +484,7 @@ export default function DailyResults({
         {/* ✅ Mid AdSlot after the Good/Caution section */}
           <div className="mx-auto my-10 w-full max-w-3xl">
             <AdSlot
-              slot="2546933015"
+              slot={DAILY_END_SLOT_ID}
               format="auto"
               fullWidthResponsive={true}
               minHeight={280}

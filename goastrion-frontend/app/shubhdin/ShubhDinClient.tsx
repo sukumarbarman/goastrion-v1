@@ -2,6 +2,8 @@
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useI18n } from "@/app/lib/i18n";
+import AdSlot from "@/app/components/AdSlot";
+import { SHUBHDIN_TOP_SLOT_ID, SHUBHDIN_END_SLOT_ID } from "@/app/constants/ads";
 
 type TzId = "IST" | "UTC";
 const STORAGE_KEY = "ga_create_state_v1";
@@ -394,6 +396,16 @@ export default function ShubhDinClient({ showTitle = true }: { showTitle?: boole
               "Pick the right month, not just a date — data-backed Vedic windows for promotions, job change, property, marriage and more."
             )}
           </p>
+          {/* 🔥 SHUBHDIN TOP AD SLOT */}
+          <div className="my-6 mx-auto max-w-4xl">
+            <AdSlot
+              slot={SHUBHDIN_TOP_SLOT_ID}
+              format="auto"
+              fullWidthResponsive={true}
+              minHeight={250}
+            />
+          </div>
+
         </header>
       )}
 

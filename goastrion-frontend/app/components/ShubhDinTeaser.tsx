@@ -1,3 +1,4 @@
+//goastrion-frontend/app/components/ShubhDinTeaser.tsx
 "use client";
 
 import Image from "next/image";

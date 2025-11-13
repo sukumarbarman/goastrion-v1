@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
 import Container from "./Container";
-import AdSlot from "./AdSlot";
 
 import { useI18n } from "../lib/i18n";
 import { dictionaries } from "../lib/locales/dictionaries";
@@ -928,9 +927,6 @@ export default function CreateChartClient() {
         </div>
       </div>
 
-      <div className="mt-10">
-        <AdSlot slot="4741871653" minHeight={300} />
-      </div>
     </Container>
   );
 }

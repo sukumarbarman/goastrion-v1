@@ -1,3 +1,4 @@
+//goastrion-frontend/app/layout.tsx
 import "./globals.css";
 import ClientShell from "./ClientShell";
 import { I18nProvider } from "./lib/i18n";

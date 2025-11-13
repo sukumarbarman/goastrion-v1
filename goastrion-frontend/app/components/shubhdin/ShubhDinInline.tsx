@@ -2,7 +2,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import { useI18n } from "../../lib/i18n";
-import AdSlot from "@/app/components/AdSlot"; // ✅ Added import
+
 
 /* ---------- Types: backend shape ---------- */
 type BackendWindow = { start: string; end: string; duration_days?: number };
@@ -287,15 +287,7 @@ export default function ShubhDinInline({
         </div>
       )}
 
-      {/* ✅ Ad: top of ShubhDin section */}
-      <div className="mx-auto my-4 w-full max-w-3xl">
-        <AdSlot
-          slot="4981524663" // replace with your ShubhDin AdSense slot ID if unique
-          format="auto"
-          fullWidthResponsive={true}
-          minHeight={280}
-        />
-      </div>
+
 
       {err && <div className="text-sm text-red-300">Error: {err}</div>}
 
@@ -311,15 +303,7 @@ export default function ShubhDinInline({
             <div className="text-sm text-white/80">{t("sd.no_windows")}</div>
           )}
 
-          {/* ✅ Ad: bottom of ShubhDin results */}
-          <div className="mx-auto my-8 w-full max-w-3xl">
-            <AdSlot
-              slot="6433372983"
-              format="auto"
-              fullWidthResponsive={true}
-              minHeight={280}
-            />
-          </div>
+
 
           <div className="pt-2 text-xs text-white/50">
             {t("sd.generated_at", {

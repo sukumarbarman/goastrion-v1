@@ -9,7 +9,6 @@ import ShubhDinTeaser from "./components/ShubhDinTeaser";
 import DomainsTeaser from "./components/DomainsTeaser";
 import StructuredData from "./components/StructuredData";
 import JumpButton from "./components/JumpButton"; // 🔊 sound + redirect button
-import AdSlot from "./components/AdSlot"; // ✅ import your ad slot component
 
 export default async function HomePage() {
   const c = await cookies();
@@ -29,16 +28,7 @@ export default async function HomePage() {
         <div className="text-center mt-12">
           <JumpButton />
 
-          {/* ✅ New AdSense slot (below Jump button) */}
-          <div className="mt-10">
-            <AdSlot
-              slot="1644914885"  // 🔁 replace with your actual AdSense slot ID
-              format="auto"
-              fullWidthResponsive={true}
-              minHeight={280}
-              className="mx-auto max-w-4xl"
-            />
-          </div>
+
         </div>
       )}
 
