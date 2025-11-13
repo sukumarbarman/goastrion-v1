@@ -11,6 +11,7 @@ import { CHIP_TO_PLANETS } from "../lib/skillsMapping";
 import { useSkillHighlight } from "../hooks/useSkillHighlight";
 import HighlightController from "../components/HighlightController";
 import AdSlot from "../components/AdSlot";
+import { SKILLS_TOP_SLOT, SKILLS_MID_SLOT, SKILLS_END_SLOT  } from "../constants/ads";
 
 // -----------------------------
 // Types
@@ -227,7 +228,7 @@ export default function SkillsPage() {
 
       {/* Ad: top of page */}
       <div className="mb-6">
-        <AdSlot slot="1839859228" minHeight={280} />
+        <AdSlot slot={SKILLS_TOP_SLOT} minHeight={280} />
       </div>
 
       {err && (
@@ -401,7 +402,7 @@ export default function SkillsPage() {
                     {/* Mid-page ad after first tier block */}
                     {groupIdx === 0 && (
                       <div className="px-4 pb-4">
-                        <AdSlot slot="2260739048" minHeight={300} />
+                        <AdSlot slot={SKILLS_MID_SLOT} minHeight={300} />
                       </div>
                     )}
                   </div>
@@ -412,7 +413,7 @@ export default function SkillsPage() {
 
           {/* Ad: end-of-page */}
           <div className="mt-8">
-            <AdSlot slot="4466022565" minHeight={280} />
+            <AdSlot slot={SKILLS_END_SLOT} minHeight={280} />
           </div>
         </section>
       </div>

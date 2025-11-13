@@ -11,6 +11,7 @@ import {
 } from "../lib/insightsClient";
 import { useHighlight } from "../hooks/useSkillHighlight";
 import AdSlot from "../components/AdSlot"; // ⬅️ NEW
+import { DOMAINS_SIDEBAR_SLOT_ID, DOMAINS_MID_SLOT_ID, DOMAINS_END_SLOT_ID  } from "../constants/ads";
 
 /* ---------- Safari-safe datetime helper (same as Create page) ---------- */
 type TzId = "IST" | "UTC";
@@ -345,7 +346,7 @@ export default function DomainsPage() {
 
           {/* Sidebar ad (desktop only) */}
           <div className="mt-4 hidden lg:block">
-            <AdSlot slot="8600708697" minHeight={600} />
+            <AdSlot slot={DOMAINS_SIDEBAR_SLOT_ID} minHeight={600} />
           </div>
         </aside>
 
@@ -447,7 +448,7 @@ export default function DomainsPage() {
                 {/* Mid-feed ad after 3rd card (index 2) */}
                 {idx === 2 && (
                   <div className="mt-4 md:col-span-2">
-                    <AdSlot slot="2470931531" minHeight={300} />
+                    <AdSlot slot="DOMAINS_MID_SLOT_ID" minHeight={300} />
                   </div>
                 )}
               </div>
@@ -458,7 +459,7 @@ export default function DomainsPage() {
 
       {/* End-of-page ad */}
       <div className="mt-6">
-        <AdSlot slot="3156810322" minHeight={280} />
+        <AdSlot slot={DOMAINS_END_SLOT_ID} minHeight={280} />
       </div>
     </Container>
   );
