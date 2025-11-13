@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useI18n } from "@/app/lib/i18n";
 import AdSlot from "@/app/components/AdSlot";
-import { SHUBHDIN_TOP_SLOT_ID, SHUBHDIN_END_SLOT_ID } from "@/app/constants/ads";
+import { SHUBHDIN_TOP_SLOT_ID } from "@/app/constants/ads";
 
 type TzId = "IST" | "UTC";
 const STORAGE_KEY = "ga_create_state_v1";
