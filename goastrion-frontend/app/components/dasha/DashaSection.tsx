@@ -4,15 +4,16 @@
 import React from "react";
 import { useI18n } from "../../lib/i18n";
 import { DashaTimeline, Period, adsForMD } from "./types";
-import AdSlot from "@/app/components/AdSlot"; // ✅ Added for AdSense integration
+import AdSlot from "@/app/components/AdSlot";
+import { DASHA_END_SLOT_ID } from "../../constants/ads";
 
 function fmtDate(iso: string) {
   return iso?.slice(0, 10);
 }
 function fmtYearsAsYM(y: number) {
-  const m = Math.round(y * 12),
-    yy = Math.floor(m / 12),
-    mm = m % 12;
+  const m = Math.round(y * 12);
+  const yy = Math.floor(m / 12);
+  const mm = m % 12;
   return `${yy > 0 ? `${yy} y ` : ""}${mm} m`.trim();
 }
 function planetLabel(eng: string, t: (k: string) => string) {
@@ -38,7 +39,10 @@ function MDTable({ v }: { v: DashaTimeline }) {
   const { t } = useI18n();
   return (
     <div className="rounded-2xl border border-white/10 bg-black/10 p-4 overflow-visible">
-      <div className="text-white font-semibold mb-3">{t("dasha.titleFullTimeline")}</div>
+      <div className="text-white font-semibold mb-3">
+        {t("dasha.titleFullTimeline")}
+      </div>
+
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
@@ -49,13 +53,21 @@ function MDTable({ v }: { v: DashaTimeline }) {
               <th className="text-left py-1 pr-3">{t("dasha.colDuration")}</th>
             </tr>
           </thead>
+
           <tbody>
             {v.mahadashas.map((md, i) => (
-              <tr key={`${md.lord}-${i}`} className="border-b border-white/5">
-                <td className="py-1 pr-3 text-slate-200">{planetLabel(md.lord, t)}</td>
+              <tr
+                key={`${md.lord}-${i}`}
+                className="border-b border-white/5"
+              >
+                <td className="py-1 pr-3 text-slate-200">
+                  {planetLabel(md.lord, t)}
+                </td>
                 <td className="py-1 pr-3 text-slate-300">{fmtDate(md.start)}</td>
                 <td className="py-1 pr-3 text-slate-300">{fmtDate(md.end)}</td>
-                <td className="py-1 pr-3 text-slate-400">{fmtYearsAsYM(md.years)}</td>
+                <td className="py-1 pr-3 text-slate-400">
+                  {fmtYearsAsYM(md.years)}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -69,11 +81,14 @@ function MDTable({ v }: { v: DashaTimeline }) {
 function ADTable({ title, md, v }: { title: string; md: Period; v: DashaTimeline }) {
   const { t } = useI18n();
   const ads = adsForMD(v, md);
+
   return (
     <div className="rounded-2xl border border-white/10 bg-black/10 p-4 overflow-visible min-w-0">
       <div className="text-white font-semibold mb-2">
-        {title}: {planetLabel(md.lord, t)} ({fmtDate(md.start)} → {fmtDate(md.end)})
+        {title}: {planetLabel(md.lord, t)} ({fmtDate(md.start)} →{" "}
+        {fmtDate(md.end)})
       </div>
+
       {ads.length === 0 ? (
         <div className="text-slate-400 text-sm">{t("dasha.noAntardasha")}</div>
       ) : (
@@ -87,13 +102,21 @@ function ADTable({ title, md, v }: { title: string; md: Period; v: DashaTimeline
                 <th className="text-left py-1 pr-3">{t("dasha.colDuration")}</th>
               </tr>
             </thead>
+
             <tbody>
               {ads.map((ad, i) => (
-                <tr key={`${ad.lord}-${i}`} className="border-b border-white/5">
-                  <td className="py-1 pr-3 text-slate-200">{planetLabel(ad.lord, t)}</td>
+                <tr
+                  key={`${ad.lord}-${i}`}
+                  className="border-b border-white/5"
+                >
+                  <td className="py-1 pr-3 text-slate-200">
+                    {planetLabel(ad.lord, t)}
+                  </td>
                   <td className="py-1 pr-3 text-slate-300">{fmtDate(ad.start)}</td>
                   <td className="py-1 pr-3 text-slate-300">{fmtDate(ad.end)}</td>
-                  <td className="py-1 pr-3 text-slate-400">{fmtYearsAsYM(ad.years)}</td>
+                  <td className="py-1 pr-3 text-slate-400">
+                    {fmtYearsAsYM(ad.years)}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -104,24 +127,16 @@ function ADTable({ title, md, v }: { title: string; md: Period; v: DashaTimeline
   );
 }
 
-/* ---- Dasha Section (with AdSlots) ---- */
+/* ---- Dasha Section (ONE bottom ad only) ---- */
 export default function DashaSection({ v }: { v: DashaTimeline }) {
   const { t } = useI18n();
 
   return (
     <div className="mt-6 space-y-6 overflow-visible pb-8">
+      {/* Mahadasha Table */}
       <MDTable v={v} />
 
-      {/* ✅ Ad after Mahadasha table */}
-      <div className="mx-auto my-8 w-full max-w-3xl">
-        <AdSlot
-          slot="8234373966" // replace with Dasha-specific slot ID later
-          format="auto"
-          fullWidthResponsive={true}
-          minHeight={280}
-        />
-      </div>
-
+      {/* All Antardashas */}
       <div className="space-y-6 overflow-visible">
         {v.mahadashas.map((md, idx) => (
           <ADTable
@@ -133,10 +148,10 @@ export default function DashaSection({ v }: { v: DashaTimeline }) {
         ))}
       </div>
 
-      {/* ✅ Ad after all Antardashas */}
-      <div className="mx-auto my-10 w-full max-w-3xl">
+      {/* ----- ONLY ONE AD AT BOTTOM (SAFE FOR TOOL PAGES) ----- */}
+      <div className="mx-auto my-12 w-full max-w-3xl">
         <AdSlot
-          slot="2982047285"
+          slot={DASHA_END_SLOT_ID}   // FINAL safe bottom slot
           format="auto"
           fullWidthResponsive={true}
           minHeight={280}

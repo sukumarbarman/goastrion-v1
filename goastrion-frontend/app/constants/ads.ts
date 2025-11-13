@@ -11,3 +11,19 @@ export const GUIDES_END_SLOT_ID = "9391563109";
 // ✅ ABOUT PAGE
 export const ABOUT_MID_SLOT_ID = "8474793602";
 export const ABOUT_END_SLOT_ID = "1676207691";
+
+// DASHA PAGE
+export const DASHA_END_SLOT_ID = "2982047285";
+
+//SATURN PAGE
+
+export const SATURN_MID_SLOT_ID = "6781603832";
+export const SATURN_END_SLOT_ID = "7610743428";
+
+// RESULTS PAGE
+export const RESULTS_MID_SLOT_ID = "6319403551";  // create in AdSense
+export const RESULTS_END_SLOT_ID = "7927998693";  // create in AdSense
+
+// FAQ PAGE
+export const FAQ_MID_SLOT_ID = "9938358013";
+export const FAQ_END_SLOT_ID = "1952056782";

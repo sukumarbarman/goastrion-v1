@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Container from "../components/Container";
 import AdSlot from "../components/AdSlot";
 import { useI18n } from "../lib/i18n";
+import { SATURN_MID_SLOT_ID, SATURN_END_SLOT_ID } from "../constants/ads";
 
 /** ---------- Load saved Create state ---------- */
 type TzId = "IST" | "UTC";
@@ -475,7 +476,7 @@ export default function SaturnPage() {
 
       {/* Ad: below the main controls (good viewability) */}
       <div className="mb-6">
-        <AdSlot slot="6781603832" minHeight={300} />
+        <AdSlot slot={SATURN_MID_SLOT_ID} minHeight={300} />
       </div>
 
       {resp && (
@@ -556,7 +557,7 @@ export default function SaturnPage() {
 
       {/* Ad: end-of-page placement */}
       <div className="mt-6">
-        <AdSlot slot="7610743428" minHeight={280} />
+        <AdSlot slot={SATURN_END_SLOT_ID} minHeight={280} />
       </div>
 
       {/* Footnotes */}

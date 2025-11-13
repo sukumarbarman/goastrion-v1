@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import clsx from "clsx";
-import AdSlot from "@/app/components/AdSlot"; // ✅ Added import for ads
 
 // --- Types ---
 type RetroSpan = { start: string; end: string };
@@ -189,15 +188,6 @@ export default function SaturnSadeSatiTab({
         </div>
       </div>
 
-      {/* ✅ Ad below the summary header */}
-      <div className="mx-auto my-6 w-full max-w-3xl">
-        <AdSlot
-          slot="1285822238" // replace with a Saturn-specific ad slot later
-          format="auto"
-          fullWidthResponsive={true}
-          minHeight={280}
-        />
-      </div>
 
       {/* Table */}
       <div className="overflow-auto">
@@ -269,15 +259,6 @@ export default function SaturnSadeSatiTab({
         <div><strong>Retro overlaps:</strong> good for review, fix, renegotiate. Expect rework.</div>
       </div>
 
-      {/* ✅ Ad at the bottom of section */}
-      <div className="mx-auto my-8 w-full max-w-3xl">
-        <AdSlot
-          slot="7659658892"
-          format="auto"
-          fullWidthResponsive={true}
-          minHeight={280}
-        />
-      </div>
     </div>
   );
 }

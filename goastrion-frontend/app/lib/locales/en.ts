@@ -6,24 +6,34 @@ import daily from "./en-daily";
 import enAbout from "./en-about";
 import enGuides from "./en-guides";
 import { deepMerge } from "./_merge";
+import enFaq from "./en-faq";
+import enResultsPage from "./en-results-page";
 
 const en = deepMerge(
   deepMerge(
     deepMerge(
       deepMerge(
-        deepMerge(core, insights),
+        deepMerge(
+          core,
+          insights
+        ),
         saturn
       ),
       daily
     ),
     enAbout
   ),
-  enGuides
+  deepMerge(
+    deepMerge(enGuides, enFaq),
+    enResultsPage
+  )
 ) as typeof core &
   typeof insights &
   typeof saturn &
   typeof daily &
   typeof enAbout &
-  typeof enGuides;
+  typeof enGuides &
+  typeof enFaq &
+  typeof enResultsPage;
 
 export default en;

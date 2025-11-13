@@ -49,6 +49,18 @@ export default function Footer() {
                 {tr("footer.contact", "Contact")}
               </Link>
             </li>
+
+            {/* ⭐ Added FAQ link — ideal position */}
+            <li>
+              <Link
+                href="/faq"
+                aria-label={tr("footer.faq", "FAQ")}
+                className="inline-flex rounded-full px-4 py-2 text-sm text-slate-200/90 hover:text-white hover:bg-white/10 transition"
+              >
+                {tr("footer.faq", "FAQ")}
+              </Link>
+            </li>
+
             <li>
               <Link
                 href="/privacy"

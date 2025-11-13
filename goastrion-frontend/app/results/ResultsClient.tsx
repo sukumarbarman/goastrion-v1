@@ -7,6 +7,7 @@ import Container from "../components/Container";
 import PrintButton from "../components/PrintButton";
 import AdSlot from "../components/AdSlot";
 import { useI18n } from "../lib/i18n";
+import { RESULTS_MID_SLOT_ID, RESULTS_END_SLOT_ID  } from "../constants/ads";
 
 type DomainCard = { key: string; title: string; summary: string; score: number };
 type Skill = { name: string; note: string };
@@ -241,7 +242,7 @@ export default function ResultsClient() {
 
           {/* Ad: mid placement */}
           <div className="mt-6">
-            <AdSlot slot="6319403551" minHeight={300} />
+           <AdSlot slot={RESULTS_MID_SLOT_ID} fullWidthResponsive minHeight={280}/>
           </div>
         </section>
 
@@ -343,7 +344,7 @@ export default function ResultsClient() {
 
         {/* Ad: end-of-page */}
         <div className="mt-8">
-          <AdSlot slot="8653196509" minHeight={280} />
+          <AdSlot slot={RESULTS_END_SLOT_ID} fullWidthResponsive minHeight={280}/>
         </div>
 
         {/* Footer CTA */}
