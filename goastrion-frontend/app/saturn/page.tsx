@@ -230,7 +230,7 @@ export default function SaturnPage() {
       try {
         setErr(null);
         setLoading(true);
-        const j = await fetchSaturn({ horizonYears: 20, anchor: "today" });
+        const j = await fetchSaturn({ horizonYears: 5, anchor: "today" });
         setResp(j);
         setMode("preview");
       } catch (e) {
@@ -379,7 +379,7 @@ export default function SaturnPage() {
 
         <p className="text-slate-400">
           {mode === "preview"
-            ? tf("saturn.sadesati.fast_preview", "Fast preview (20 yrs from today). Load full history when ready.")
+            ? tf("saturn.sadesati.fast_preview", "Fast preview (5 yrs from today). Load full history when ready.")
             : tf("saturn.sadesati.full_view_helper", "Full history (~100 yrs from birth).")}
         </p>
       </div>
@@ -483,7 +483,7 @@ export default function SaturnPage() {
           ].join(" ")}
           title={tf("saturn.sadesati.view.preview.tip", "Preview range from today")}
         >
-          {tf("saturn.sadesati.view.preview", "Preview: 20 yrs from today")}
+          {tf("saturn.sadesati.view.preview", "Preview: 5 yrs from today")}
         </button>
 
         <button

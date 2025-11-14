@@ -54,10 +54,10 @@ const enSaturn = {
         "Compact view of your Sade Sati windows with station days & retro overlaps.",
 
       // Helper text and controls on page
-      fast_preview: "Fast preview (20 yrs from today). Load full history when ready.",
+      fast_preview: "Fast preview (5) yrs from today). Load full history when ready.",
       full_view_helper: "Full history (~100 yrs from birth).",
       view: "View",
-      "view.preview": "Preview: 20 yrs from today",
+      "view.preview": "Preview: 5 yrs from today",
       "view.preview.tip": "Preview range from today",
       "view.full": "Show full (100 yrs from birth)",
       "view.full.tip": "Full history from birth",
