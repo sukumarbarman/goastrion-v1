@@ -236,7 +236,6 @@ export default function CreateChartClient() {
     }
 
   const [chartName, setChartName] = useState("");
-
   // raw (server) data kept for re-localization
   const [rawSvg, setRawSvg] = useState<string | null>(null);
   const [rawSummary, setRawSummary] = useState<Record<string, string> | null>(null);
@@ -900,7 +899,7 @@ export default function CreateChartClient() {
           </Link>
 
           <Link
-            href="/domains"
+            href="/life-wheel"
             className="group rounded-2xl border border-cyan-400/40 bg-gradient-to-br from-cyan-500/20 via-emerald-500/10 to-transparent p-5 hover:border-cyan-300/60 focus:outline-none focus:ring-2 focus:ring-cyan-300/60"
             aria-label={tOr("cards.life.cta", "Open Life Wheel")}
           >
@@ -953,17 +952,17 @@ export default function CreateChartClient() {
           <Link
             href="/vimshottari"
             className="group rounded-2xl border border-violet-400/40 bg-gradient-to-br from-violet-500/20 via-purple-500/10 to-transparent p-5 hover:border-violet-300/60 focus:outline-none focus:ring-2 focus:ring-violet-300/60"
-            aria-label={tOr("vimshottari.openCta", "Open Dasha Timeline")}
+            aria-label={tOr("vimshottari.openCta", "Open Vimshottari Timeline")}
           >
             <div className="text-2xl">⏳</div>
             <div className="mt-2 text-white font-semibold text-lg">
-              {tOr("vimshottari.cardTitle", "Dasha Timeline")}
+              {tOr("vimshottari.cardTitle", "Vimshottari  Timeline")}
             </div>
             <p className="mt-1 text-slate-300 text-sm">
               {tOr("vimshottari.cardDesc", "See your Vimshottari sequence and key periods.")}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 text-violet-100 font-medium">
-              {tOr("vimshottari.openCta", "Open Dasha Timeline")} <span className="animate-pulse">↗</span>
+              {tOr("vimshottari.openCta", "Open Vimshottari Timeline")} <span className="animate-pulse">↗</span>
             </div>
           </Link>
         </div>

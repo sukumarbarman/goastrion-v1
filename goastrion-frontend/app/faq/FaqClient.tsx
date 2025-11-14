@@ -86,7 +86,7 @@ export default function FaqClient() {
           {linkCreate}
         </Link>{" "}
         {introMiddle}{" "}
-        <Link href="/domains" className="underline decoration-indigo-400 hover:opacity-80">
+        <Link href="/life-wheel" className="underline decoration-indigo-400 hover:opacity-80">
           {linkLifeWheel}
         </Link>{" "}
         {introAnd}{" "}

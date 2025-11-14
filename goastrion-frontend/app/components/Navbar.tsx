@@ -37,7 +37,7 @@ export default function Navbar({
     { slug: "create", key: "navbar.create", fallback: "Create" },
     { slug: "saturn", key: "navbar.saturn", fallback: "Saturn" },
     { slug: "vimshottari", key: "navbar.vimshottari", fallback: "Vimshottari" },
-    { slug: "domains", key: "navbar.lifeSpheres", fallback: "Domains" },
+    { slug: "life-wheel", key: "navbar.lifeSpheres", fallback: "Life Wheel" },
     { slug: "skills", key: "navbar.skills", fallback: "Skills" },
   ] as const;
 

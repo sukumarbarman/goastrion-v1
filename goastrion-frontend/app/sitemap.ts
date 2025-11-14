@@ -6,13 +6,13 @@ export default function sitemap() {
   const routes = [
     "/",             // home
     "/create",
-    "/domains",
+    "/life-wheel",
     "/skills",
     "/faq",
     "/about",
     "/guides",
     "/saturn",
-    "/dasha",
+    "/vimshottari",
     "/daily",
     "/shubhdin",
     "/privacy",

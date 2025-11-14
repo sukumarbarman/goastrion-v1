@@ -186,8 +186,8 @@ const enCore = {
   },
 
   vimshottari: {
-    openCta: "Open Dasha Timeline",
-    cardTitle: "Dasha Timeline",
+    openCta: "Open Vimshottari Timeline",
+    cardTitle: "Vimshottari Timeline",
     cardDesc: "See your Vimshottari sequence and key periods.",
   },
 
@@ -334,7 +334,7 @@ const enCore = {
   },
 
   dasha: {
-    sectionTitle: "Dasha Timeline",
+    sectionTitle: "Vimshottari Timeline",
     titleFullTimeline: "Vimshottari Mahadasha — Full Timeline",
     colLord: "Lord",
     colStart: "Start",

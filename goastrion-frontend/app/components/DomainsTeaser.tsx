@@ -51,7 +51,7 @@ export default function DomainsTeaser() {
 
           <div className="mt-5">
             <Link
-              href="/domains"
+              href="/life-wheel"
               className="inline-flex items-center gap-2 rounded-full border border-cyan-400/60 bg-cyan-500/15 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-500/25 focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
             >
               ✨ {tf("home.domains.cta", "Explore Life Wheel")}

@@ -36,6 +36,6 @@ export const dashaGuide = {
     title: "Find Your Current Dasha",
     text: "Check which planet is currently influencing your life and how to use it for growth.",
     button: "View My Dasha →",
-    link: "/dasha",
+    link: "/vimshottari",
   },
 };

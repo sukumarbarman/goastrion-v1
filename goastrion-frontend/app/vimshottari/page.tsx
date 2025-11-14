@@ -1,7 +1,6 @@
-// app/vimshottari/page.tsx
-import { redirect } from "next/navigation";
+// app/dasha/page.tsx
+import DashaPageClient from "../components/dasha/page";
 
 export default function Page() {
-  redirect("/dasha"); // canonical stays /dasha
-  return null;
+  return <DashaPageClient />;
 }
