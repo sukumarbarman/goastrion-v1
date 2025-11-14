@@ -1,39 +1,43 @@
-// app/lib/locales/hi.ts
-import core from "./hi-core";
-import insights from "./hi-insights";
-import saturn from "./hi-saturn";
-import daily from "./hi-daily";
+import hiCore from "./hi-core";
+import hiInsights from "./hi-insights";
+import hiSaturn from "./hi-saturn";
+import hiDaily from "./hi-daily";
 import hiAbout from "./hi-about";
 import hiGuides from "./hi-guides";
-import { deepMerge } from "./_merge";
 import hiFaq from "./hi-faq";
-import hiResultsPage from "./hi-results-page";
+import hiResults from "./hi-results-page";
+import hiShubhdin from "./hi-shubhdin";
+import hiDasha from "./hi-dasha";
+import { deepMerge } from "./_merge";
 
+// Final merged Hindi locale
 const hi = deepMerge(
   deepMerge(
     deepMerge(
       deepMerge(
-        deepMerge(
-          core,
-          insights
-        ),
-        saturn
+        deepMerge(hiCore, hiInsights),
+        hiSaturn
       ),
-      daily
+      hiDaily
     ),
     hiAbout
   ),
   deepMerge(
-    deepMerge(hiGuides, hiFaq),
-    hiResultsPage
+    deepMerge(
+      deepMerge(hiGuides, hiFaq),
+      hiResults
+    ),
+    deepMerge(hiShubhdin, hiDasha)
   )
-) as typeof core &
-  typeof insights &
-  typeof saturn &
-  typeof daily &
+) as typeof hiCore &
+  typeof hiInsights &
+  typeof hiSaturn &
+  typeof hiDaily &
   typeof hiAbout &
   typeof hiGuides &
   typeof hiFaq &
-  typeof hiResultsPage;
+  typeof hiResults &
+  typeof hiShubhdin &
+  typeof hiDasha;
 
 export default hi;

@@ -1,3 +1,4 @@
+//goastrion-frontend/app/components/daily/DailyClient.tsx
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -112,8 +113,14 @@ function SkeletonCard({ className = "" }: { className?: string }) {
 }
 
 export default function DailyClient() {
-  const { t, locale } = useI18n();
-  const [mounted, setMounted] = useState(false);
+  const { t, get, locale } = useI18n();
+
+   function getArray(key: string): string[] {
+      const raw = get(key);
+      return Array.isArray(raw) ? (raw as string[]) : [];
+    }
+
+   const [mounted, setMounted] = useState(false);
   const [birth, setBirth] = useState<BirthLike | null>(null);
   const [payload, setPayload] = useState<DailyPayloadPlus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -241,6 +248,10 @@ export default function DailyClient() {
           <p className="mt-1 text-slate-400">DOB: —</p>
           <p className="mt-1 text-slate-400">Date: —</p>
         </header>
+
+
+
+
         <SkeletonCard />
         <SkeletonCard />
       </div>
@@ -273,6 +284,8 @@ export default function DailyClient() {
     );
   }
 
+
+
   return (
     <div className="grid gap-8" aria-busy={loading}>
       <header>
@@ -284,6 +297,53 @@ export default function DailyClient() {
         <p className="mt-1 text-xs md:text-sm text-slate-400">{dobLine}</p>
         <p className="mt-1 text-xs md:text-sm text-slate-400">{todayLine}</p>
       </header>
+
+      {/* -------------------- DAILY EXPLANATION CONTENT -------------------- */}
+    <section className="mt-4 mb-6 p-5 rounded-2xl bg-white/5 border border-white/10 text-slate-200">
+      <h2 className="text-xl font-semibold text-white mb-3">
+        {t("dailyPage.whatIsTitle")}
+      </h2>
+      <p className="text-sm leading-relaxed text-slate-300">
+        {t("dailyPage.whatIsBody")}
+      </p>
+
+      <h3 className="mt-4 font-semibold text-white text-lg">
+        {t("dailyPage.howCalcTitle")}
+      </h3>
+      <p className="text-sm leading-relaxed text-slate-300 mt-1">
+        {t("dailyPage.howCalcBody")}
+      </p>
+
+      <h3 className="mt-4 font-semibold text-white text-lg">
+        {t("dailyPage.howUseTitle")}
+      </h3>
+      <p className="text-sm leading-relaxed text-slate-300 mt-1">
+        {t("dailyPage.howUseBody")}
+      </p>
+
+      <h3 className="mt-4 font-semibold text-white text-lg">
+        {t("dailyPage.benefitsTitle")}
+      </h3>
+
+
+    <ul className="list-disc pl-5 mt-1 space-y-1 text-sm text-slate-300">
+      {getArray("dailyPage.benefitsList").map((item, i) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+
+
+
+
+      <h3 className="mt-4 font-semibold text-white text-lg">
+        {t("dailyPage.exampleTitle")}
+      </h3>
+      <p className="text-sm leading-relaxed text-slate-300 mt-1">
+        {t("dailyPage.exampleBody")}
+      </p>
+    </section>
+
+
 
       {error && (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 text-red-200 px-3 py-2 text-sm flex items-center justify-between">

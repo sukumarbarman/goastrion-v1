@@ -1,3 +1,4 @@
+// goastrion-frontend/app/shubhdin/ShubhDinClient.tsx
 "use client";
 
 import React, { useEffect, useMemo, useState, useCallback, useRef } from "react";
@@ -238,7 +239,13 @@ function GoalCard({ r }: { r: BackendResult }) {
 
 /* ---------- Main ---------- */
 export default function ShubhDinClient({ showTitle = true }: { showTitle?: boolean }) {
-  const { t, locale } = useI18n();
+  const { t, get } = useI18n();
+  function getArray(key: string): string[] {
+      const raw = get(key);
+      return Array.isArray(raw) ? (raw as string[]) : [];
+    }
+
+
   const tOr = useCallback(
     (key: string, fallback: string, vars?: KeyArgs) => {
       const out = t(key, vars);
@@ -409,6 +416,56 @@ export default function ShubhDinClient({ showTitle = true }: { showTitle?: boole
         </header>
       )}
 
+{/* -------------------- SHUBHDIN EXPLANATION CONTENT -------------------- */}
+<section className="mt-4 mb-6 p-5 rounded-2xl bg-white/5 border border-white/10 text-slate-200">
+
+  {/* What is ShubhDin */}
+  <h2 className="text-xl font-semibold text-white mb-3">
+    {t("shubhdinPage.whatIsTitle")}
+  </h2>
+  <p className="text-sm leading-relaxed text-slate-300">
+    {t("shubhdinPage.whatIsBody")}
+  </p>
+
+  {/* How GoAstrion Calculates */}
+  <h3 className="mt-4 font-semibold text-white text-lg">
+    {t("shubhdinPage.howCalcTitle")}
+  </h3>
+  <p className="text-sm leading-relaxed text-slate-300 mt-1">
+    {t("shubhdinPage.howCalcBody")}
+  </p>
+
+  {/* How to use */}
+  <h3 className="mt-4 font-semibold text-white text-lg">
+    {t("shubhdinPage.howUseTitle")}
+  </h3>
+  <p className="text-sm leading-relaxed text-slate-300 mt-1">
+    {t("shubhdinPage.howUseBody")}
+  </p>
+
+  {/* Benefits */}
+  <h3 className="mt-4 font-semibold text-white text-lg">
+    {t("shubhdinPage.benefitsTitle")}
+  </h3>
+
+
+    <ul className="list-disc pl-5 mt-1 space-y-1 text-sm text-slate-300">
+      {getArray("shubhdinPage.benefitsList").map((item, i) => (
+        <li key={i}>{item}</li>
+      ))}
+    </ul>
+
+  {/* Example */}
+  <h3 className="mt-4 font-semibold text-white text-lg">
+    {t("shubhdinPage.exampleTitle")}
+  </h3>
+  <p className="text-sm leading-relaxed text-slate-300 mt-1">
+    {t("shubhdinPage.exampleBody")}
+  </p>
+
+</section>
+
+
       {/* Body */}
       {!params ? (
         <div className="text-slate-300">
@@ -455,14 +512,17 @@ export default function ShubhDinClient({ showTitle = true }: { showTitle?: boole
               )}
 
               <div className="pt-2 text-xs text-white/50">
-                {t("sd.generated_at", {
-                  dt: resp.generated_at
-                    ? new Date(resp.generated_at).toLocaleString(locale)
-                    : new Date().toLocaleString(locale),
-                  tz: params.tzId,
-                } as KeyArgs) ||
-                  `${new Date(resp.generated_at || Date.now()).toLocaleString(locale)} • TZ: ${params.tzId}`}
-              </div>
+                  {t("sd.generated_at", {
+                    dt: resp.generated_at
+                      ? new Date(resp.generated_at).toLocaleString("en-US")   // <-- FIXED
+                      : new Date().toLocaleString("en-US"),                   // <-- FIXED
+                    tz: params.tzId,
+                  } as KeyArgs) ||
+                    `${new Date(resp.generated_at || Date.now()).toLocaleString("en-US")} • TZ: ${
+                      params.tzId
+                    }`}
+                </div>
+
             </div>
           )}
         </section>

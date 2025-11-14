@@ -1,40 +1,44 @@
-// app/lib/locales/bn.ts
-
-import core from "./bn-core";
-import insights from "./bn-insights";
-import saturn from "./bn-saturn";
-import daily from "./bn-daily";
+import bnCore from "./bn-core";
+import bnInsights from "./bn-insights";
+import bnSaturn from "./bn-saturn";
+import bnDaily from "./bn-daily";
 import bnAbout from "./bn-about";
 import bnGuides from "./bn-guides";
-import { deepMerge } from "./_merge";
 import bnFaq from "./bn-faq";
-import bnResultsPage from "./bn-results-page";
+import bnResults from "./bn-results-page";
+import bnShubhdin from "./bn-shubhdin";
+import bnDasha from "./bn-dasha";
 
+import { deepMerge } from "./_merge";
+
+// Final merged Bengali locale
 const bn = deepMerge(
   deepMerge(
     deepMerge(
       deepMerge(
-        deepMerge(
-          core,
-          insights
-        ),
-        saturn
+        deepMerge(bnCore, bnInsights),
+        bnSaturn
       ),
-      daily
+      bnDaily
     ),
     bnAbout
   ),
   deepMerge(
-    deepMerge(bnGuides, bnFaq),
-    bnResultsPage
+    deepMerge(
+      deepMerge(bnGuides, bnFaq),
+      bnResults
+    ),
+    deepMerge(bnShubhdin, bnDasha)
   )
-) as typeof core &
-  typeof insights &
-  typeof saturn &
-  typeof daily &
+) as typeof bnCore &
+  typeof bnInsights &
+  typeof bnSaturn &
+  typeof bnDaily &
   typeof bnAbout &
   typeof bnGuides &
   typeof bnFaq &
-  typeof bnResultsPage;
+  typeof bnResults &
+  typeof bnShubhdin &
+  typeof bnDasha;
 
 export default bn;

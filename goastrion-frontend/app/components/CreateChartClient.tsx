@@ -229,7 +229,11 @@ function entriesFromLabelRecord(rec: Record<string, string>): SummaryEntry[] {
 
 /* -------------------- Component -------------------- */
 export default function CreateChartClient() {
-  const { t, tOr, locale } = useI18n();
+  const { t, tOr, get, locale } = useI18n();
+  function getArray(key: string): string[] {
+      const raw = get(key);
+      return Array.isArray(raw) ? (raw as string[]) : [];
+    }
 
   const [chartName, setChartName] = useState("");
 
@@ -602,6 +606,44 @@ export default function CreateChartClient() {
           {t("create.note")}
         </p>
       </div>
+
+
+    {/* -------------------- CREATE PAGE EXPLANATION -------------------- */}
+    <section className="mt-4 mb-6 p-5 rounded-2xl bg-white/5 border border-white/10 text-slate-200">
+      <h2 className="text-xl font-semibold text-white mb-3">
+        {t("createPage.whatIsTitle")}
+      </h2>
+      <p className="text-sm leading-relaxed text-slate-300">
+        {t("createPage.whatIsBody")}
+      </p>
+
+      <h3 className="mt-4 font-semibold text-white text-lg">
+        {t("createPage.howUseTitle")}
+      </h3>
+      <p className="text-sm leading-relaxed text-slate-300 mt-1">
+        {t("createPage.howUseBody")}
+      </p>
+
+        <h3 className="mt-4 font-semibold text-white text-lg">
+          {t("createPage.benefitsTitle")}
+        </h3>
+
+        <ul className="list-disc pl-5 mt-1 space-y-1 text-sm text-slate-300">
+          {(() => {
+            const raw = get("createPage.benefitsList");
+            const list = Array.isArray(raw) ? (raw as string[]) : [];
+            return list.map((item, i) => <li key={i}>{item}</li>);
+          })()}
+        </ul>
+
+
+    </section>
+
+
+
+
+
+
 
       <div className="bg-[#141A2A] rounded-2xl p-6 pb-8 border border-white/5 overflow-visible">
         {/* Form */}

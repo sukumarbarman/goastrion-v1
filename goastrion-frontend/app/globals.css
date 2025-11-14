@@ -125,3 +125,21 @@ svg [data-planet].highlighted ~ circle {
   animation: shimmer 3s ease-in-out infinite;
   transform: translateX(-100%) rotate(20deg);
 }
+
+.longform p:first-child:first-letter {
+  font-size: 3rem;
+  float: left;
+  line-height: 1;
+  padding-right: 8px;
+  color: #22d3ee; /* cyan-400 */
+  font-weight: 600;
+}
+
+@keyframes slowspin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-slowspin {
+  animation: slowspin 40s linear infinite;
+}

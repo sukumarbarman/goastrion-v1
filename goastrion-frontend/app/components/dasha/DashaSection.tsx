@@ -133,6 +133,78 @@ export default function DashaSection({ v }: { v: DashaTimeline }) {
 
   return (
     <div className="mt-6 space-y-6 overflow-visible pb-8">
+
+    {/* ---- DASHAS ABOUT SECTION ---- */}
+<div className="mb-6 rounded-xl border border-white/10 bg-black/20 p-4">
+  <div className="flex items-start gap-3">
+    <div
+      className="shrink-0 mt-0.5 h-5 w-5 rounded-full border border-cyan-400/40 bg-cyan-500/15"
+      aria-hidden
+    />
+    <div>
+      <div className="text-slate-100 font-semibold">
+        {t("dasha.about.title")}
+      </div>
+
+      <p className="text-slate-300 text-sm mt-1">
+        {t("dasha.about.blurb")}
+      </p>
+
+      <div className="mt-3">
+        <div className="text-slate-200 text-sm font-medium">
+          {t("dasha.about.termsTitle")}
+        </div>
+
+        <ul className="mt-1 space-y-1.5 text-xs text-slate-300">
+          <li>
+            <span className="font-medium">{t("dasha.about.terms.maha")}</span>
+          </li>
+          <li>
+            <span className="font-medium">{t("dasha.about.terms.antara")}</span>
+          </li>
+          <li>
+            <span className="font-medium">{t("dasha.about.terms.transition")}</span>
+          </li>
+          <li>
+            <span className="font-medium">{t("dasha.about.terms.peak")}</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+{/* ---- EXTRA DASHAS GUIDANCE ---- */}
+<section className="mt-4 mb-6 p-4 rounded-xl bg-white/5 border border-white/10 text-slate-200">
+  <h3 className="text-lg font-semibold text-white mb-2">
+    {t("dasha.extra.howTitle")}
+  </h3>
+
+  <p className="text-sm leading-relaxed text-slate-300">
+    {t("dasha.extra.howBody")}
+  </p>
+
+  <h3 className="mt-4 text-lg font-semibold text-white mb-2">
+    {t("dasha.extra.benefitsTitle")}
+  </h3>
+
+  <ul className="list-disc pl-5 space-y-1 text-sm text-slate-300">
+    <li>{t("dasha.extra.b1")}</li>
+    <li>{t("dasha.extra.b2")}</li>
+    <li>{t("dasha.extra.b3")}</li>
+    <li>{t("dasha.extra.b4")}</li>
+  </ul>
+
+  <h3 className="mt-4 text-lg font-semibold text-white mb-2">
+    {t("dasha.extra.exampleTitle")}
+  </h3>
+
+  <p className="text-sm leading-relaxed text-slate-300">
+    {t("dasha.extra.exampleBody")}
+  </p>
+</section>
+
+
       {/* Mahadasha Table */}
       <MDTable v={v} />
 

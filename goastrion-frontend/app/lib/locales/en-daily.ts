@@ -4,9 +4,36 @@ export const formatDaily = (tpl: string, args: DailyArgs = {}) =>
   tpl.replace(/\{(\w+)\}/g, (_, k) => (args[k] ?? "").toString());
 
 const enDaily = {
-  // --------------------------
-  // Profile Quick View (merged)
-  // --------------------------
+    dailyPage: {
+      whatIsTitle: "What is Daily Analysis?",
+      whatIsBody:
+        "Daily Analysis shows your inner weather for the day—based on your birth chart, Moon's movement, Saturn’s phase, Mahadasha–Antardasha flow, daily planetary dignity, Nakshatra–Tithi blend, and rising-lord strength. It does not predict events; instead, it reveals when clarity, energy, calmness, and communication flow better for you.",
+
+      howCalcTitle: "How GoAstrion Calculates Daily Analysis",
+      howCalcBody:
+        "GoAstrion uses your sidereal (Lahiri) chart, Moon’s transit, planetary strengths, Saturn’s influence, Mahadasha/Antardasha tone, and the day’s Panchang factors to estimate supportive and caution time windows. This produces personalised guidance for your work, communication, decisions, and emotional balance.",
+
+      howUseTitle: "How to Use Daily Analysis",
+      howUseBody:
+        "Use the supportive windows for important tasks—meetings, calls, negotiation, presentation, studying, writing, trading, planning, or travel. During caution windows, avoid sensitive conversations, hasty decisions, or unnecessary pressure. The goal is not prediction but smoother effort and better timing.",
+
+      benefitsTitle: "Benefits",
+      benefitsList: [
+        "Personalised timing guidance based on your birth chart.",
+        "Moon + Saturn sensitivity shows emotional flow and clarity.",
+        "Mahadasha–Antardasha trend awareness.",
+        "Hour-wise good & caution windows.",
+        "Travel, communication, and trading specific suggestions.",
+        "Panchang integration (Rahu Kal, Yamaganda, Gulika, Abhijit).",
+        "Clear, simple insights instead of complex astrology terms."
+      ],
+
+      exampleTitle: "Example",
+      exampleBody:
+        "Suppose you have an important call today. Daily Analysis may show a strong good window from 1:20 PM to 2:50 PM and a caution period from 10:30 AM to 11:15 AM. This means your clarity, confidence, and communication will flow better during the good window—helping your effort land smoothly."
+    },
+
+
   profile: {
     daily: {
       title: "Daily quick view",

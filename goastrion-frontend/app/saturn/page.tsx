@@ -418,6 +418,40 @@ export default function SaturnPage() {
         </div>
       </div>
 
+      {/* -------------------- EXTRA SADE SATI GUIDANCE -------------------- */}
+<section className="mt-4 mb-6 p-4 rounded-xl bg-white/5 border border-white/10 text-slate-200">
+  <h3 className="text-lg font-semibold text-white mb-2">
+    {tf("saturn.sadesati.extra.howTitle", "How to use this page")}
+  </h3>
+  <p className="text-sm leading-relaxed text-slate-300">
+    {tf(
+      "saturn.sadesati.extra.howBody",
+      "Green windows are periods of stability and clarity—ideal for decisions, communication, financial planning, or long-term commitments. Amber windows are review zones: restructure, renegotiate, or complete pending tasks. Red windows show pressure pockets where emotional load or delays increase. Avoid rushing important commitments here."
+    )}
+  </p>
+
+  <h3 className="mt-4 text-lg font-semibold text-white mb-2">
+    {tf("saturn.sadesati.extra.benefitsTitle", "Benefits")}
+  </h3>
+  <ul className="list-disc pl-5 space-y-1 text-sm text-slate-300">
+    <li>{tf("saturn.sadesati.extra.b1", "See the full 7½-year flow in one clean timeline.")}</li>
+    <li>{tf("saturn.sadesati.extra.b2", "Understand where pressure rises and where relief enters.")}</li>
+    <li>{tf("saturn.sadesati.extra.b3", "Use review windows to correct or renegotiate old issues.")}</li>
+    <li>{tf("saturn.sadesati.extra.b4", "Choose your best months for growth, planning and decisions.")}</li>
+  </ul>
+
+  <h3 className="mt-4 text-lg font-semibold text-white mb-2">
+    {tf("saturn.sadesati.extra.exampleTitle", "Example")}
+  </h3>
+  <p className="text-sm leading-relaxed text-slate-300">
+    {tf(
+      "saturn.sadesati.extra.exampleBody",
+      "If your peak Dhaiyya shows both stations and retro overlaps, avoid major commitments and use this period for review. When the next green window appears, clarity and flow return—ideal for decisions or forward movement."
+    )}
+  </p>
+</section>
+
+
       {err && (
         <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-200 px-3 py-2 text-sm mb-4">
           {err}

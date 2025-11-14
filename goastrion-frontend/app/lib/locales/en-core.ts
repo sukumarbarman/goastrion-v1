@@ -264,6 +264,25 @@ const enCore = {
     locationFound: "Location found.",
   },
 
+  createPage: {
+    whatIsTitle: "What is this page for?",
+    whatIsBody:
+      "This page helps you generate your North Indian style Vedic birth chart based on your date, time and place of birth. The chart shows your Lagna, Moon sign, Sun sign, Nakshatra, and planetary positions at birth.",
+
+    howUseTitle: "How to use this page",
+    howUseBody:
+      "Enter your accurate birth details and press Generate. If you are unsure of the latitude/longitude, simply type your town name and click Find. You can save the chart to your account for quick access inside Daily, ShubhDin, Saturn, Dasha, Life Wheel and Skills.",
+
+    benefitsTitle: "Benefits",
+    benefitsList: [
+      "Instantly generate your Vedic chart",
+      "Auto-detect place and coordinates",
+      "Get your Lagna, Moon, Sun and Nakshatra",
+      "Save charts for Daily, ShubhDin and Dasha pages",
+      "No need to remember details every time",
+    ],
+  },
+
   cta: {
     domains: {
       title: "Life Wheel (Domains)",

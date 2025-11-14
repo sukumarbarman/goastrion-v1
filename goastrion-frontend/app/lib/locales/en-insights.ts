@@ -1,3 +1,4 @@
+
 const enInsights = {
   insights: {
     copy: {
@@ -126,6 +127,137 @@ const enInsights = {
     },
 
     actions: { highlightAllDomain: "Highlight all for this domain" },
+
+// adsense  content of skill page - start
+    skillsDescription: {
+      fallback: "This skill reflects a natural tendency shaped by your planetary patterns.",
+
+      Analytical:
+        "A Mercury-driven ability that sharpens your intellect. Strong analytical patterns show capacity for pattern-recognition, structured thinking, and decoding complex information with ease. Benefic support strengthens memory, logic, and detailed evaluation.",
+
+      Communication:
+        "Primarily influenced by Mercury and Moon. This skill reflects your natural clarity of speech, writing flow, articulation, and ability to influence others through words. Benefic aspects boost diplomacy, humor, and expressive intelligence.",
+
+      Leadership:
+        "A Sun-powered competence shaped by confidence, authority, and visibility. Strong leadership signatures show an innate ability to guide teams, take responsibility, and make decisive choices. Supporting Jupiter aspects improve mentorship qualities.",
+
+      Creativity:
+        "Ruled by Venus and Moon. Creativity emerges as aesthetic sensitivity, imagination, and original problem-solving. Benefic lunar influence enhances artistic flow; Venus-driven patterns boost taste, harmony, and design thinking.",
+
+      Focus:
+        "A Saturn-Mars synergy indicating discipline, endurance, and the ability to stay committed. Strong patterns show resilience, consistency, and an ability to block distractions. Saturn gives structure; Mars adds drive and execution force.",
+
+      Entrepreneurial:
+        "Influenced by Mars, Rahu, and Mercury. This skill reflects risk-taking ability, strategic thinking, bold decision-making, and opportunity recognition. Strong signatures show capacity to initiate ventures and pursue growth paths fearlessly.",
+
+      mercury:
+        "Pure Mercury expression—intellect, logic, analysis, communication, and adaptability. Strong Mercury gives sharp thinking, quick learning, and problem-solving ability.",
+
+      venus:
+        "Venus strengthens creativity, diplomacy, relationship-building, and an eye for design. A powerful Venus enhances charm, aesthetic judgment, and harmonious expression.",
+
+      sun:
+        "Sun enhances leadership, confidence, authority, and individuality. Strong solar influence brings visibility, recognition, and self-direction.",
+
+      saturn:
+        "Saturn grants discipline, patience, long-term planning, and mastery through consistent effort. Strong Saturn improves focus, persistence, and responsibility.",
+
+      mars:
+        "Mars empowers action, courage, initiative, and competitive energy. Strong Mars gives sharp execution skills and high determination.",
+
+      jupiter:
+        "Jupiter enhances wisdom, teaching ability, mentorship, growth mindset, and higher understanding. A strong Jupiter expands knowledge and brings good judgment.",
+
+      rahu10or11:
+        "Rahu in 10th or 11th (with support) amplifies ambition, visibility, futuristic thinking, and the ability to leverage opportunities rapidly. It boosts networking, social reach, and unconventional success pathways.",
+    },
+
+
+    skillsPageCalculation: {
+      title: "How These Skills Are Calculated",
+      body1:
+        "Each skill score is computed from multiple astrological factors connected to your chart:",
+      item1: "Planetary strength (dignity, Shadbala, house placement)",
+      item2:
+        "Active houses influencing intelligence, focus, creativity, and discipline",
+      item3: "Aspects and conjunctions that enhance or challenge traits",
+      item4: "Nakshatra energies shaping mindset and behaviour",
+      item5: "Planet–Skill mapping based on CHIP_TO_PLANETS associations",
+      body2:
+        "All these factors are processed through a weighted model that classifies each ability as Excellent, Strong, Moderate, or Emerging.",
+    },
+
+
+    skillsUsage: {
+      title: "How to Use These Skill Insights",
+      p1: "These scores highlight the strengths you naturally express based on planetary influences—not guarantees of behaviour.",
+      p2: "Use higher-rated skills to guide career decisions, academics, and personal development.",
+      p3: "Areas marked as “emerging” show where deliberate practice, habit-building, or life experience can create major improvements.",
+      p4: "Treat these insights as a self-awareness tool, not predictions of destiny.",
+    },
+// adsense end content of skill page
+
+
+
+
+ domainsPage: {
+  intro1:
+    "GoAstrion Domains helps you understand how your birth chart influences key areas of life such as Career, Finance, Health, Relationships, and Personal Growth. Each domain is generated using planetary placements, house activity, and astrological aspects. The insights below are personalized, astrologically derived, and updated dynamically based on your birth details.",
+  intro2:
+    "This page provides in-depth explanations—not predictions—so you can make balanced decisions with clarity. All highlights, themes, and planetary influences shown here are unique to your chart.",
+
+  headingDetailed: "Your Life Domains — Detailed Analysis",
+
+  /* ⭐ NEW — PER DOMAIN EXPLAINERS (all lowercase keys) */
+  domainExplainer: {
+    career:
+      "Your career domain reflects how planets influence professional growth, stability, recognition, and long-term achievements. This explainer summarizes how active houses and planets shape your career direction.",
+    finance:
+      "Your finance domain highlights wealth-building, income stability, savings, and material growth. Planetary influences show how financial opportunities and challenges develop over time.",
+    health:
+      "Your health domain reflects physical vitality, stamina, mental balance, and overall wellbeing. Planetary activity indicates where strength or imbalance may arise.",
+    marriage:
+      "Your marriage domain examines compatibility, bonding, emotional harmony, commitment, and partnership dynamics influenced by planetary placements.",
+    education:
+      "Your education domain covers learning ability, academic growth, curiosity, memory, and higher studies uplifted or challenged by planetary forces.",
+    property:
+      "Your property domain deals with assets, home, land, real estate, and long-term stability shaped by foundation-related houses and planets.",
+    relationships:
+      "Your relationships domain highlights connections, bonding, communication, and emotional exchange with others based on planetary interactions.",
+    business:
+      "Your business domain focuses on entrepreneurship, risk-taking ability, expansion, profitability, and leadership in business ventures.",
+    outreach:
+      "Your outreach domain reflects social visibility, network building, public image, digital influence, and communication-driven growth.",
+    home:
+      "Your home domain reflects domestic peace, comfort, security, and emotional grounding influenced by inner-life planets.",
+    research:
+      "Your research domain highlights deep thinking, analysis, investigation, and solitary work supported by transformative planetary energies.",
+    "inner-work":
+      "Your inner-work domain shows self-reflection, emotional healing, spiritual development, and clarity arising from internal planetary guidance.",
+    "long-term-plans":
+      "This domain reflects strategy, patience, discipline, and structured growth for future planning shaped by long-term planetary influences.",
+    "hard-negotiations":
+      "This domain reveals negotiation capacity, conflict resolution, decision pressure, and assertive communication influenced by challenging planetary combinations.",
+    "quick-wins":
+      "Your quick-wins domain highlights short-term efforts, small gains, rapid action, and tactical opportunities driven by fast-moving planets.",
+    "steady-routines":
+      "This domain focuses on daily habits, discipline, consistency, routines, and long-term maintenance shaped by stabilizing planetary patterns.",
+  },
+
+  faqTitle: "Frequently Asked Questions",
+
+  faq: {
+    q1: "How does GoAstrion calculate these domains?",
+    a1: "We use your birth chart, planetary positions, house strengths, nakshatra influences, and aspect patterns. A weighted algorithm transforms these into domain scores and narrative insights.",
+
+    q2: "Is this the same as predictions?",
+    a2: "No. We focus on interpreting your inherent tendencies—not forecasting events. These insights help support decisions, not predict outcomes.",
+
+    q3: "Why are some domains stronger than others?",
+    a3: "Strength depends on benefic influence, dignities, lordships, and supporting aspects. Weak scores show areas needing attention, not failure.",
+  },
+},
+
 
     domains: {
       career:   { title: "Career",   chip10th: "10th House", chip6th: "6th House", chip11th: "11th House", housePresence: "Planets in Career Houses" },

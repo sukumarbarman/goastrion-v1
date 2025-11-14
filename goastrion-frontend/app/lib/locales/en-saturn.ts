@@ -140,6 +140,21 @@ const enSaturn = {
       },
 
       duration_days: "{d}d",
+      extra: {
+      howTitle: "How to use this page",
+      howBody:
+        "Green windows are periods of stability and clarity—ideal for decisions, communication, financial planning, or long-term commitments. Amber windows are review zones: restructure, renegotiate, or complete pending tasks. Red windows show pressure pockets where emotional load or delays increase. Avoid rushing important commitments here.",
+
+      benefitsTitle: "Benefits",
+      b1: "See the full 7½-year flow in one clean timeline.",
+      b2: "Understand where pressure rises and where relief enters.",
+      b3: "Use review windows to correct or renegotiate old issues.",
+      b4: "Choose your best months for growth, planning and decisions.",
+
+      exampleTitle: "Example",
+      exampleBody:
+        "If your peak Dhaiyya shows both stations and retro overlaps, avoid major commitments and use this period for review. When the next green window appears, clarity and flow return—ideal for decisions or forward movement."
+    },
 
       // About (inline section/modal)
       about: {
