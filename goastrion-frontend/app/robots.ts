@@ -1,3 +1,4 @@
+//goastrion-frontend/app/robots.ts
 export default function robots() {
   return {
     rules: [{ userAgent: "*", allow: "/" }],

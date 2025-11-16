@@ -1,4 +1,4 @@
-/* FULL UPDATED CODE — with DEEP SKILL DESCRIPTION support added */
+//goastrion-frontend/app/skills/page.tsx
 
 "use client";
 

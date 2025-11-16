@@ -1,3 +1,4 @@
+//goastrion-frontend/app/life-wheel/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";

@@ -74,8 +74,7 @@ export const metadata: Metadata = {
     description: defaultDescription,
     images: ["/og/og-home.jpg"],
   },
-  alternates: { canonical: SITE_URL },
-  robots: { index: true, follow: true },
+  robots: { index: true, follow: true },   // <-- Canonical removed
   other: {
     slogan:
       "Know today, tomorrow, and your good & cautious times — with GoAstrion’s free Vedic birth chart and Saturn Dasa insights.",
@@ -150,11 +149,7 @@ const FAQ = {
 };
 
 /* ------------------------------- Root Layout ------------------------------ */
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head />
@@ -163,32 +158,24 @@ export default function RootLayout({
         {/* -------------------- Analytics & Ads Scripts -------------------- */}
         {GA_ID && (
           <>
-            {/* --- Load GA4 --- */}
             <Script
               strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
             />
-
-            {/* --- GA4 Init with Consent Mode (analytics allowed) --- */}
             <Script id="ga4-init" strategy="afterInteractive">{`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
-
-              // Default consent: allow analytics, block ads until accepted
               gtag('consent','default',{
                 ad_storage:'denied',
                 ad_user_data:'denied',
                 ad_personalization:'denied',
                 analytics_storage:'granted'
               });
-
               gtag('js', new Date());
-              // Enable automatic first pageview (important for Realtime)
               gtag('config', '${GA_ID}');
             `}</Script>
           </>
         )}
-
 
         {ENABLE_ADS && ADS_CLIENT && (
           <Script

@@ -1,20 +1,56 @@
 // ================================================
 // app/contact/page.tsx
-// SEO + AdSense Friendly Contact Page (safe version)
 // ================================================
 import Container from "../components/Container";
 import ContactForm from "../components/ContactForm";
+import type { Metadata } from "next";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Contact Us | GoAstrion",
   description:
-    "Reach out to the GoAstrion team for support, feedback, partnership enquiries, technical issues, or general questions. We usually respond within 24–48 hours.",
+    "Contact GoAstrion for support, feedback, partnership enquiries, calculation issues, or general questions. Get a response within 24–48 hours.",
+  keywords: [
+    "GoAstrion contact",
+    "astrology support",
+    "Vedic astrology help",
+    "GoAstrion help",
+    "GoAstrion feedback",
+    "astrology app support"
+  ],
+  alternates: {
+    canonical: "https://goastrion.com/contact",
+  },
+  openGraph: {
+    title: "Contact Us | GoAstrion",
+    description:
+      "Get support, report issues, share feedback, or get help with charts and features. GoAstrion responds within 24–48 hours.",
+    url: "https://goastrion.com/contact",
+    siteName: "GoAstrion",
+    images: [
+      {
+        url: "https://goastrion.com/og/contact.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Contact GoAstrion",
+      },
+    ],
+    type: "website",
+    locale: "en-IN",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Contact Us | GoAstrion",
+    description:
+      "Need help? Contact the GoAstrion team for support, feedback, or partnership enquiries.",
+    images: ["https://goastrion.com/og/contact.jpg"],
+  },
 };
 
 export default function ContactPage() {
   return (
     <Container>
       <div className="max-w-3xl mx-auto py-10 px-4">
+
         {/* Hero */}
         <h1 className="text-2xl md:text-3xl font-bold text-cyan-300">
           Contact Us
@@ -22,8 +58,8 @@ export default function ContactPage() {
         <p className="text-slate-300 mt-3 leading-relaxed">
           We&apos;re here to help! Whether you have a question about your birth chart,
           need technical support, want to report a bug, or simply share your
-          feedback about GoAstrion &mdash; feel free to reach out.
-          Our team typically responds within <strong>24&ndash;48 hours</strong>.
+          feedback — feel free to reach out. Our team typically responds within
+          <strong> 24–48 hours</strong>.
         </p>
 
         {/* Why Contact Section */}
@@ -32,11 +68,11 @@ export default function ContactPage() {
             When Should You Contact Us?
           </h2>
           <ul className="list-disc list-inside text-slate-300 mt-3 space-y-2">
-            <li>Help with using GoAstrion features (charts, timing tools, guides).</li>
-            <li>Incorrect birth chart data or calculation issues.</li>
-            <li>Technical problems like page errors or slow loading.</li>
-            <li>Feedback for improving accuracy or user experience.</li>
-            <li>General queries about services, features, or updates.</li>
+            <li>Help with using GoAstrion features.</li>
+            <li>Incorrect birth chart or calculation issues.</li>
+            <li>Technical problems or bugs.</li>
+            <li>Feedback for accuracy or UX improvements.</li>
+            <li>General queries about services or updates.</li>
             <li>Business or partnership enquiries.</li>
           </ul>
         </div>
@@ -47,14 +83,12 @@ export default function ContactPage() {
             Our Response Policy
           </h2>
           <p className="text-slate-300 mt-2 leading-relaxed">
-            Every message is reviewed by a member of our team. While we usually reply
-            within two days, complex requests may take a little longer.
-            For time-sensitive issues, please include as much detail as possible so we
-            can assist you quickly.
+            Every message is reviewed by our team. Most responses are sent within
+            24–48 hours. For urgent issues, please include complete details.
           </p>
         </div>
 
-        {/* Contact Form */}
+        {/* Form */}
         <div className="mt-10">
           <h2 className="text-xl font-semibold text-cyan-200 mb-2">
             Send Us a Message
@@ -65,25 +99,18 @@ export default function ContactPage() {
         {/* Additional Info */}
         <div className="mt-12 text-slate-400 text-sm leading-relaxed">
           <p>
-            GoAstrion is committed to providing high-quality guidance through
-            astrology, research-based insights, and modern tools.
-            This contact page is for customer support and general enquiries only.
-            For legal, privacy, or data-related requests, please visit our{" "}
-            <a
-              href="/privacy-policy"
-              className="text-cyan-400 hover:underline"
-            >
+            GoAstrion provides high-quality astrology guidance and modern tools.
+            This page is for customer support. For legal or privacy matters, visit{" "}
+            <a href="/privacy-policy" className="text-cyan-400 hover:underline">
               Privacy Policy
-            </a>{" "}
-            or{" "}
-            <a
-              href="/terms"
-              className="text-cyan-400 hover:underline"
-            >
+            </a>
+            {" "}or{" "}
+            <a href="/terms" className="text-cyan-400 hover:underline">
               Terms of Service
             </a>.
           </p>
         </div>
+
       </div>
     </Container>
   );

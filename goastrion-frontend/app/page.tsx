@@ -8,7 +8,40 @@ import CTA from "./components/CTA";
 import ShubhDinTeaser from "./components/ShubhDinTeaser";
 import DomainsTeaser from "./components/DomainsTeaser";
 import StructuredData from "./components/StructuredData";
-import JumpButton from "./components/JumpButton";
+
+// ⭐ Page-level Metadata (CRITICAL for AdSense)
+export const metadata = {
+  title:
+    "GoAstrion – Free Vedic Birth Chart, ShubhDin & Astrology Timing Insights",
+  description:
+    "Generate your free Vedic birth chart instantly. Explore ShubhDin, life domains, Saturn phases, skills, and personalized timing insights based on authentic Vedic astrology.",
+  alternates: {
+    canonical: "https://goastrion.com/",
+  },
+  openGraph: {
+    title:
+      "GoAstrion – Free Vedic Birth Chart, ShubhDin & Astrology Timing Insights",
+    description:
+      "Check your good and cautious times using Vedic astrology. Explore your birth chart, domains, skills, Saturn phases, and more.",
+    url: "https://goastrion.com/",
+    images: [
+      {
+        url: "https://goastrion.com/og/og-home.jpg",
+        width: 1200,
+        height: 630,
+        alt: "GoAstrion Homepage",
+      },
+    ],
+    type: "website",
+    siteName: "GoAstrion",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title:
+      "GoAstrion – Free Vedic Birth Chart, ShubhDin & Astrology Timing Insights",
+    images: ["https://goastrion.com/og/og-home.jpg"],
+  },
+};
 
 // ⭐ Small inline components (no need for separate files)
 const SectionDivider = () => (
@@ -20,23 +53,9 @@ const HeroGlow = () => (
 );
 
 export default async function HomePage() {
-  const c = await cookies();
-
-  const authed =
-    c.get("ga_auth")?.value === "1" ||
-    c.has("access") ||
-    c.has("refresh") ||
-    c.has("sessionid");
-
   return (
     <>
       <StructuredData />
-
-      {authed && (
-        <div className="text-center mt-12">
-          <JumpButton />
-        </div>
-      )}
 
       {/* ⭐ Soft glow behind hero section */}
       <div className="relative">
@@ -64,7 +83,7 @@ export default async function HomePage() {
 
       <SectionDivider />
 
-      {/* ⭐ Long-form justified content with drop-cap */}
+      {/* ⭐ Long-form justified content */}
       <section
         className="
           px-6 sm:px-10 lg:px-20

@@ -1,3 +1,5 @@
+//goastrion-frontend/app/gtm-tracker.tsx
+
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
