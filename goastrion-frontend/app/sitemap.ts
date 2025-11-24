@@ -1,11 +1,11 @@
 // app/sitemap.ts
 export default function sitemap() {
   const base = "https://goastrion.com";
-  const now = new Date();
+  const now = new Date().toISOString();
 
   // Main static pages
   const routes = [
-    "/",             // home
+    "/",             // Home
     "/create",
     "/life-wheel",
     "/skills",
