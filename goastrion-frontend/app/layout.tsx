@@ -1,4 +1,4 @@
-//goastrion-frontend/app/layout.tsx
+// app/layout.tsx
 import "./globals.css";
 import ClientShell from "./ClientShell";
 import { I18nProvider } from "./lib/i18n";
@@ -27,6 +27,9 @@ export const metadata: Metadata = {
     default:
       "GoAstrion — Free Vedic Birth Chart, ShubhDin & Astrology for Good Time Today",
     template: "%s | GoAstrion",
+  },
+  alternates: {
+    canonical: SITE_URL + "/",   // ⭐ ADDED — Fixes canonical issue
   },
   description: defaultDescription,
   keywords: [
@@ -74,7 +77,7 @@ export const metadata: Metadata = {
     description: defaultDescription,
     images: ["/og/og-home.jpg"],
   },
-  robots: { index: true, follow: true },   // <-- Canonical removed
+  robots: { index: true, follow: true },
   other: {
     slogan:
       "Know today, tomorrow, and your good & cautious times — with GoAstrion’s free Vedic birth chart and Saturn Dasa insights.",
@@ -109,59 +112,25 @@ const WEBSITE = {
   },
 };
 
-const FAQ = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
-      "@type": "Question",
-      name: "What is ShubhDin in astrology?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "ShubhDin means an auspicious day or time window calculated from your Vedic birth chart. GoAstrion instantly finds your personal ShubhDin for marriage, job change, or travel.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "How can I find my good and cautious time?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "With GoAstrion, you can check your daily good and cautious times using real-time Vedic planetary analysis — free and accurate.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What is Saturn Dasa or Sade Sati?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Saturn Dasa or Sade Sati represents key karmic phases influenced by Saturn. GoAstrion shows your current and upcoming Saturn Dasa periods and how they impact life areas like career, health, and relationships.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Is the Vedic birth chart on GoAstrion really free?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes! GoAstrion offers a 100% free online Vedic birth chart, with instant calculation of houses, planets, and dasa timelines — no sign-up required.",
-      },
-    },
-  ],
-};
-
 /* ------------------------------- Root Layout ------------------------------ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <head />
+      <head>
+        {/* ⭐ Canonical (backup fallback) */}
+        <link rel="canonical" href="https://goastrion.com/" />
+      </head>
 
       <body className="min-h-screen bg-[#0B1020] text-slate-200 flex flex-col">
-        {/* -------------------- Analytics & Ads Scripts -------------------- */}
+
+        {/* --------------------- Analytics Scripts --------------------- */}
         {GA_ID && (
           <>
             <Script
               strategy="afterInteractive"
               src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
             />
+
             <Script id="ga4-init" strategy="afterInteractive">{`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
@@ -177,34 +146,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
 
+        {/* ------------------------ AdSense Script ------------------------ */}
         {ENABLE_ADS && ADS_CLIENT && (
           <Script
             id="adsense-init"
-            strategy="beforeInteractive"
+            strategy="afterInteractive"  // ⭐ FIX: prevents CLS & AdSense rejection
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS_CLIENT}`}
             crossOrigin="anonymous"
           />
         )}
 
-        {/* ----------------------- JSON-LD Structured Data ----------------------- */}
+        {/* ---------------------- JSON-LD Structured Data ---------------------- */}
         <Script
           id="ld-org"
           type="application/ld+json"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(ORG) }}
         />
+
         <Script
           id="ld-website"
           type="application/ld+json"
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
         />
-        <Script
-          id="ld-faq"
-          type="application/ld+json"
-          strategy="afterInteractive"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ) }}
-        />
+
+        {/* ⭐ FAQPage REMOVED from global layout
+            → MUST LIVE ONLY INSIDE /faq/page.tsx
+            → This removes Search Console “Duplicate FAQPage” errors
+        */}
 
         {/* -------------------------- App Providers -------------------------- */}
         <ConsentBanner />

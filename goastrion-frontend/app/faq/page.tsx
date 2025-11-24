@@ -1,6 +1,7 @@
 // app/faq/page.tsx
 import FaqClient from "./FaqClient";
 import type { Metadata } from "next";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "GoAstrion FAQs – Your Astrology Questions Answered",
@@ -44,6 +45,58 @@ export const metadata: Metadata = {
   },
 };
 
+/* ------------------- FAQ Structured Data (JSON-LD) ------------------- */
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: [
+    {
+      "@type": "Question",
+      name: "What is ShubhDin in astrology?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "ShubhDin means your personal auspicious day or time window based on Vedic astrology. GoAstrion instantly calculates your daily ShubhDin for success in major activities.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "How can I check my good and cautious time?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "GoAstrion uses your Vedic chart, planetary transits, and daily influences to show your personal Good Time and Cautious Time—free and instant.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "What does Saturn Dasa or Sade Sati mean?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Saturn Dasa and Sade Sati represent important karmic cycles that impact career, relationships, health, and timing. GoAstrion provides clarity on your current and upcoming Saturn phases.",
+      },
+    },
+    {
+      "@type": "Question",
+      name: "Is GoAstrion really free to use?",
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: "Yes! All core features—including Vedic Birth Chart, ShubhDin, Life Wheel, and Saturn Dasa—are 100% free with no login required.",
+      },
+    },
+  ],
+};
+
 export default function Page() {
-  return <FaqClient />;
+  return (
+    <>
+      {/* Inject FAQPage structured data */}
+      <Script
+        id="faq-schema"
+        type="application/ld+json"
+        strategy="afterInteractive"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
+
+      <FaqClient />
+    </>
+  );
 }

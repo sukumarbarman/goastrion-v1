@@ -1,4 +1,4 @@
-// goastrion-frontend/next.config.ts
+// next.config.ts
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -6,12 +6,18 @@ const nextConfig: NextConfig = {
     root: __dirname,
   },
 
+  // ⭐ Prevents duplicate URLs (/page and /page/)
+  trailingSlash: false,
+
+  // ⭐ Improve performance & AdSense rendering
+  compress: true,
+
   async redirects() {
     return [
       {
         source: "/dasha",
         destination: "/vimshottari",
-        permanent: true, // 301 redirect
+        permanent: true,
       },
       {
         source: "/dasha/:path*",
