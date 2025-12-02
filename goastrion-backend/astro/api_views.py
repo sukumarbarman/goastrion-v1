@@ -87,7 +87,6 @@ class GeocodeView(APIView):
 # -----------------------------------------------------------------------------
 # Chart API (Render chart + summary + vimshottari)
 # -----------------------------------------------------------------------------
-
 class ChartView(APIView):
     permission_classes = [AllowAny]
 
@@ -115,6 +114,7 @@ class ChartView(APIView):
                 dt_aw = datetime.fromisoformat(iso)
             except Exception as e:
                 return Response({"error": f"invalid datetime: {e}"}, status=400)
+
             if dt_aw.tzinfo is None:
                 dt_aw = dt_aw.replace(tzinfo=timezone.utc)
             else:
@@ -122,7 +122,6 @@ class ChartView(APIView):
 
             dt_utc_naive = dt_aw.replace(tzinfo=None)
 
-            # astronomy uses UTC (keep 0.0 offsets)
             tz_off_for_chart = 0.0
             tz_off_for_dasha = 0.0
 
@@ -134,10 +133,44 @@ class ChartView(APIView):
             except Exception:
                 warnings.append("Client tz_offset_hours malformed; ignored (using 0.0).")
 
-            # chart (sidereal/ayanamsa=None to match legacy)
+            # compute planetary positions (sidereal)
             lagna_deg, planets = compute_all_planets(
-                dt_utc_naive, lat, lon, tz_off_for_chart, ayanamsa=None
+                dt_utc_naive, lat, lon, tz_off_for_chart, ayanamsa="lahiri"
             )
+
+            # ==============================================================
+            #  PRINT Planet | Sign | Degree (full working version)
+            # ==============================================================
+            from .ephem.swiss import get_sign_name
+
+            def to_dms(deg_float: float) -> str:
+                d = int(deg_float)
+                m_full = (deg_float - d) * 60
+                m = int(m_full)
+                s = int((m_full - m) * 60)
+                return f"{d:02d}:{m:02d}:{s:02d}"
+
+            def sign_short(deg_float: float) -> str:
+                sign = get_sign_name(deg_float)
+                return sign[:3] if sign else "?"
+
+            debug_order = [
+                "Lagna", "Sun", "Moon", "Mars", "Mercury",
+                "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"
+            ]
+
+            raw_positions = {"Lagna": lagna_deg}
+            raw_positions.update(planets)
+
+            print("\n=== Planet | Sign | Degree ===")
+            for p in debug_order:
+                deg = float(raw_positions.get(p, 0.0))
+                sign = sign_short(deg)
+                dms = to_dms(deg)
+                print(f"{p:8s} {sign:3s} {dms}")
+            print("================================\n")
+            # ==============================================================
+
             lagna_sign = get_sign_name(lagna_deg)
             bins = assign_planets_to_houses(lagna_deg, planets)
 
@@ -146,14 +179,15 @@ class ChartView(APIView):
             )
             summary = build_summary(dt_utc_naive, lat, lon, tz_off_for_chart)
 
-            # dasha (UTC + Lahiri)
+            # Vimshottari
             tl = compute_vimshottari_full(dt_aw, lat, lon, tz_off_for_dasha, horizon_years=120.0)
             vim = _serialize_timeline(tl)
 
-            # debug moon under Lahiri
+            # Lahiri Moon debug
             _, pos_dbg = compute_all_planets(
                 dt_utc_naive, lat, lon, tz_off_for_chart, ayanamsa="lahiri"
             )
+
             moon_lon = pos_dbg["Moon"]
             seg = 360.0 / 27.0
             idx = int(moon_lon // seg) % 27
@@ -181,6 +215,7 @@ class ChartView(APIView):
                     "start_md_balance_years": round(balance, 5),
                 },
             }
+
             if warnings:
                 meta["warnings"] = warnings
 
