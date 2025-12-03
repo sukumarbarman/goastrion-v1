@@ -1,4 +1,4 @@
-// app/page.tsx — Home
+// app/page.tsx — Home -- test
 import { cookies } from "next/headers";
 
 import Hero from "./components/Hero";
