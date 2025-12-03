@@ -132,16 +132,18 @@ export default function ShubhDinTeaser() {
                 shadow-[0_0_30px_-12px_rgba(255,255,255,0.15)]
               "
             >
-              <Image
-                src="/images/goodday.png"
-                alt={tf(
-                  "home.shubhdin.alt",
-                  "Smiling young woman checking a calendar on her phone, hopeful about a good day"
-                )}
-                fill
-                className="object-cover"
-                priority
-              />
+            <Image
+              src="/images/goodday.png"
+              alt={tf(
+                "home.shubhdin.alt",
+                "Smiling young woman checking a calendar on her phone, hopeful about a good day"
+              )}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+              priority
+            />
+
             </div>
           </div>
         </div>

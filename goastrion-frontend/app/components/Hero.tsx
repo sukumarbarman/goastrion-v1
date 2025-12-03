@@ -120,28 +120,40 @@ function TrustItem({ label }: { label: string }) {
 
 function HeroGraphic() {
   return (
-    <div
-      className="
-        relative h-72 md:h-96 w-full max-w-sm
-        rounded-3xl border border-white/10
-        bg-gradient-to-b from-white/5 to-transparent
-        flex items-center justify-center
-        animate-slowspin
-      "
-    >
-      <div className="absolute inset-8 rounded-3xl border border-white/10" />
+    <div className="relative flex justify-center items-center select-none">
 
-      <div className="relative h-56 w-56 rounded-full border border-cyan-400/30" />
-      <div className="absolute h-40 w-40 rounded-full border border-white/10" />
-      <div className="absolute h-28 w-28 rounded-full border border-white/10" />
+      {/* Soft cyan aura */}
+      <div className="absolute h-80 w-80 md:h-[420px] md:w-[420px]
+                      rounded-full bg-cyan-400/20 blur-3xl opacity-40 -z-10" />
 
+      {/* Main Illustration — LOCAL STATIC IMAGE */}
+      <img
+          src="/images/hero-astro.webp"
+          alt="Astrology Illustration"
+          className="relative w-64 md:w-80
+                     drop-shadow-[0_0_35px_rgba(0,200,255,0.35)]
+                     animate-fadeUp z-20"
+        />
+
+
+      {/* Subtle glow ring */}
       <div
-        className="absolute h-2 w-2 rounded-full bg-cyan-400 shadow-[0_0_20px_4px_rgba(0,194,255,0.5)]"
-        style={{ top: "30%", left: "25%" }}
+        className="absolute rounded-full border border-cyan-400/30 opacity-70
+                   animate-[ping_3.5s_ease_infinite] blur-[0.3px] z-0"
+        style={{ height: "115%", width: "115%" }}
       />
+
+      {/* Tiny floating planets */}
       <div
-        className="absolute h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_16px_4px_rgba(255,200,87,0.45)]"
-        style={{ top: "60%", left: "65%" }}
+        className="absolute h-3 w-3 bg-cyan-300 rounded-full animate-bounce
+                   shadow-[0_0_16px_4px_rgba(0,200,255,0.4)] z-10"
+        style={{ top: "18%", left: "72%" }}
+      />
+
+      <div
+        className="absolute h-2 w-2 bg-amber-300 rounded-full animate-pulse
+                   shadow-[0_0_14px_3px_rgba(255,200,87,0.45)] z-10"
+        style={{ bottom: "20%", left: "22%" }}
       />
     </div>
   );

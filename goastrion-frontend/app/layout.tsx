@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     template: "%s | GoAstrion",
   },
   alternates: {
-    canonical: SITE_URL + "/",   // ⭐ ADDED — Fixes canonical issue
+    canonical: SITE_URL + "/",
   },
   description: defaultDescription,
   keywords: [
@@ -117,8 +117,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        {/* ⭐ Canonical (backup fallback) */}
+        {/* Canonical */}
         <link rel="canonical" href="https://goastrion.com/" />
+
+        {/* ------------------------ RAW AdSense Script (Correct) ------------------------ */}
+        {ENABLE_ADS && ADS_CLIENT && (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS_CLIENT}`}
+            crossOrigin="anonymous"
+          ></script>
+        )}
       </head>
 
       <body className="min-h-screen bg-[#0B1020] text-slate-200 flex flex-col">
@@ -146,16 +155,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
 
-        {/* ------------------------ AdSense Script ------------------------ */}
-        {ENABLE_ADS && ADS_CLIENT && (
-          <Script
-            id="adsense-init"
-            strategy="afterInteractive"  // ⭐ FIX: prevents CLS & AdSense rejection
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS_CLIENT}`}
-            crossOrigin="anonymous"
-          />
-        )}
-
         {/* ---------------------- JSON-LD Structured Data ---------------------- */}
         <Script
           id="ld-org"
@@ -170,11 +169,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           strategy="afterInteractive"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(WEBSITE) }}
         />
-
-        {/* ⭐ FAQPage REMOVED from global layout
-            → MUST LIVE ONLY INSIDE /faq/page.tsx
-            → This removes Search Console “Duplicate FAQPage” errors
-        */}
 
         {/* -------------------------- App Providers -------------------------- */}
         <ConsentBanner />
