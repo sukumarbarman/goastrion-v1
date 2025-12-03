@@ -1,5 +1,4 @@
 //goastrion-frontend/app/skills/page.tsx
-
 "use client";
 
 import type React from "react";
@@ -27,7 +26,6 @@ type InsightsResponse = {
   insights?: { skills?: Skill[] };
 };
 
-// --- Safari-safe timezone helper ---
 type TzId = "IST" | "UTC";
 const TZ_HOURS: Record<TzId, number> = { IST: 5.5, UTC: 0.0 };
 
@@ -79,17 +77,7 @@ const localizePlanetName = (p: string, t: (k: string) => string) => {
   return v === k ? p : v;
 };
 function localizeSvgPlanets(svg: string, t: (k: string) => string) {
-  const names = [
-    "Sun",
-    "Moon",
-    "Mars",
-    "Mercury",
-    "Jupiter",
-    "Venus",
-    "Saturn",
-    "Rahu",
-    "Ketu",
-  ];
+  const names = ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"];
   const pattern = new RegExp(`(>)(\\s*)(${names.join("|")})(\\s*)(<)`, "gi");
   return svg.replace(pattern, (_m, gt, pre, name, post, lt) => {
     const localized = localizePlanetName(String(name), t);
@@ -138,9 +126,127 @@ function ChipPill({
   );
 }
 
-// -----------------------------
-// Page
-// -----------------------------
+
+// =======================================================
+// ⭐ FIXED: MOVED OUTSIDE — SkillCard Component
+// =======================================================
+// ===============================
+// Typed SkillCard Props
+// ===============================
+type SkillCardProps = {
+  s: Skill;
+  planetList: string[];
+  t: (k: string) => string;
+  CHIP_TO_PLANETS: Record<string, string[]>;
+  PLANET_EMOJI: Record<string, string>;
+  localizePlanetName: (p: string, t: (k: string) => string) => string;
+  PlanetAvatar: React.ComponentType<{ glyph: string; title: string }>;
+  ChipPill: React.ComponentType<{
+    label: string;
+    onHover?: () => void;
+    onClick?: () => void;
+  }>;
+  lock: (planets: string[]) => void;
+  setPreviewPlanets: (planets: string[]) => void;
+};
+
+// =======================================================
+// SkillCard Component (no more ANY)
+// =======================================================
+function SkillCard({
+  s,
+  planetList,
+  t,
+  CHIP_TO_PLANETS,
+  PLANET_EMOJI,
+  localizePlanetName,
+  PlanetAvatar,
+  ChipPill,
+  lock,
+  setPreviewPlanets,
+}: SkillCardProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div
+      className="rounded-xl border border-white/10 bg-black/20 p-4 hover:border-cyan-500/40 transition"
+      onMouseLeave={() => setPreviewPlanets([])}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-white font-semibold break-words">
+            {t(`insights.skills.${s.key}`)}
+          </div>
+
+          <p className="mt-1 text-xs text-slate-400 leading-relaxed">
+            {(() => {
+              const key = `insights.skillsDescription.${s.key}`;
+              const v = t(key);
+              return v === key ? t("insights.skillsDescription.fallback") : v;
+            })()}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {!!planetList.length && (
+            <button
+              className="text-xs px-2 py-1 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 hover:bg-cyan-500/20"
+              onClick={() => lock(planetList)}
+            >
+              Highlight
+            </button>
+          )}
+          <button
+            className="text-xs px-2 py-1 rounded-md border border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
+            onClick={() => setIsOpen((v) => !v)}
+          >
+            {isOpen ? "Hide" : "Details"}
+          </button>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="mt-3">
+          {!!planetList.length && (
+            <div className="mb-2 flex items-center gap-2 flex-wrap">
+              {planetList.map((p) => (
+                <span key={p} className="inline-flex items-center gap-1">
+                  <PlanetAvatar
+                    glyph={PLANET_EMOJI[p] ?? p[0]}
+                    title={localizePlanetName(p, t)}
+                  />
+                  <span className="text-slate-300 text-xs">
+                    {localizePlanetName(p, t)}
+                  </span>
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {(s.chips ?? []).map((key) => (
+              <ChipPill
+                key={key}
+                label={t(key)}
+                onHover={() => setPreviewPlanets(CHIP_TO_PLANETS[key] ?? [])}
+                onClick={() => {
+                  const ps = CHIP_TO_PLANETS[key] ?? [];
+                  if (ps.length) lock(ps);
+                }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+// =======================================================
+// PAGE COMPONENT
+// =======================================================
+
 export default function SkillsPage() {
   const { t } = useI18n();
   const [skills, setSkills] = useState<Skill[]>([]);
@@ -248,7 +354,6 @@ export default function SkillsPage() {
           {t("insights.pages.skillsTitle")}
         </h1>
 
-        {/* Name + DOB */}
         <div className="mt-2 text-xs md:text-sm text-slate-400 leading-relaxed">
           {(() => {
             try {
@@ -268,10 +373,9 @@ export default function SkillsPage() {
                   : saved?.tzId || "UTC";
               let dobText = "—";
               if (saved?.dob && saved?.tob) {
-                dobText = `${saved.dob
-                  .split("-")
-                  .reverse()
-                  .join(" ")} ${saved.tob} (${tz})`;
+                dobText = `${saved.dob.split("-").reverse().join(" ")} ${
+                  saved.tob
+                } (${tz})`;
               } else if (saved?.dob) {
                 dobText = `${saved.dob} (${tz})`;
               }
@@ -297,38 +401,34 @@ export default function SkillsPage() {
         </p>
       </div>
 
-     <div className="mt-4 mb-6 rounded-xl border border-white/10 bg-black/10 p-4">
-      <h3 className="text-lg font-semibold text-white mb-2">
-        {t("insights.skillsPageCalculation.title")}
-      </h3>
+      <div className="mt-4 mb-6 rounded-xl border border-white/10 bg-black/10 p-4">
+        <h3 className="text-lg font-semibold text-white mb-2">
+          {t("insights.skillsPageCalculation.title")}
+        </h3>
 
-      <p className="text-slate-300 text-sm mb-3">
-        {t("insights.skillsPageCalculation.body1")}
-      </p>
+        <p className="text-slate-300 text-sm mb-3">
+          {t("insights.skillsPageCalculation.body1")}
+        </p>
 
-      <ul className="list-disc list-inside text-slate-400 text-sm space-y-1">
-        <li>{t("insights.skillsPageCalculation.item1")}</li>
-        <li>{t("insights.skillsPageCalculation.item2")}</li>
-        <li>{t("insights.skillsPageCalculation.item3")}</li>
-        <li>{t("insights.skillsPageCalculation.item4")}</li>
-        <li>{t("insights.skillsPageCalculation.item5")}</li>
-      </ul>
+        <ul className="list-disc list-inside text-slate-400 text-sm space-y-1">
+          <li>{t("insights.skillsPageCalculation.item1")}</li>
+          <li>{t("insights.skillsPageCalculation.item2")}</li>
+          <li>{t("insights.skillsPageCalculation.item3")}</li>
+          <li>{t("insights.skillsPageCalculation.item4")}</li>
+          <li>{t("insights.skillsPageCalculation.item5")}</li>
+        </ul>
 
-      <p className="text-slate-300 text-sm mt-3">
-        {t("insights.skillsPageCalculation.body2")}
-      </p>
-    </div>
-
-
-
-
+        <p className="text-slate-300 text-sm mt-3">
+          {t("insights.skillsPageCalculation.body2")}
+        </p>
+      </div>
 
       {/* TOP AD */}
       <div className="mb-6">
         <AdSlot slot={SKILLS_TOP_SLOT} minHeight={280} />
       </div>
 
-      {/* ERR */}
+      {/* ERROR */}
       {err && (
         <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-900/20 text-rose-200 p-3 flex items-center justify-between">
           <span className="break-words">{err}</span>
@@ -385,8 +485,6 @@ export default function SkillsPage() {
 
         {/* RIGHT SKILLS PANEL */}
         <section className="lg:col-span-7">
-
-
           {!loading && visibleSkills.length === 0 && (
             <div className="rounded-2xl border border-white/10 bg-white/[.04] p-6 text-slate-300">
               {t("common.notAvailable")}
@@ -428,112 +526,31 @@ export default function SkillsPage() {
                       </div>
 
                       {/* Skill Cards */}
-                     <div className="p-4 grid grid-cols-1 gap-4">
-
+                      <div className="p-4 grid grid-cols-1 gap-4">
                         {list.map((s) => {
                           const planetList = planetsForSkill(s.chips);
-
-                          function Card() {
-                            const [isOpen, setIsOpen] = useState(false);
-
-                            return (
-                              <div
-                                className="rounded-xl border border-white/10 bg-black/20 p-4 hover:border-cyan-500/40 transition"
-                                onMouseLeave={() => setPreviewPlanets([])}
-                              >
-                                {/* HEADER */}
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="min-w-0">
-                                    <div className="text-white font-semibold break-words">
-                                      {t(`insights.skills.${s.key}`)}
-                                    </div>
-
-                                    {/* ⭐ NEW — DEEP DESCRIPTION  */}
-                                    <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                                      {(() => {
-                                          const key = `insights.skillsDescription.${s.key}`;
-                                          const v = t(key);
-                                          return v === key ? t("insights.skillsDescription.fallback") : v;
-                                        })()}
-
-                                      </p>
-                                  </div>
-
-                                  <div className="flex items-center gap-2">
-                                    {!!planetList.length && (
-                                      <button
-                                        className="text-xs px-2 py-1 rounded-md bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 hover:bg-cyan-500/20"
-                                        onClick={() => lock(planetList)}
-                                      >
-                                        Highlight
-                                      </button>
-                                    )}
-                                    <button
-                                      className="text-xs px-2 py-1 rounded-md border border-white/15 bg-white/5 text-slate-200 hover:bg-white/10"
-                                      onClick={() => setIsOpen((v) => !v)}
-                                    >
-                                      {isOpen ? "Hide" : "Details"}
-                                    </button>
-                                  </div>
-                                </div>
-
-                                {/* DETAILS */}
-                                {isOpen && (
-                                  <div className="mt-3">
-                                    {!!planetList.length && (
-                                      <div className="mb-2 flex items-center gap-2 flex-wrap">
-                                        {planetList.map((p) => (
-                                          <span
-                                            key={p}
-                                            className="inline-flex items-center gap-1"
-                                          >
-                                            <PlanetAvatar
-                                              glyph={PLANET_EMOJI[p] ?? p[0]}
-                                              title={localizePlanetName(p, t)}
-                                            />
-                                            <span className="text-slate-300 text-xs">
-                                              {localizePlanetName(p, t)}
-                                            </span>
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-
-                                    <div className="flex flex-wrap gap-2">
-                                      {(s.chips ?? []).map((key) => (
-                                        <ChipPill
-                                          key={key}
-                                          label={t(key)}
-                                          onHover={() =>
-                                            setPreviewPlanets(
-                                              CHIP_TO_PLANETS[key] ?? []
-                                            )
-                                          }
-                                          onClick={() => {
-                                            const ps =
-                                              CHIP_TO_PLANETS[key] ?? [];
-                                            if (ps.length) lock(ps);
-                                          }}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          }
-
-                          return <Card key={s.key} />;
+                          return (
+                            <SkillCard
+                              key={s.key}
+                              s={s}
+                              planetList={planetList}
+                              t={t}
+                              CHIP_TO_PLANETS={CHIP_TO_PLANETS}
+                              PLANET_EMOJI={PLANET_EMOJI}
+                              localizePlanetName={localizePlanetName}
+                              PlanetAvatar={PlanetAvatar}
+                              ChipPill={ChipPill}
+                              lock={lock}
+                              setPreviewPlanets={setPreviewPlanets}
+                            />
+                          );
                         })}
                       </div>
 
                       {/* Mid Ad */}
                       {idxTier === 0 && (
                         <div className="px-4 pb-4">
-                          <AdSlot
-                            slot={SKILLS_MID_SLOT}
-                            minHeight={300}
-                          />
+                          <AdSlot slot={SKILLS_MID_SLOT} minHeight={300} />
                         </div>
                       )}
                     </div>
@@ -542,29 +559,28 @@ export default function SkillsPage() {
               )}
             </div>
           )}
-
         </section>
-       {/* FULL WIDTH BLOCK */}
-          <div className="mt-10 w-full col-span-12">
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-6 md:p-8 lg:p-10">
-              <h2 className="text-lg md:text-xl font-semibold text-white mb-4">
-                {t("insights.skillsUsage.title")}
-              </h2>
 
-              <div className="space-y-4 text-sm md:text-base text-slate-300 leading-relaxed">
-                <p>{t("insights.skillsUsage.p1")}</p>
-                <p>{t("insights.skillsUsage.p2")}</p>
-                <p>{t("insights.skillsUsage.p3")}</p>
-                <p>{t("insights.skillsUsage.p4")}</p>
-              </div>
+        {/* FULL WIDTH BLOCK */}
+        <div className="mt-10 w-full col-span-12">
+          <div className="rounded-2xl border border-white/10 bg-black/20 p-6 md:p-8 lg:p-10">
+            <h2 className="text-lg md:text-xl font-semibold text-white mb-4">
+              {t("insights.skillsUsage.title")}
+            </h2>
+
+            <div className="space-y-4 text-sm md:text-base text-slate-300 leading-relaxed">
+              <p>{t("insights.skillsUsage.p1")}</p>
+              <p>{t("insights.skillsUsage.p2")}</p>
+              <p>{t("insights.skillsUsage.p3")}</p>
+              <p>{t("insights.skillsUsage.p4")}</p>
             </div>
           </div>
+        </div>
 
-          {/* Bottom Ad */}
-          <div className="mt-8 col-span-12">
-            <AdSlot slot={SKILLS_END_SLOT} minHeight={280} />
-          </div>
-
+        {/* Bottom Ad */}
+        <div className="mt-8 col-span-12">
+          <AdSlot slot={SKILLS_END_SLOT} minHeight={280} />
+        </div>
       </div>
     </Container>
   );
