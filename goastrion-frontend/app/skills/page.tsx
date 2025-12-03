@@ -126,13 +126,9 @@ function ChipPill({
   );
 }
 
-
 // =======================================================
-// ⭐ FIXED: MOVED OUTSIDE — SkillCard Component
+// ⭐ SkillCard Component With Types
 // =======================================================
-// ===============================
-// Typed SkillCard Props
-// ===============================
 type SkillCardProps = {
   s: Skill;
   planetList: string[];
@@ -150,9 +146,6 @@ type SkillCardProps = {
   setPreviewPlanets: (planets: string[]) => void;
 };
 
-// =======================================================
-// SkillCard Component (no more ANY)
-// =======================================================
 function SkillCard({
   s,
   planetList,
@@ -241,7 +234,6 @@ function SkillCard({
     </div>
   );
 }
-
 
 // =======================================================
 // PAGE COMPONENT
@@ -441,9 +433,11 @@ export default function SkillsPage() {
         </div>
       )}
 
+      {/* MAIN GRID */}
       <div className="grid lg:grid-cols-12 gap-6">
+
         {/* LEFT CHART PANEL */}
-        <aside className="lg:col-span-5">
+        <aside className="col-span-12 lg:col-span-5 mb-6 lg:mb-0">
           <div className="rounded-2xl border border-white/10 bg-black/10 p-4 lg:sticky lg:top-4">
             <div className="text-sm font-medium text-slate-200 mb-2 flex items-center justify-between">
               <span>{t("insights.pages.chartTitle")}</span>
@@ -484,7 +478,7 @@ export default function SkillsPage() {
         </aside>
 
         {/* RIGHT SKILLS PANEL */}
-        <section className="lg:col-span-7">
+        <section className="col-span-12 lg:col-span-7">
           {!loading && visibleSkills.length === 0 && (
             <div className="rounded-2xl border border-white/10 bg-white/[.04] p-6 text-slate-300">
               {t("common.notAvailable")}
