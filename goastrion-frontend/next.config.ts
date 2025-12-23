@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
 
   async redirects() {
     return [
+      // Dasha → Vimshottari redirects
       {
         source: "/dasha",
         destination: "/vimshottari",
@@ -22,6 +23,66 @@ const nextConfig: NextConfig = {
       {
         source: "/dasha/:path*",
         destination: "/vimshottari/:path*",
+        permanent: true,
+      },
+
+      // Domains → Life Wheel restructure
+      {
+        source: "/domains",
+        destination: "/life-wheel",
+        permanent: true,
+      },
+      {
+        source: "/domains/:path*",
+        destination: "/life-wheel/:path*",
+        permanent: true,
+      },
+
+      // Standalone life area pages → Life Wheel
+      {
+        source: "/finance",
+        destination: "/life-wheel/finance",
+        permanent: true,
+      },
+      {
+        source: "/health",
+        destination: "/life-wheel/health",
+        permanent: true,
+      },
+      {
+        source: "/marriage",
+        destination: "/life-wheel/marriage",
+        permanent: true,
+      },
+      {
+        source: "/career-guidance",
+        destination: "/life-wheel/career",
+        permanent: true,
+      },
+
+      // Privacy policy redirect (NEW FIX)
+      {
+        source: "/privacy-policy",
+        destination: "/privacy",
+        permanent: true,
+      },
+
+      // Chart → Create redirect (NEW FIX)
+      {
+        source: "/chart",
+        destination: "/create",
+        permanent: true,
+      },
+
+      // Language variants → Homepage (if not planning localization)
+      {
+        source: "/hi",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/bn",
+        destination: "/",
         permanent: true,
       },
     ];

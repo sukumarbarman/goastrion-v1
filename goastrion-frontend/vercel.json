@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "https://www.goastrion.com/:path*",
+      "destination": "https://goastrion.com/:path*",
+      "permanent": true
+    }
+  ]
+}

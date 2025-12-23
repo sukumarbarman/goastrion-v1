@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+
+# Block invalid URLs with special characters
+Disallow: /*$
+Disallow: /*&
+
+# Block internal paths from crawling
+Disallow: /components/
+Disallow: /search?q=%7B*
+
+# Block Next.js internal directories
+Disallow: /_next/
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://goastrion.com/sitemap.xml
