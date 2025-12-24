@@ -9,19 +9,24 @@ import { useI18n } from "../lib/i18n";
 
 export type ContactKind = "general" | "feedback" | "bug" | "feature";
 
+const MIN_MESSAGE_LEN = 10;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export default function ContactForm({ initialType }: { initialType?: ContactKind }) {
   const { user } = useAuth();
   const { tOr } = useI18n();
 
   const [kind, setKind] = useState<ContactKind>(initialType ?? "general");
-  const [name, setName] = useState<string>("");
-  const [email, setEmail] = useState<string>("");
-  const [subject, setSubject] = useState<string>("");
-  const [message, setMessage] = useState<string>("");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [subject, setSubject] = useState("");
+  const [message, setMessage] = useState("");
+
   const [busy, setBusy] = useState(false);
   const [ok, setOk] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
 
+  // Autofill from logged-in user
   useEffect(() => {
     if (user) {
       setEmail((e) => e || user.email || "");
@@ -29,14 +34,29 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
     }
   }, [user]);
 
-  const canSend = useMemo(() => {
-    const validEmail = /.+@.+\..+/.test(email);
-    return !busy && validEmail && message.trim().length >= 10;
-  }, [busy, email, message]);
+  // ---- Derived validations ----
+  const emailValid = useMemo(() => EMAIL_REGEX.test(email.trim()), [email]);
+  const messageLen = message.trim().length;
+  const charsLeft = Math.max(0, MIN_MESSAGE_LEN - messageLen);
+
+  const canSend = !busy && emailValid && messageLen >= MIN_MESSAGE_LEN;
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setBusy(true); setOk(null); setErr(null);
+    setErr(null);
+    setOk(null);
+
+    // Final client guard (important)
+    if (!emailValid) {
+      setErr("Please enter a valid email address.");
+      return;
+    }
+    if (messageLen < MIN_MESSAGE_LEN) {
+      setErr(`Message must be at least ${MIN_MESSAGE_LEN} characters.`);
+      return;
+    }
+
+    setBusy(true);
     try {
       const res = await fetch("/api/contact/submit", {
         method: "POST",
@@ -50,15 +70,16 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
           path: typeof window !== "undefined" ? window.location.pathname : "",
         }),
       });
+
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data?.error || `Failed: ${res.status}`);
+      if (!res.ok) throw new Error(data?.error || `Failed (${res.status})`);
+
       setOk(tOr("contact.thanks", "Thanks! We'll get back to you soon."));
       setSubject("");
       setMessage("");
       setKind(initialType ?? "general");
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong.";
-      setErr(msg);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Something went wrong.");
     } finally {
       setBusy(false);
     }
@@ -74,7 +95,10 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
   }
 
   return (
-    <form onSubmit={onSubmit} className="bg-[#0F1731] border border-white/10 rounded-2xl p-5 space-y-4">
+    <form
+      onSubmit={onSubmit}
+      className="bg-[#0F1731] border border-white/10 rounded-2xl p-5 space-y-4"
+    >
       <div className="grid md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm text-slate-300 mb-1">Type</label>
@@ -89,6 +113,7 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
             <option value="feature">Feature request</option>
           </select>
         </div>
+
         <div>
           <label className="block text-sm text-slate-300 mb-1">Email</label>
           <input
@@ -99,7 +124,11 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
             className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-slate-100"
             placeholder="you@example.com"
           />
+          {!emailValid && email.length > 0 && (
+            <p className="text-xs text-red-400 mt-1">Invalid email format</p>
+          )}
         </div>
+
         <div>
           <label className="block text-sm text-slate-300 mb-1">Name</label>
           <input
@@ -110,6 +139,7 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
             placeholder="Your name (optional)"
           />
         </div>
+
         <div>
           <label className="block text-sm text-slate-300 mb-1">Subject</label>
           <input
@@ -131,14 +161,24 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
           className="w-full h-36 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-slate-100"
           placeholder="Write a few lines..."
         />
-        <p className="text-xs text-slate-400 mt-1">Minimum 10 characters.</p>
+        <p
+          className={`text-xs mt-1 ${
+            charsLeft > 0 ? "text-slate-400" : "text-emerald-400"
+          }`}
+        >
+          {charsLeft > 0
+            ? `${charsLeft} characters left`
+            : "Minimum length reached"}
+        </p>
       </div>
 
       {err && <div className="text-sm text-red-400">{err}</div>}
       {ok && <div className="text-sm text-emerald-400">{ok}</div>}
 
       <div className="flex items-center justify-between">
-        <p className="text-xs text-slate-400">We&apos;ll only use your email to reply to this request.</p>
+        <p className="text-xs text-slate-400">
+          We&apos;ll only use your email to reply.
+        </p>
         <button
           type="submit"
           disabled={!canSend}
