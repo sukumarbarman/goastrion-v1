@@ -38,7 +38,7 @@ export default function ContactForm({ initialType }: { initialType?: ContactKind
     e.preventDefault();
     setBusy(true); setOk(null); setErr(null);
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch("/api/contact/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
