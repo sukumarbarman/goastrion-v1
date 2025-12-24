@@ -4,7 +4,7 @@ export default function Visitors() {
   return (
     <section className="mt-24 text-center px-6">
       <h2 className="text-2xl sm:text-3xl font-semibold text-white mb-4">
-        Trusted by <span className="text-cyan-300">2,45,000+</span> People
+        Trusted by <span className="text-cyan-300">2,49,000+</span> People
       </h2>
 
       <p className="text-slate-300 max-w-xl mx-auto text-[16.5px]">
@@ -14,9 +14,9 @@ export default function Visitors() {
 
       <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
         {[
-          { label: "User Rating", value: "4.8★" },
-          { label: "Avg Session Time", value: "12+ min" },
-          { label: "Charts Generated", value: "15 lakh+" },
+          { label: "User Rating", value: "4.7★" },
+          { label: "Avg Session Time", value: "13+ min" },
+          { label: "Charts Generated", value: "16 lakh+" },
         ].map((item, i) => (
           <div
             key={i}
