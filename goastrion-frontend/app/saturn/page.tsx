@@ -200,7 +200,7 @@ export default function SaturnPage() {
     const timeout = setTimeout(() => ctrl.abort(), 30_000);
 
     try {
-       const r = await fetch("/app-api/saturn/overview", {
+       const r = await fetch("/api/saturn/overview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
