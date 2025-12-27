@@ -6,6 +6,8 @@ import Footer from "./components/Footer";
 import GATracker from "./gtm-tracker";
 import ConsentBanner from "./components/ConsentBanner";
 import { AuthProvider } from "./context/AuthContext";
+import MeetieeBottomBar from "./components/MeetieeBottomBar";
+
 
 import type { Metadata } from "next";
 import Script from "next/script";
@@ -181,7 +183,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex-1">
               <ClientShell>{children}</ClientShell>
             </div>
-
+            <MeetieeBottomBar />
             <Footer />
           </AuthProvider>
         </I18nProvider>
