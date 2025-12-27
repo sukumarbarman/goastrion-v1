@@ -56,7 +56,7 @@ export type InsightsResponse = {
  * The server route /api/insights will forward to the real backend using BACKEND_URL.
  */
 export async function fetchInsights(payload: InsightsRequest): Promise<InsightsResponse> {
-  const res = await fetch("/api/insights", {
+  const res = await fetch("/app-api/insights", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
