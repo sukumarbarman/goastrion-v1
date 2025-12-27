@@ -40,16 +40,27 @@ export default function MeetieeBottomBar() {
         cta: "Try Meetiee Free",
       };
 
-  // ---------------- Visibility Logic ----------------
+  // ---------------- Visibility + Auto-hide Logic ----------------
   useEffect(() => {
     const dismissed = localStorage.getItem("meetiee_bar_dismissed");
-    if (!dismissed) {
-      const t = setTimeout(() => {
-        setVisible(true);
-        requestAnimationFrame(() => setAnimate(true));
-      }, 6000); // show after 6s
-      return () => clearTimeout(t);
-    }
+    if (dismissed) return;
+
+    // show after 6s
+    const showTimer = setTimeout(() => {
+      setVisible(true);
+      requestAnimationFrame(() => setAnimate(true));
+    }, 6000);
+
+    // auto-hide after 15s (from show time)
+    const hideTimer = setTimeout(() => {
+      setAnimate(false);
+      setTimeout(() => setVisible(false), 300); // allow exit animation
+    }, 21000); // 6s delay + 15s visible
+
+    return () => {
+      clearTimeout(showTimer);
+      clearTimeout(hideTimer);
+    };
   }, []);
 
   if (!visible) return null;
