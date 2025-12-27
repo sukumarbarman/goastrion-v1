@@ -200,7 +200,7 @@ export default function SaturnPage() {
     const timeout = setTimeout(() => ctrl.abort(), 30_000);
 
     try {
-      const r = await fetch("/api/saturn/overview", {
+       const r = await fetch("/app-api/saturn/overview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
@@ -215,8 +215,24 @@ export default function SaturnPage() {
           max_windows: 12,
         }),
       });
-      const j = (await r.json()) as SaturnOverviewResp;
-      if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
+
+        const ct = r.headers.get("content-type") || "";
+
+        if (!ct.includes("application/json")) {
+          const text = await r.text();
+          throw new Error(
+            `Saturn API returned non-JSON response (${r.status}). ` +
+            `Check Nginx routing for /api/saturn/*`
+          );
+        }
+
+        const j = (await r.json()) as SaturnOverviewResp;
+
+        if (!r.ok) {
+          throw new Error(j?.error || `HTTP ${r.status}`);
+        }
+
+
       try { localStorage.setItem(SNAPSHOT_KEY, JSON.stringify(j)); } catch {}
       return j;
     } finally {
