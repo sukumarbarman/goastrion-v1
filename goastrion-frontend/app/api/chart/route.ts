@@ -1,5 +1,4 @@
 // app/api/chart/route.ts
-
 import { backend } from "@/app/lib/backend";
 
 export const runtime = "nodejs";
@@ -9,11 +8,17 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const bodyText = await req.text(); // pass-through JSON
 
+    // 🔑 Forward Authorization header (JWT)
+    const auth = req.headers.get("authorization");
+
     const res = await fetch(
       `${backend()}/api/astro/charts/`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(auth ? { Authorization: auth } : {}),
+        },
         body: bodyText || "{}",
         cache: "no-store",
       }
