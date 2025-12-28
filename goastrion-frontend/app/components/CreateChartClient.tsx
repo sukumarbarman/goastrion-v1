@@ -461,37 +461,12 @@ export default function CreateChartClient() {
       const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
       if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
 
-    // 🔐 Read token safely
-        const token =
-          typeof window !== "undefined"
-            ? localStorage.getItem("auth.access")
-            : null;
-
-        // 🛑 Hard guard — never send invalid datetime
-        if (!dtIsoUtc) {
-          throw new Error(
-            tOr("errors.genericGenerate", "Failed to generate chart (invalid datetime).")
-          );
-        }
-
-        const res = await fetch(`/api/chart`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-          signal: ctrl.signal,
-          body: JSON.stringify({
-            datetime: dtIsoUtc,        // ✅ guaranteed valid here
-            lat: latNum,
-            lon: lonNum,
-            tz_offset_hours: tzHours,
-          }),
-        });
-
-
-
-
+      const res = await fetch(`/api/chart`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        signal: ctrl.signal,
+        body: JSON.stringify({ datetime: dtIsoUtc, lat: latNum, lon: lonNum, tz_offset_hours: tzHours }),
+      });
 
       let data: ApiResp | null = null;
       const text = await res.text();
@@ -605,8 +580,16 @@ export default function CreateChartClient() {
     setRawSvg(null); setRawSummary(null); setSvg(null); setSummary(null);
   }
 
-  const birthUtcIso =
-    dob && tob ? localCivilToUtcIso(dob, tob, tzId).dtIsoUtc : "";
+    const birthUtcIso = (() => {
+      if (!dob || !tob) return "";
+      try {
+        const { dtIsoUtc } = localCivilToUtcIso(dob, tob, tzId);
+        return typeof dtIsoUtc === "string" ? dtIsoUtc : "";
+      } catch {
+        return "";
+      }
+    })();
+
 
   const backendChartPayload: ChartPayload | null =
     dob && tob && lat && lon
