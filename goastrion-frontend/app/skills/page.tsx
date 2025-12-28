@@ -272,7 +272,7 @@ export default function SkillsPage() {
       });
       setSkills(json?.insights?.skills ?? []);
 
-      const r = await fetch("/api/charts", {
+      const r = await fetch("/api/chart", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
