@@ -461,7 +461,7 @@ export default function CreateChartClient() {
       const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
       if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
 
-      const res = await fetch(`/api/chart`, {
+      const res = await fetch(`/api/charts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: ctrl.signal,
