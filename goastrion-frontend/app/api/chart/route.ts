@@ -10,7 +10,7 @@ export async function POST(req: Request): Promise<Response> {
     const bodyText = await req.text(); // pass-through JSON
 
     const res = await fetch(
-      `${backend()}/api/chart`,
+      `${backend()}/api/chart/`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
