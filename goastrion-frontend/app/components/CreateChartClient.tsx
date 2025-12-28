@@ -461,26 +461,35 @@ export default function CreateChartClient() {
       const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
       if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
 
+    // 🔐 Read token safely
+        const token =
+          typeof window !== "undefined"
+            ? localStorage.getItem("auth.access")
+            : null;
 
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("auth.access")
-        : null;
+        // 🛑 Hard guard — never send invalid datetime
+        if (!dtIsoUtc) {
+          throw new Error(
+            tOr("errors.genericGenerate", "Failed to generate chart (invalid datetime).")
+          );
+        }
 
-    const res = await fetch(`/api/chart`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      },
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        datetime: dtIsoUtc,
-        lat: latNum,
-        lon: lonNum,
-        tz_offset_hours: tzHours,
-      }),
-    });
+        const res = await fetch(`/api/chart`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          signal: ctrl.signal,
+          body: JSON.stringify({
+            datetime: dtIsoUtc,        // ✅ guaranteed valid here
+            lat: latNum,
+            lon: lonNum,
+            tz_offset_hours: tzHours,
+          }),
+        });
+
+
 
 
 
