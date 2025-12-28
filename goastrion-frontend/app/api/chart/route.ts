@@ -1,4 +1,4 @@
-// app/api/charts/route.ts
+// app/api/chart/route.ts
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const backendUrl = getBackendUrl();
 
-    const res = await fetch(`${backendUrl}/api/astro/charts/`, {  // ✅ FIXED: parentheses, not backticks
+    const res = await fetch(`${backendUrl}/api/chart`, {
       method: "POST",
       headers,
       body: bodyText || "{}",
@@ -52,50 +52,7 @@ export async function POST(req: NextRequest): Promise<Response> {
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Proxy error";
-    console.error("[charts API] Error:", message);
-
-    return Response.json(
-      { error: message },
-      { status: 500 }
-    );
-  }
-}
-
-export async function GET(req: NextRequest): Promise<Response> {
-  try {
-    const authHeader = req.headers.get("authorization");
-    const cookies = req.headers.get("cookie");
-
-    const headers: Record<string, string> = {};
-
-    if (authHeader) {
-      headers["Authorization"] = authHeader;
-    }
-
-    if (cookies) {
-      headers["Cookie"] = cookies;
-    }
-
-    const backendUrl = getBackendUrl();
-    const res = await fetch(`${backendUrl}/api/astro/charts/`, {  // ✅ FIXED: parentheses, not backticks
-      method: "GET",
-      headers,
-      cache: "no-store",
-    });
-
-    const ct = res.headers.get("content-type") || "application/json";
-    const text = await res.text();
-
-    return new Response(text, {
-      status: res.status,
-      headers: {
-        "Content-Type": ct,
-        "Cache-Control": "no-store",
-      },
-    });
-  } catch (e: unknown) {
-    const message = e instanceof Error ? e.message : "Proxy error";
-    console.error("[charts API] GET Error:", message);
+    console.error("[chart API] Error:", message);
 
     return Response.json(
       { error: message },
