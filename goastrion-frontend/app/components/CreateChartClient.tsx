@@ -477,15 +477,15 @@ export default function CreateChartClient() {
           headers["Authorization"] = `Bearer ${token}`;
         }
 
-        const res = await fetch(`/api/charts`, {
+         const res = await fetch(`/api/charts`, {
           method: "POST",
           headers,
           signal: ctrl.signal,
           body: JSON.stringify({
-            datetime: dtIsoUtc,
-            lat: latNum,
-            lon: lonNum,
-            tz_offset_hours: tzHours
+            birth_datetime: dtIsoUtc,
+            latitude: latNum,
+            longitude: lonNum,
+            timezone: IANA_BY_TZID[tzId] || "Asia/Kolkata"
           }),
         });
 
