@@ -1,29 +1,24 @@
 // app/api/chart/route.ts
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic"; // avoid caching in dev
 
-function getBackendBase() {
-  // Prefer server-only var; fall back to old name; final fallback to localhost.
-  const raw =
-    process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_BASE ||
-    "http://127.0.0.1:8000";
-  return raw.replace(/\/+$/, ""); // strip trailing slash
-}
+import { backend } from "@/app/lib/backend";
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic"; // avoid caching
 
 export async function POST(req: Request): Promise<Response> {
-  const backend = getBackendBase();
-
   try {
     const bodyText = await req.text(); // pass-through JSON
-    const res = await fetch(`${backend}/api/chart`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: bodyText || "{}", // be robust if empty
-      cache: "no-store",
-    });
 
-    // Pass through backend's content-type (some servers return text/json).
+    const res = await fetch(
+      `${backend()}/api/chart`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: bodyText || "{}",
+        cache: "no-store",
+      }
+    );
+
     const ct = res.headers.get("content-type") || "application/json";
     const text = await res.text();
 
@@ -34,16 +29,16 @@ export async function POST(req: Request): Promise<Response> {
         "Cache-Control": "no-store",
       },
     });
-  } catch (err: unknown) {
+  } catch (e: unknown) {
     const message =
-      err instanceof Error
-        ? err.message
-        : typeof err === "string"
-        ? err
+      e instanceof Error
+        ? e.message
+        : typeof e === "string"
+        ? e
         : "Proxy error";
 
     return Response.json(
-      { error: message, backend },
+      { error: message },
       { status: 500 }
     );
   }

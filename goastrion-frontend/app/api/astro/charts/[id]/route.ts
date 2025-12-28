@@ -1,17 +1,14 @@
 // app/api/astro/charts/[id]/route.ts
+
 import type { NextRequest } from "next/server";
+import { backend } from "@/app/lib/backend";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function backend(): string {
-  const raw =
-    process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_BACKEND_BASE ||
-    "http://127.0.0.1:8000";
-  return raw.replace(/\/+$/, "");
-}
-
+// --------------------------------------------------
+// Helpers
+// --------------------------------------------------
 function passHeaders(req: NextRequest): Headers {
   const h = new Headers();
   const auth = req.headers.get("authorization");
@@ -24,7 +21,10 @@ async function passthrough(res: Response): Promise<Response> {
   const text = await res.text();
   return new Response(text, {
     status: res.status,
-    headers: { "content-type": ct, "cache-control": "no-store" },
+    headers: {
+      "content-type": ct,
+      "cache-control": "no-store",
+    },
   });
 }
 
@@ -38,12 +38,16 @@ function errMsg(e: unknown): string {
   }
 }
 
+// --------------------------------------------------
+// DELETE /api/astro/charts/[id]
+// --------------------------------------------------
 export async function DELETE(
   req: NextRequest,
   ctx: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   try {
-    const { id } = await ctx.params; // ✅ Next 15: params is a Promise
+    const { id } = await ctx.params; // ✅ Next.js 15 params Promise
+
     const res = await fetch(
       `${backend()}/api/astro/charts/${encodeURIComponent(id)}/`,
       {
@@ -52,6 +56,7 @@ export async function DELETE(
         cache: "no-store",
       }
     );
+
     return passthrough(res);
   } catch (e: unknown) {
     return Response.json({ error: errMsg(e) }, { status: 500 });

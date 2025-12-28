@@ -1,11 +1,9 @@
-//goastrion-frontend/app/api/shubhdin/route.ts
+// goastrion-frontend/app/api/shubhdin/route.ts
+
+import { backend } from "@/app/lib/backend";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function getBackendBase(): string {
-  const raw = process.env.BACKEND_URL || "http://127.0.0.1:8001";
-  return raw.replace(/\/+$/, "");
-}
 
 type Incoming = {
   datetime: string;
@@ -20,11 +18,20 @@ type Incoming = {
   business?: { type?: string };
 };
 
-function getTimeoutMs(url: string): number {
-  const q = new URL(url).searchParams.get("timeout_ms");
+// --------------------------------------------------
+// Helpers
+// --------------------------------------------------
+function getTimeoutMs(reqUrl: string): number {
+  const q = new URL(reqUrl).searchParams.get("timeout_ms");
   if (q && /^\d+$/.test(q)) return Math.max(1000, parseInt(q, 10));
-  if (process.env.SHUBHDIN_TIMEOUT_MS && /^\d+$/.test(process.env.SHUBHDIN_TIMEOUT_MS))
+
+  if (
+    process.env.SHUBHDIN_TIMEOUT_MS &&
+    /^\d+$/.test(process.env.SHUBHDIN_TIMEOUT_MS)
+  ) {
     return Math.max(1000, parseInt(process.env.SHUBHDIN_TIMEOUT_MS, 10));
+  }
+
   return 45000;
 }
 
@@ -37,9 +44,11 @@ function getErrorName(e: unknown): string | null {
   return null;
 }
 
+// --------------------------------------------------
+// POST /api/shubhdin
+// --------------------------------------------------
 export async function POST(req: Request): Promise<Response> {
-  const backend = getBackendBase();
-  const url = `${backend}/api/v1/shubhdin/run`;
+  const url = `${backend()}/api/v1/shubhdin/run`;
   const timeoutMs = getTimeoutMs(req.url);
   const debug = new URL(req.url).searchParams.get("debug") === "1";
 
@@ -51,19 +60,21 @@ export async function POST(req: Request): Promise<Response> {
     const b = raw ? (JSON.parse(raw) as Incoming) : ({} as Incoming);
 
     if (!b.datetime || b.lat === undefined || b.lon === undefined) {
-      return new Response(JSON.stringify({ error: "Missing required fields: datetime, lat, lon" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({
+          error: "Missing required fields: datetime, lat, lon",
+        }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const lat = Number(b.lat);
     const lon = Number(b.lon);
     if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
-      return new Response(JSON.stringify({ error: "lat/lon must be valid numbers" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "lat/lon must be valid numbers" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     const tzHours =
@@ -80,16 +91,24 @@ export async function POST(req: Request): Promise<Response> {
       lat,
       lon,
       tz_offset_hours: tzHours,
-      horizon_months: typeof b.horizon_months === "number" ? b.horizon_months : 24,
+      horizon_months:
+        typeof b.horizon_months === "number" ? b.horizon_months : 24,
       goal: typeof b.goal === "string" ? b.goal : "general",
     };
 
-    if (typeof b.saturn_cap_days === "number" && b.saturn_cap_days > 0)
+    if (typeof b.saturn_cap_days === "number" && b.saturn_cap_days > 0) {
       payload.saturn_cap_days = Math.floor(b.saturn_cap_days);
-    if (Array.isArray(b.goals) && b.goals.every(g => typeof g === "string"))
+    }
+
+    if (Array.isArray(b.goals) && b.goals.every(g => typeof g === "string")) {
       payload.goals = b.goals;
-    if (b.business?.type && typeof b.business.type === "string")
-      payload.business = { type: b.business.type.trim().toLowerCase() };
+    }
+
+    if (b.business?.type && typeof b.business.type === "string") {
+      payload.business = {
+        type: b.business.type.trim().toLowerCase(),
+      };
+    }
 
     if (debug) {
       console.log("[/api/shubhdin] upstream URL:", url);
@@ -106,30 +125,37 @@ export async function POST(req: Request): Promise<Response> {
     });
 
     const text = await upstream.text();
-    const contentType = upstream.headers.get("content-type") || "application/json";
+    const contentType =
+      upstream.headers.get("content-type") || "application/json";
 
     if (!upstream.ok) {
       console.error("[/api/shubhdin] backend error", {
         status: upstream.status,
         url,
-        req: JSON.stringify(payload).slice(0, 500),
-        resp: text.slice(0, 500),
+        requestBody: JSON.stringify(payload).slice(0, 500),
+        responseBody: text.slice(0, 500),
       });
     }
 
     return new Response(text, {
       status: upstream.status,
-      headers: { "Content-Type": contentType, "Cache-Control": "no-store" },
+      headers: {
+        "Content-Type": contentType,
+        "Cache-Control": "no-store",
+      },
     });
   } catch (err) {
-    console.error("[/api/shubhdin] proxy error →", err);
+    console.error("[/api/shubhdin] proxy exception →", err);
+
     const name = getErrorName(err);
     const msg = err instanceof Error ? err.message : String(err);
     const isAbort = name === "AbortError" || /aborted/i.test(msg);
+
     const status = isAbort ? 504 : 500;
     const body = isAbort
-      ? { error: `Upstream timeout after ${getTimeoutMs(req.url)} ms` }
+      ? { error: `Upstream timeout after ${timeoutMs} ms` }
       : { error: `Proxy error: ${msg}` };
+
     return new Response(JSON.stringify(body), {
       status,
       headers: { "Content-Type": "application/json" },
@@ -139,6 +165,9 @@ export async function POST(req: Request): Promise<Response> {
   }
 }
 
+// --------------------------------------------------
+// GET /api/shubhdin (health / hint)
+// --------------------------------------------------
 export async function GET(): Promise<Response> {
   return new Response(
     JSON.stringify({

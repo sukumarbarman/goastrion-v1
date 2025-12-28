@@ -1,7 +1,9 @@
-
 // ================================================
 // app/api/contact/route.ts  (Forwarder → backend or webhook)
 // ================================================
+
+import { backend } from "@/app/lib/backend";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -27,12 +29,7 @@ interface ForwardPayload {
   ts: string;
 }
 
-function getBackendBase(): string {
-  const raw = process.env.BACKEND_URL || "http://127.0.0.1:8001";
-  return raw.replace(/\/+$/, "");
-}
-
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   try {
     const raw = (await req.json()) as ContactBody;
 
@@ -44,7 +41,10 @@ export async function POST(req: Request) {
     const path = (raw.path ?? "").trim();
 
     if (!email || !message) {
-      return new Response(JSON.stringify({ error: "Email and message are required." }), { status: 400 });
+      return new Response(
+        JSON.stringify({ error: "Email and message are required." }),
+        { status: 400 }
+      );
     }
 
     const payload: ForwardPayload = {
@@ -81,7 +81,7 @@ export async function POST(req: Request) {
         await forwardToBackend(payload);
       }
     } else {
-      // Otherwise forward to Django if reachable
+      // Otherwise forward directly to backend
       await forwardToBackend(payload);
     }
 
@@ -92,19 +92,28 @@ export async function POST(req: Request) {
   }
 }
 
-function defaultSubject(k: ContactKind) {
+// --------------------------------------------------
+// Helpers
+// --------------------------------------------------
+function defaultSubject(k: ContactKind): string {
   switch (k) {
-    case "feedback": return "Product feedback";
-    case "bug": return "Bug report";
-    case "feature": return "Feature request";
-    default: return "General inquiry";
+    case "feedback":
+      return "Product feedback";
+    case "bug":
+      return "Bug report";
+    case "feature":
+      return "Feature request";
+    default:
+      return "General inquiry";
   }
 }
 
 async function forwardToBackend(payload: ForwardPayload): Promise<void> {
-  const url = `${getBackendBase()}/api/contact/submit`;
+  const url = `${backend()}/api/contact/submit`;
+
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), 8000);
+
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -113,8 +122,9 @@ async function forwardToBackend(payload: ForwardPayload): Promise<void> {
       signal: ac.signal,
     });
     clearTimeout(timer);
+
     if (!res.ok) {
-      // Log for observability; do not crash user.
+      // Log only; do not break user flow
       console.warn("/api/contact: backend forward failed", res.status);
     }
   } catch (e) {
