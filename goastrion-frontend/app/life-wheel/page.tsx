@@ -195,7 +195,7 @@ export default function DomainsPage() {
         )
       );
 
-    fetch("/api/chart", {
+    fetch("/api/charts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
