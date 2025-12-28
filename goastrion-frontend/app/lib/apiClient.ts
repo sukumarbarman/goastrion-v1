@@ -37,9 +37,18 @@ function buildUrl(endpoint: string): string {
     : endpoint.startsWith("/") ? endpoint : "/" + endpoint;
 }
 
-function withAuth(headers: HeadersInit = {}, token?: string): HeadersInit {
-  return token ? { ...headers, Authorization: `Bearer ${token}` } : headers;
+function getStoredAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("auth.access");
 }
+
+function withAuth(headers: HeadersInit = {}, token?: string): HeadersInit {
+  const finalToken = token ?? getStoredAccessToken();
+  return finalToken
+    ? { ...headers, Authorization: `Bearer ${finalToken}` }
+    : headers;
+}
+
 
 async function parseJsonSafe(resp: Response): Promise<unknown> {
   const text = await resp.text();
