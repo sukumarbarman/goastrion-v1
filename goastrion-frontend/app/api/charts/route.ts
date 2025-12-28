@@ -1,28 +1,48 @@
-// app/api/chart/route.ts
-import { backend } from "@/app/lib/backend";
+// app/api/charts/route.ts
+import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
-export const dynamic = "force-dynamic"; // avoid caching
+export const dynamic = "force-dynamic";
 
-export async function POST(req: Request): Promise<Response> {
+function getBackendUrl(): string {
+  const raw = process.env.BACKEND_URL;
+  if (!raw) {
+    throw new Error("BACKEND_URL is not defined");
+  }
+  return raw.replace(/\/+$/, "");
+}
+
+export async function POST(req: NextRequest): Promise<Response> {
   try {
-    const bodyText = await req.text(); // pass-through JSON
+    const bodyText = await req.text();
 
-    // 🔑 Forward Authorization header (JWT)
-    const auth = req.headers.get("authorization");
+    // 🔑 Get Authorization header from client request
+    const authHeader = req.headers.get("authorization");
 
-    const res = await fetch(
-      `${backend()}/api/astro/charts/`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(auth ? { Authorization: auth } : {}),
-        },
-        body: bodyText || "{}",
-        cache: "no-store",
-      }
-    );
+    // Also check for cookie-based auth if you're using that
+    const cookies = req.headers.get("cookie");
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    // Forward Authorization header if present
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
+    // Forward cookies if present
+    if (cookies) {
+      headers["Cookie"] = cookies;
+    }
+
+    const backendUrl = getBackendUrl();
+    const res = await fetch(`${backendUrl}/api/astro/charts/`, {
+      method: "POST",
+      headers,
+      body: bodyText || "{}",
+      cache: "no-store",
+    });
 
     const ct = res.headers.get("content-type") || "application/json";
     const text = await res.text();
@@ -35,12 +55,52 @@ export async function POST(req: Request): Promise<Response> {
       },
     });
   } catch (e: unknown) {
-    const message =
-      e instanceof Error
-        ? e.message
-        : typeof e === "string"
-        ? e
-        : "Proxy error";
+    const message = e instanceof Error ? e.message : "Proxy error";
+    console.error("[charts API] Error:", message);
+
+    return Response.json(
+      { error: message },
+      { status: 500 }
+    );
+  }
+}
+
+// Add GET method to list charts
+export async function GET(req: NextRequest): Promise<Response> {
+  try {
+    const authHeader = req.headers.get("authorization");
+    const cookies = req.headers.get("cookie");
+
+    const headers: Record<string, string> = {};
+
+    if (authHeader) {
+      headers["Authorization"] = authHeader;
+    }
+
+    if (cookies) {
+      headers["Cookie"] = cookies;
+    }
+
+    const backendUrl = getBackendUrl();
+    const res = await fetch(`${backendUrl}/api/astro/charts/`, {
+      method: "GET",
+      headers,
+      cache: "no-store",
+    });
+
+    const ct = res.headers.get("content-type") || "application/json";
+    const text = await res.text();
+
+    return new Response(text, {
+      status: res.status,
+      headers: {
+        "Content-Type": ct,
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (e: unknown) {
+    const message = e instanceof Error ? e.message : "Proxy error";
+    console.error("[charts API] Error:", message);
 
     return Response.json(
       { error: message },
