@@ -440,72 +440,107 @@ export default function CreateChartClient() {
     return () => clearTimeout(handle);
   }, [placeTyping, lookupPlace]);
 
-  /* -------- Generate -------- */
- // app/components/CreateChartClient.tsx
-// Find the onGenerate function around line 449 and update the fetch call:
+    // app/components/CreateChartClient.tsx
+// Replace your entire onGenerate function with this:
 
-async function onGenerate(): Promise<void> {
-  setError(null);
-  setLoading(true);
+    async function onGenerate(): Promise<void> {
+      setError(null);
+      setLoading(true);
 
-  const ctrl = new AbortController();
-  try {
-    if (!dob || !tob || !lat || !lon) throw new Error(tOr("create.validation.missingFields", "Please enter date, time, latitude and longitude."));
-    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
-    if (!m) throw new Error(tOr("create.validation.badDate", "Date must be YYYY-MM-DD."));
-    const yr = parseInt(m[1], 10);
-    if (yr < 1000 || yr > 2099) throw new Error(tOr("create.validation.badYearRange", "Year must be between 1000 and 2099."));
-    if (!/^\d{2}:\d{2}$/.test(tob)) throw new Error(tOr("create.validation.badTime", "Enter time as HH:MM"));
+      const ctrl = new AbortController();
+      try {
+        if (!dob || !tob || !lat || !lon) throw new Error(tOr("create.validation.missingFields", "Please enter date, time, latitude and longitude."));
+        const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dob);
+        if (!m) throw new Error(tOr("create.validation.badDate", "Date must be YYYY-MM-DD."));
+        const yr = parseInt(m[1], 10);
+        if (yr < 1000 || yr > 2099) throw new Error(tOr("create.validation.badYearRange", "Year must be between 1000 and 2099."));
+        if (!/^\d{2}:\d{2}$/.test(tob)) throw new Error(tOr("create.validation.badTime", "Enter time as HH:MM"));
 
-    const latNum = parseFloat(lat); const lonNum = parseFloat(lon);
-    if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) throw new Error(tOr("create.validation.badCoords", "Latitude/Longitude must be numbers"));
-    if (latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) throw new Error(tOr("create.validation.coordsRange", "Latitude/Longitude out of range"));
+        const latNum = parseFloat(lat);
+        const lonNum = parseFloat(lon);
+        if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) throw new Error(tOr("create.validation.badCoords", "Latitude/Longitude must be numbers"));
+        if (latNum < -90 || latNum > 90 || lonNum < -180 || lonNum > 180) throw new Error(tOr("create.validation.coordsRange", "Latitude/Longitude out of range"));
 
-    const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
-    if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
+        const { dtIsoUtc, tzHours } = localCivilToUtcIso(dob, tob, tzId);
+        if (!dtIsoUtc) throw new Error(tOr("errors.genericGenerate", "Failed to generate chart."));
 
-    // 🔑 Get auth token from localStorage or cookies
-    const token = localStorage.getItem("token") || localStorage.getItem("access_token");
+        // 🔑 FIXED: Get auth token from localStorage
+        // Your app uses 'auth.access' as the key
+        const token = localStorage.getItem("auth.access");
 
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
+        const headers: Record<string, string> = {
+          "Content-Type": "application/json",
+        };
 
-    // Add Authorization header if token exists
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
+        // Add Authorization header if token exists
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`;
+        }
+
+        const res = await fetch(`/api/charts`, {
+          method: "POST",
+          headers,
+          signal: ctrl.signal,
+          body: JSON.stringify({
+            datetime: dtIsoUtc,
+            lat: latNum,
+            lon: lonNum,
+            tz_offset_hours: tzHours
+          }),
+        });
+
+        let data: ApiResp | null = null;
+        const text = await res.text();
+        try {
+          data = text ? (JSON.parse(text) as ApiResp) : null;
+        } catch {}
+
+        if (!res.ok) {
+          const errMsg = data?.error || (text && text.slice(0, 200)) || `HTTP ${res.status}`;
+          throw new Error(errMsg);
+        }
+
+        // keep raw, derive localized
+        const serverSvg = data?.svg || "";
+        const serverSummary = (data && data.summary) || {};
+
+        setRawSvg(serverSvg);
+        setRawSummary(serverSummary);
+
+        setSvg(serverSvg ? makeSvgResponsive(localizeSvgPlanets(serverSvg, t)) : "");
+        setSummary(buildSummaryEntries(serverSummary, locale, t));
+
+        // Vimshottari
+        const vRaw = (data?.meta?.["vimshottari"] ?? null) as unknown;
+        const vDash: DashaTimeline | null =
+          typeof vRaw === "object" &&
+          vRaw !== null &&
+          "mahadashas" in (vRaw as Record<string, unknown>) &&
+          Array.isArray((vRaw as { mahadashas: unknown[] }).mahadashas) &&
+          (vRaw as { mahadashas: unknown[] }).mahadashas.length > 0
+            ? (vRaw as DashaTimeline)
+            : null;
+        setVimshottari(vDash);
+
+        // Persist Daily page seed
+        try {
+          saveBirth({
+            datetime: dtIsoUtc,
+            lat: latNum,
+            lon: lonNum,
+            tz: IANA_BY_TZID[tzId] || "Asia/Kolkata"
+          });
+        } catch {}
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : tOr("errors.genericGenerate", "Failed to generate chart.");
+        setError(msg);
+      } finally {
+        setLoading(false);
+        ctrl.abort();
+      }
     }
 
-    const res = await fetch(`/api/charts`, {  // ← Using /api/charts (plural)
-      method: "POST",
-      headers,
-      signal: ctrl.signal,
-      body: JSON.stringify({
-        datetime: dtIsoUtc,
-        lat: latNum,
-        lon: lonNum,
-        tz_offset_hours: tzHours
-      }),
-    });
 
-    let data: ApiResp | null = null;
-    const text = await res.text();
-    try { data = text ? (JSON.parse(text) as ApiResp) : null; } catch {}
-
-    if (!res.ok) {
-      const errMsg = data?.error || (text && text.slice(0, 200)) || `HTTP ${res.status}`;
-      throw new Error(errMsg);
-    }
-
-    // ... rest of your code
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : tOr("errors.genericGenerate", "Failed to generate chart.");
-    setError(msg);
-  } finally {
-    setLoading(false);
-    ctrl.abort();
-  }
-}
 
   function onReset() {
     setChartName(""); setDob(""); setTob(""); setTzId("IST"); setPlace("");

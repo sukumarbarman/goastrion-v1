@@ -1,4 +1,6 @@
 // app/api/charts/route.ts
+// This file forwards requests to your Django backend at /api/astro/charts/
+
 import { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
@@ -18,8 +20,6 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     // 🔑 Get Authorization header from client request
     const authHeader = req.headers.get("authorization");
-
-    // Also check for cookie-based auth if you're using that
     const cookies = req.headers.get("cookie");
 
     const headers: Record<string, string> = {
@@ -31,12 +31,16 @@ export async function POST(req: NextRequest): Promise<Response> {
       headers["Authorization"] = authHeader;
     }
 
-    // Forward cookies if present
+    // Forward cookies if present (for CSRF token)
     if (cookies) {
       headers["Cookie"] = cookies;
     }
 
     const backendUrl = getBackendUrl();
+
+    console.log("[charts API] POST to:", `${backendUrl}/api/astro/charts/`);
+    console.log("[charts API] Has auth:", !!authHeader);
+
     const res = await fetch(`${backendUrl}/api/astro/charts/`, {
       method: "POST",
       headers,
@@ -46,6 +50,8 @@ export async function POST(req: NextRequest): Promise<Response> {
 
     const ct = res.headers.get("content-type") || "application/json";
     const text = await res.text();
+
+    console.log("[charts API] Backend status:", res.status);
 
     return new Response(text, {
       status: res.status,
@@ -65,7 +71,6 @@ export async function POST(req: NextRequest): Promise<Response> {
   }
 }
 
-// Add GET method to list charts
 export async function GET(req: NextRequest): Promise<Response> {
   try {
     const authHeader = req.headers.get("authorization");
@@ -100,7 +105,7 @@ export async function GET(req: NextRequest): Promise<Response> {
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Proxy error";
-    console.error("[charts API] Error:", message);
+    console.error("[charts API] GET Error:", message);
 
     return Response.json(
       { error: message },
