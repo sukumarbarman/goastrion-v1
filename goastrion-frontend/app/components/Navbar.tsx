@@ -69,10 +69,17 @@ export default function Navbar({
       <Container>
         <div className="flex items-center justify-between py-3">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <Image src="/logo.png" alt="GoAstrion" width={36} height={36} />
-            <span className="text-cyan-300 font-bold text-lg">GoAstrion</span>
-          </Link>
+<Link href="/" className="flex items-center">
+  <Image
+    src="/logo1.png"
+    alt="GoAstrion"
+    height={32}
+    width={160} // approximate, keeps layout stable
+    priority
+    className="h-7 md:h-8 w-auto"
+  />
+</Link>
+
 
           {/* Links */}
           <nav className="hidden md:flex gap-6 text-sm text-slate-300">
