@@ -32,9 +32,10 @@ export default function Navbar({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const NAV_ITEMS = [
+    { slug: "create", key: "navbar.create", fallback: "Create" },
     { slug: "daily", key: "navbar.daily", fallback: "Today" },
     { slug: "shubhdin", key: "navbar.shubhdin", fallback: "ShubhDin" },
-    { slug: "create", key: "navbar.create", fallback: "Create" },
+
     { slug: "saturn", key: "navbar.saturn", fallback: "Saturn" },
     { slug: "vimshottari", key: "navbar.vimshottari", fallback: "Vimshottari" },
     { slug: "life-wheel", key: "navbar.lifeSpheres", fallback: "Life Wheel" },
