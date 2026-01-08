@@ -1,3 +1,4 @@
+//goastrion-frontend/app/components/MeetieeBottomBar.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -5,10 +6,30 @@ import { useEffect, useState } from "react";
 export default function MeetieeBottomBar() {
   const [visible, setVisible] = useState(false);
   const [animate, setAnimate] = useState(false);
+  const [isNight, setIsNight] = useState<boolean | null>(null);
 
-  // ---------------- Day / Night Logic ----------------
-  const hour = new Date().getHours();
-  const isNight = hour >= 19 || hour < 6;
+  /* ------------------ CLIENT-ONLY TIME LOGIC ------------------ */
+  useEffect(() => {
+    const hour = new Date().getHours();
+    setIsNight(hour >= 19 || hour < 6);
+  }, []);
+
+  /* ------------------ VISIBILITY LOGIC ------------------ */
+  useEffect(() => {
+    if (isNight === null) return;
+
+    const dismissedAt = localStorage.getItem("meetiee_bar_dismissed");
+    if (dismissedAt && Date.now() - Number(dismissedAt) < 86400000) return;
+
+    const showTimer = setTimeout(() => {
+      setVisible(true);
+      requestAnimationFrame(() => setAnimate(true));
+    }, 6000);
+
+    return () => clearTimeout(showTimer);
+  }, [isNight]);
+
+  if (!visible || isNight === null) return null;
 
   const copy = isNight
     ? {
@@ -40,78 +61,35 @@ export default function MeetieeBottomBar() {
         cta: "Try Meetiee Free",
       };
 
-  // ---------------- Visibility + Auto-hide Logic ----------------
-  useEffect(() => {
-    const dismissed = localStorage.getItem("meetiee_bar_dismissed");
-    if (dismissed) return;
-
-    // show after 6s
-    const showTimer = setTimeout(() => {
-      setVisible(true);
-      requestAnimationFrame(() => setAnimate(true));
-    }, 6000);
-
-    // auto-hide after 15s (from show time)
-    const hideTimer = setTimeout(() => {
-      setAnimate(false);
-      setTimeout(() => setVisible(false), 300); // allow exit animation
-    }, 21000); // 6s delay + 15s visible
-
-    return () => {
-      clearTimeout(showTimer);
-      clearTimeout(hideTimer);
-    };
-  }, []);
-
-  if (!visible) return null;
-
   return (
-    <div
-      className="
-        fixed z-50 pointer-events-none
-        bottom-0 inset-x-0
-        lg:bottom-1/2 lg:inset-x-auto lg:right-4 lg:translate-y-1/2
-      "
-    >
+    <div className="fixed bottom-0 inset-x-0 z-50">
       <div
         className={`
-          pointer-events-auto
-          max-w-xl lg:max-w-sm
-          mx-3 lg:mx-0 mb-3 lg:mb-0
-          rounded-xl border border-indigo-500/30
-          bg-[#0B1020]/95 backdrop-blur
-          px-4 py-3 shadow-xl
-          transform transition-all duration-500 ease-out
-          ${
-            animate
-              ? "translate-y-0 opacity-100 lg:translate-x-0"
-              : "translate-y-8 opacity-0 lg:translate-x-8 lg:translate-y-0"
-          }
+          mx-3 mb-3 rounded-xl border border-indigo-500/30
+          bg-[#0B1020]/95 backdrop-blur px-4 py-3 shadow-xl
+          transform transition-all duration-500
+          ${animate ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"}
         `}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className="text-sm leading-snug">
+          <div className="text-sm">
             <div className="text-indigo-400 text-xs font-semibold mb-1">
               {copy.badge}
             </div>
-
-            <div className="text-slate-100 font-medium">
-              {copy.title}
-            </div>
-
-            <div className="text-slate-400">
-              {copy.body}
-            </div>
+            <div className="text-slate-100 font-medium">{copy.title}</div>
+            <div className="text-slate-400">{copy.body}</div>
           </div>
 
           <button
             onClick={() => {
-              localStorage.setItem("meetiee_bar_dismissed", "1");
+              localStorage.setItem(
+                "meetiee_bar_dismissed",
+                Date.now().toString()
+              );
               setAnimate(false);
               setTimeout(() => setVisible(false), 300);
             }}
             className="text-slate-400 hover:text-slate-200 text-lg"
-            aria-label="Dismiss"
           >
             ✕
           </button>
@@ -121,12 +99,7 @@ export default function MeetieeBottomBar() {
           href="https://meetiee.com/"
           target="_blank"
           rel="noopener noreferrer"
-          className="
-            mt-3 inline-flex w-full items-center justify-center
-            rounded-md bg-indigo-600 px-4 py-2
-            text-sm font-medium text-white
-            hover:bg-indigo-500 transition
-          "
+          className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
         >
           {copy.cta}
         </a>
